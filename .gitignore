@@ -2,9 +2,11 @@
 /.vscode/
 /.claude/
 
-/work.*
-
+/dist/
+/docs/
 /node_modules/
+
+/work/
 
 *~
 ~*

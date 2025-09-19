@@ -1,0 +1,29 @@
+{
+  "includeVersion": true,
+  "sort": [
+    "source-order"
+  ],
+  "categorizeByGroup": true,
+  "groupOrder": [
+    "Interfaces",
+    "Type Aliases",
+    "Runtime Guards",
+    "Value Guards",
+    "Value Casts",
+    "Structural Utilities",
+    "Error Utilities",
+    "*"
+  ],
+  "useFirstParagraphOfCommentAsSummary": true,
+  "favicon": "https://www.metreeca.com/assets/icon.ico",
+  "sourceLinkExternal": true,
+  "markdownLinkExternal": true,
+  "navigationLinks": {
+    "GitHub": "https://github.com/metreeca/core"
+  },
+  "hideGenerator": true,
+  "customFooterHtml": "Copyright © 2025 <a href='https://www.metreeca.com/'><img src='https://www.metreeca.com/assets/icon.svg' alt='Metreeca' style='width: 1.25em; height: 1.25em; vertical-align: bottom;'/> Metreeca</a>",
+  "headings": {
+    "readme": false
+  }
+}
