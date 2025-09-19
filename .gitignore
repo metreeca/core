@@ -1,0 +1,10 @@
+/.idea/
+/.vscode/
+/.claude/
+
+/work.*
+
+/node_modules/
+
+*~
+~*
