@@ -14,6 +14,10 @@ providing utilities for type guards, safe casts, comparisons, immutability, data
 npm install @metreeca/core
 ```
 
+> [!WARNING]
+> TypeScript consumers must use `"moduleResolution": "bundler"` (or `"node16"`/`"nodenext"`) in `tsconfig.json`. The
+> legacy `"node"` resolver is not supported.
+
 # Usage
 
 ## Runtime Guards
