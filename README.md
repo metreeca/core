@@ -1,12 +1,12 @@
-# Metreeca/Core
+# @metreeca/core
 
 [![npm](https://img.shields.io/npm/v/@metreeca/core)](https://www.npmjs.com/package/@metreeca/core)
 
 A lightweight library of core TypeScript utilities.
 
 **@metreeca/core** is a zero-dependency foundation for type-safe operations, data validation, and functional
-programming,
-providing utilities for type guards, safe casts, comparisons, immutability, data manipulation, and error handling.
+programming, providing utilities for type guards, safe casts, comparisons, immutability, data manipulation, and error
+handling.
 
 # Installation
 
