@@ -37,10 +37,12 @@
     "clean": "rm -rf dist docs node_modules",
     "setup": "npm install",
     "build": "rm -rf dist docs && tsc && typedoc",
-    "check": "npx jest"
+    "check": "npx jest",
+    "watch": "npx typedoc --watch & npx five-server docs --open"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
+    "five-server": "^0.4.4",
     "jest": "^30.1.3",
     "ts-jest": "^29.4.3",
     "typedoc": "^0.28.14",
