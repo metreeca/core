@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:typedoc.org)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(gh --version)",
+      "WebFetch(domain:tsdoc.org)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
