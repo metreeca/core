@@ -106,7 +106,7 @@ export function isError(value: unknown): value is Error {
  *
  * @returns `true` if the value is a thenable object (has a `then` method)
  */
-export function isPromise<T=unknown>(value: unknown): value is Promise<T> {
+export function isPromise<T = unknown>(value: unknown): value is Promise<T> {
 	return value != null && typeof value === "object" && "then" in value && isFunction(value.then);
 }
 
@@ -119,7 +119,7 @@ export function isPromise<T=unknown>(value: unknown): value is Promise<T> {
  *
  * @returns `true` if the value implements the iterable protocol (has a `[Symbol.iterator]` method)
  */
-export function isIterable<T=unknown>(value: unknown): value is Iterable<T> {
+export function isIterable<T = unknown>(value: unknown): value is Iterable<T> {
 	return value != null && isFunction((value as { [Symbol.iterator]?: unknown })[Symbol.iterator]);
 }
 
@@ -132,7 +132,7 @@ export function isIterable<T=unknown>(value: unknown): value is Iterable<T> {
  *
  * @returns `true` if the value implements the async iterable protocol (has a `[Symbol.asyncIterator]` method)
  */
-export function isAsyncIterable<T=unknown>(value: unknown): value is AsyncIterable<T> {
+export function isAsyncIterable<T = unknown>(value: unknown): value is AsyncIterable<T> {
 	return value != null && isFunction((value as { [Symbol.asyncIterator]?: unknown })[Symbol.asyncIterator]);
 }
 
@@ -192,14 +192,14 @@ export function isString(value: unknown): value is string {
  *
  * @see https://stackoverflow.com/a/52694022/739773
  */
-export function isObject<K extends PropertyKey=PropertyKey, V=unknown>(value: unknown): value is Record<K, V> {
+export function isObject<K extends PropertyKey = PropertyKey, V = unknown>(value: unknown): value is Record<K, V> {
 	if ( value === null || value === undefined || typeof value !== "object" ) {
 
 		return false;
 
 	} else {
 
-		const proto=Object.getPrototypeOf(value);
+		const proto = Object.getPrototypeOf(value);
 
 		return proto === Object.prototype || proto === null;
 
@@ -218,7 +218,7 @@ export function isObject<K extends PropertyKey=PropertyKey, V=unknown>(value: un
  *
  * @returns `true` if the value is an array. Empty arrays return `true` even when an element type guard is provided.
  */
-export function isArray<T=unknown>(value: unknown, is?: (value: unknown) => value is T): value is T[] {
+export function isArray<T = unknown>(value: unknown, is?: (value: unknown) => value is T): value is T[] {
 	return Array.isArray(value) && (is === undefined || value.every(is));
 }
 
@@ -276,7 +276,7 @@ export function asString(value: unknown): undefined | string {
  *
  * @returns The value if it is a plain object, `undefined` otherwise
  */
-export function asObject<K extends PropertyKey=PropertyKey, V=unknown>(value: unknown): undefined | Record<K, V> {
+export function asObject<K extends PropertyKey = PropertyKey, V = unknown>(value: unknown): undefined | Record<K, V> {
 	return isObject<K, V>(value) ? value : undefined;
 }
 
@@ -292,7 +292,7 @@ export function asObject<K extends PropertyKey=PropertyKey, V=unknown>(value: un
  *
  * @returns The value if it is an array (with validated elements if `is` provided), `undefined` otherwise
  */
-export function asArray<T=unknown>(value: unknown, is?: (value: unknown) => value is T): undefined | T[] {
+export function asArray<T = unknown>(value: unknown, is?: (value: unknown) => value is T): undefined | T[] {
 	return isArray<T>(value, is) ? value : undefined;
 }
 
@@ -324,8 +324,8 @@ export function equals(x: unknown, y: unknown): boolean {
 
 	function objectEquals(x: { [s: string | number | symbol]: unknown }, y: typeof x) {
 
-		const xKeys=Object.keys(x);
-		const yKeys=Object.keys(y);
+		const xKeys = Object.keys(x);
+		const yKeys = Object.keys(y);
 
 		return xKeys.length !== yKeys.length ? false
 			: xKeys.every(key => key in y && equals(x[key], y[key]));
@@ -335,20 +335,23 @@ export function equals(x: unknown, y: unknown): boolean {
 		return x.length === y.length && x.every((value, index) => equals(value, y[index]));
 	}
 
-	return isObject(x) ? isObject(y) && objectEquals(x, y)
-		: isArray(x) ? isArray(y) && arrayEquals(x, y)
+	return isArray(x) ? isArray(y) && arrayEquals(x, y)
+		: isObject(x) ? isObject(y) && objectEquals(x, y)
 			: Object.is(x, y);
 }
 
 /**
  * Creates an immutable deep clone.
  *
- * Only plain objects and arrays are recursively cloned. Other object types
+ * Plain objects, arrays, and functions with custom properties are recursively cloned
+ * and frozen. Functions without custom properties are returned as-is. Other object types
  * (Date, RegExp, Buffer, etc.) are returned as-is to preserve their functionality.
  *
  * @group Structural Utilities
  *
  * @typeParam T The type of the value to be cloned
+ *
+ * @param value The value to make immutable
  *
  * @returns A deeply immutable clone of `value`
  *
@@ -356,24 +359,34 @@ export function equals(x: unknown, y: unknown): boolean {
  *
  * This function does not handle circular references and will cause
  * infinite recursion leading to a stack overflow if the input contains cycles.
+ *
+ * For functions with custom properties, built-in read-only properties (`length`, `name`, `prototype`)
+ * are preserved unchanged while custom writable properties are frozen recursively.
  */
 export function immutable<T>(value: T): Readonly<T> {
 
-	if ( isArray(value) || isObject(value) ) {
+	return isFunction(value) ? freeze(value, value)
+		: isArray(value) ? freeze(value, [])
+			: isObject(value) ? freeze(value, {})
+				: value;
 
+
+	function freeze(value: T, accumulator: {}) {
 		return Object.freeze(Reflect.ownKeys(value as object).reduce((object: any, key) => {
 
-			object[key]=immutable((value as Record<PropertyKey, unknown>)[key]);
+			const descriptor = Object.getOwnPropertyDescriptor(value, key);
+
+			if ( descriptor && descriptor.writable !== false && descriptor.configurable !== false ) {
+
+				object[key] = immutable((value as Record<PropertyKey, unknown>)[key]);
+
+			}
 
 			return object;
 
-		}, Array.isArray(value) ? [] : {})) as Readonly<T>;
-
-	} else {
-
-		return value;
-
+		}, accumulator));
 	}
+
 }
 
 
