@@ -5,7 +5,9 @@
       "WebSearch",
       "WebFetch(domain:github.com)",
       "Bash(gh --version)",
-      "WebFetch(domain:tsdoc.org)"
+      "WebFetch(domain:tsdoc.org)",
+      "Bash(npm run check:*)",
+      "Skill(typedoc-writer)"
     ],
     "deny": [],
     "ask": []

@@ -180,7 +180,7 @@ describe("Runtime Guards", () => {
 	describe("isAsyncIterable()", () => {
 
 		it("should return true for async iterables", () => {
-			const asyncIterable={
+			const asyncIterable = {
 				async* [Symbol.asyncIterator]() {
 					yield 1;
 				}
@@ -361,13 +361,13 @@ describe("Value Casts", () => {
 	describe("asObject()", () => {
 
 		it("should return plain objects", () => {
-			const obj={ uno: 1, due: 2 };
+			const obj = { uno: 1, due: 2 };
 			expect(asObject(obj)).toBe(obj);
 			expect(asObject({})).toEqual({});
 		});
 
 		it("should return objects with null prototype", () => {
-			const obj=Object.create(null);
+			const obj = Object.create(null);
 			expect(asObject(obj)).toBe(obj);
 		});
 
@@ -391,7 +391,7 @@ describe("Value Casts", () => {
 	describe("asArray()", () => {
 
 		it("should return array values", () => {
-			const arr=[1, 2, 3];
+			const arr = [1, 2, 3];
 			expect(asArray(arr)).toBe(arr);
 			expect(asArray([])).toEqual([]);
 		});
@@ -449,8 +449,8 @@ describe("Structural Utilities", () => {
 
 		it("should handle functions", async () => {
 
-			const uno=() => 1;
-			const due=() => 2;
+			const uno = () => 1;
+			const due = () => 2;
 
 			expect(equals(uno, uno)).toBeTruthy();
 			expect(equals(uno, due)).toBeFalsy();
@@ -548,8 +548,8 @@ describe("Structural Utilities", () => {
 
 		it("should return input primitives", async () => {
 
-			const value="x";
-			const clone=immutable(value);
+			const value = "x";
+			const clone = immutable(value);
 
 			expect(clone).toBe(value);
 
@@ -557,29 +557,76 @@ describe("Structural Utilities", () => {
 
 		it("should return an immutable object clone", async () => {
 
-			const value={ uno: 1, due: 2 };
-			const clone=immutable(value);
+			const value = { uno: 1, due: 2 };
+			const clone = immutable(value);
 
 			expect(clone).not.toBe(value);
 			expect(clone).toEqual(value);
 
-			expect(() => (clone as any).uno=3).toThrow();
+			expect(() => (clone as any).uno = 3).toThrow();
 
 		});
 
 		it("should return an immutable array clone", async () => {
 
-			const value=[1, 2];
-			const clone=immutable(value);
+			const value = [1, 2];
+			const clone = immutable(value);
 
 			expect(clone).not.toBe(value);
 			expect(clone).toEqual(value);
 
-			expect(() => (clone as any)[1]=3).toThrow();
+			expect(() => (clone as any)[1] = 3).toThrow();
+
+		});
+
+		it("should return a plain function as-is", async () => {
+
+			const value = () => "hello";
+			const clone = immutable(value);
+
+			expect(clone).toBe(value);
+			expect((clone as any)()).toBe("hello");
+
+		});
+
+		it("should freeze custom properties on functions", async () => {
+
+			type FnWithConfig = (() => string) & { config: { port: number } };
+
+			const value = (() => "hello") as FnWithConfig;
+			value.config = { port: 3000 };
+
+			const fn = immutable(value);
+
+			expect(fn).toBe(value); // Same function reference
+			expect((fn as any)()).toBe("hello"); // Function still works
+			expect(fn.config).toEqual({ port: 3000 }); // Property preserved
+
+			// Should not be able to modify custom properties
+			expect(() => (fn as any).config.port = 8080).toThrow();
+			expect(() => (fn as any).config = { port: 8080 }).toThrow();
+
+		});
+
+		it("should deeply freeze nested properties on functions", async () => {
+
+			type FnWithNestedConfig = (() => string) & { config: { server: { host: string } } };
+
+			const value = (() => "hello") as FnWithNestedConfig;
+			value.config = { server: { host: "localhost" } };
+
+			const fn = immutable(value);
+
+			expect(fn.config.server.host).toBe("localhost");
+
+			// Should not be able to modify deeply nested properties
+			expect(() => (fn as any).config.server.host = "example.com").toThrow();
+			expect(() => (fn as any).config.server = { host: "example.com" }).toThrow();
 
 		});
 
 	});
+
 
 });
 
@@ -593,13 +640,13 @@ describe("Error Utilities", () => {
 		});
 
 		it("should throw the provided Error instance", () => {
-			const customError=new TypeError("custom error");
+			const customError = new TypeError("custom error");
 			expect(() => error(customError)).toThrow(TypeError);
 			expect(() => error(customError)).toThrow("custom error");
 		});
 
 		it("should never return a value", () => {
-			const fn=(): string => {
+			const fn = (): string => {
 				return error("unreachable");
 			};
 			expect(fn).toThrow();
