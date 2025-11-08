@@ -143,6 +143,8 @@ export function isAsyncIterable<T=unknown>(value: unknown): value is AsyncIterab
  * Checks if a value is a boolean.
  *
  * @group Value Guards
+ *
+ * @returns `true` if the value is a boolean
  */
 export function isBoolean(value: unknown): value is boolean {
 	return typeof value === "boolean";
@@ -152,6 +154,8 @@ export function isBoolean(value: unknown): value is boolean {
  * Checks if a value is a finite number.
  *
  * @group Value Guards
+ *
+ * @returns `true` if the value is a finite number
  */
 export function isNumber(value: unknown): value is number {
 	return Number.isFinite(value);
@@ -161,6 +165,8 @@ export function isNumber(value: unknown): value is number {
  * Checks if a value is a string.
  *
  * @group Value Guards
+ *
+ * @returns `true` if the value is a string
  */
 export function isString(value: unknown): value is string {
 	return typeof value === "string";
@@ -181,6 +187,8 @@ export function isString(value: unknown): value is string {
  *
  * @typeParam K The type of property keys
  * @typeParam V The type of property values
+ *
+ * @returns `true` if the value is a plain object
  *
  * @see https://stackoverflow.com/a/52694022/739773
  */
@@ -207,6 +215,8 @@ export function isObject<K extends PropertyKey=PropertyKey, V=unknown>(value: un
  *
  * @param value The value to check
  * @param is Optional type guard to validate array elements
+ *
+ * @returns `true` if the value is an array. Empty arrays return `true` even when an element type guard is provided.
  */
 export function isArray<T=unknown>(value: unknown, is?: (value: unknown) => value is T): value is T[] {
 	return Array.isArray(value) && (is === undefined || value.every(is));
@@ -220,6 +230,8 @@ export function isArray<T=unknown>(value: unknown, is?: (value: unknown) => valu
  *
  * @group Value Casts
  *
+ * @param value The value to check
+ *
  * @returns The value if it is a boolean, `undefined` otherwise
  */
 export function asBoolean(value: unknown): undefined | boolean {
@@ -231,6 +243,8 @@ export function asBoolean(value: unknown): undefined | boolean {
  *
  * @group Value Casts
  *
+ * @param value The value to check
+ *
  * @returns The value if it is a finite number, `undefined` otherwise
  */
 export function asNumber(value: unknown): undefined | number {
@@ -241,6 +255,8 @@ export function asNumber(value: unknown): undefined | number {
  * Retrieves a value as a string if it is one, otherwise returns `undefined`.
  *
  * @group Value Casts
+ *
+ * @param value The value to check
  *
  * @returns The value if it is a string, `undefined` otherwise
  */
@@ -255,6 +271,8 @@ export function asString(value: unknown): undefined | string {
  *
  * @typeParam K The type of property keys
  * @typeParam V The type of property values
+ *
+ * @param value The value to check
  *
  * @returns The value if it is a plain object, `undefined` otherwise
  */
@@ -298,6 +316,7 @@ export function asArray<T=unknown>(value: unknown, is?: (value: unknown) => valu
  * @returns `true` if `x` and `y` are deeply equal; `false` otherwise
  *
  * @remarks
+ *
  * This function does not handle circular references and will cause
  * infinite recursion leading to a stack overflow if the inputs contain cycles.
  */
@@ -334,6 +353,7 @@ export function equals(x: unknown, y: unknown): boolean {
  * @returns A deeply immutable clone of `value`
  *
  * @remarks
+ *
  * This function does not handle circular references and will cause
  * infinite recursion leading to a stack overflow if the input contains cycles.
  */
@@ -378,12 +398,15 @@ export function immutable<T>(value: T): Readonly<T> {
  * @example
  * ```typescript
  * // Use in ternary operator
+ *
  * const value = isValid(input) ? input : error("Invalid input");
  *
  * // Use in arrow function
+ *
  * const getRequired = (key: string) => map.get(key) ?? error(`Missing key: ${key}`);
  *
  * // Use in array method
+ *
  * const items = data.map(item => item.value ?? error("Missing value"));
  * ```
  */
