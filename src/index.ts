@@ -18,21 +18,77 @@
  * Type guards, safe casts, and core utilities.
  *
  * @groupDescription Runtime Guards
- * Type guards for runtime JavaScript types.
+ *
+ * Type guards for runtime JavaScript types and protocols.
+ *
+ * ```typescript
+ * import { isDefined, isEmpty, isFunction, isPromise, isIterable } from '@metreeca/core';
+ *
+ * if (isDefined<T>(value)) {
+ *   // value is T
+ * }
+ * and define T
+ *
+ * isEmpty({}); // true
+ * isEmpty([]); // true
+ *
+ * isFunction(() => {}); // true
+ * isPromise(Promise.resolve(42)); // true
+ * isIterable([1, 2, 3]); // true
+ * ```
  *
  * @groupDescription Value Guards
- * Type guards for JSON-like primitive values and data structures.
+ *
+ * Type guards for JSON-like values and data structures.
+ *
+ * ```typescript
+ * import { isBoolean, isNumber, isString, isObject, isArray } from '@metreeca/core';
+ *
+ * isBoolean(true); // true
+ * isNumber(42); // true (excludes NaN, Infinity)
+ * isString('hello'); // true
+ *
+ * isObject({ a: 1 }); // true
+ * isObject(new Date()); // false
+ *
+ * isArray([1, 2, 3], isNumber); // true
+ * isArray([1, 'two'], isNumber); // false
+ * ```
  *
  * @groupDescription Value Casts
- * Safe casts for JSON-like primitive values and data structures.
+ *
+ * Safe casts for JSON-like primitive values and data structures, returning `undefined` instead of throwing.
+ *
+ * ```typescript
+ * import { asNumber, asString, asObject, asArray } from '@metreeca/core';
+ *
+ * asNumber(42); // 42
+ * asNumber('42'); // undefined
+ * ```
  *
  * @groupDescription Structural Utilities
- * Utilities for structural operations on runtime types.
+ *
+ * Deep operations on complex types.
+ *
+ * ```typescript
+ * import { equals, immutable } from '@metreeca/core';
+ *
+ * equals({ a: [1, 2] }, { a: [1, 2] }); // true
+ * immutable({ a: [1, 2, 3] }); // deep frozen
+ * ```
  *
  * @groupDescription Error Utilities
- * Utilities for error handling.
  *
- * @module
+ * Throw errors in expression contexts.
+ *
+ * ```typescript
+ * import { error } from '@metreeca/core';
+ *
+ * isValid(input) ? input : error('Invalid input');
+ * findUser(id) ?? error(`User ${id} not found`);
+ * ```
+ *
+ * @module index
  */
 
 

@@ -20,73 +20,10 @@ npm install @metreeca/core
 
 # Usage
 
-## Runtime Guards
-
-[Type guards](https://metreeca.github.io/core/modules.html#Runtime_Guards) for runtime JavaScript types and protocols.
-
-```typescript
-import { isDefined, isEmpty, isFunction, isPromise, isIterable } from '@metreeca/core';
-
-if ( isDefined(value) ) { /* value is T */ }
-
-isEmpty({}); // true
-isEmpty([]); // true
-
-isFunction(() => {}); // true
-isPromise(Promise.resolve(42)); // true
-isIterable([1, 2, 3]); // true
-```
-
-## Value Guards
-
-[Type guards](https://metreeca.github.io/core/modules.html#Value_Guards) for JSON-like values and data structures.
-
-```typescript
-import { isBoolean, isNumber, isString, isObject, isArray } from '@metreeca/core';
-
-isBoolean(true); // true
-isNumber(42); // true (excludes NaN, Infinity)
-isString('hello'); // true
-
-isObject({ a: 1 }); // true
-isObject(new Date()); // false
-
-isArray([1, 2, 3], isNumber); // true
-isArray([1, 'two'], isNumber); // false
-```
-
-## Value Casts
-
-[Safe type casts](https://metreeca.github.io/core/modules.html#Value_Casts) returning `undefined` instead of throwing.
-
-```typescript
-import { asNumber, asString, asObject, asArray } from '@metreeca/core';
-
-asNumber(42); // 42
-asNumber('42'); // undefined
-```
-
-## Structural Utilities
-
-[Deep operations](https://metreeca.github.io/core/modules.html#Structural_Utilities) on complex types.
-
-```typescript
-import { equals, immutable } from '@metreeca/core';
-
-equals({ a: [1, 2] }, { a: [1, 2] }); // true
-immutable({ a: [1, 2, 3] }); // deep frozen
-```
-
-## Error Utilities
-
-[Throw errors](https://metreeca.github.io/core/modules.html#Error_Utilities) in expression contexts.
-
-```typescript
-import { error } from '@metreeca/core';
-
-isValid(input) ? input : error('Invalid input');
-findUser(id) ?? error(`User ${id} not found`);
-```
+| Module                                                                       | Description                                                                |
+|------------------------------------------------------------------------------|----------------------------------------------------------------------------|
+| [@metreeca/core](https://metreeca.github.io/core/modules.html)               | Type guards, safe casts, and core utilities                                |
+| [@metreeca/core/status](https://metreeca.github.io/core/modules/status.html) | Pattern matching for values that can be in one of several exclusive states |
 
 # Support
 
