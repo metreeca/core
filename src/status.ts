@@ -21,7 +21,7 @@
  * that are either successful or failed, UI states that are loading, ready, or error, or any domain
  * model where alternatives are mutually exclusive.
  *
- * The {@link status} function lets you handle each state with a dedicated handler, while TypeScript
+ * The {@link Status} function lets you handle each state with a dedicated handler, while TypeScript
  * ensures all states are covered and values are accessed safely. Eliminates verbose conditional
  * logic and prevents bugs from unhandled cases.
  *
@@ -87,7 +87,7 @@ import { isDefined, isFunction } from ".";
  *
  * @typeParam C The conditions type defining all possible condition variants
  */
-export type Status<C extends Conditions> = {
+export interface Status<C extends Conditions> {
 
 	/**
 	 * Handles all conditions with complete handlers.
@@ -189,7 +189,7 @@ export type Handler<V, R> =
  *
  * @returns A {@link Status} function that accepts handlers for each condition and an optional fallback
  */
-export function status<C extends Conditions>(condition: Condition<C>): Status<C> {
+export function Status<C extends Conditions>(condition: Condition<C>): Status<C> {
 
 	const [label, value] = Object.entries(condition)[0] ?? []; // find the active condition
 

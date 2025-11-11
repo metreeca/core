@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { Condition, status } from "./status";
+import { Condition, Status } from "./status";
 
 
 describe("Status", () => {
@@ -35,7 +35,7 @@ describe("Status", () => {
 		describe("complete handlers", () => {
 
 			it("should handle all cases with function handlers", () => {
-				const result = status<TestCases>({ value: "success" })({
+				const result = Status<TestCases>({ value: "success" })({
 					value: (v) => `Value: ${v}`,
 					error: (e) => `Error: ${e.message}`,
 					loading: (l) => `Loading: ${l}`
@@ -45,7 +45,7 @@ describe("Status", () => {
 			});
 
 			it("should handle all cases with constant handlers", () => {
-				const result = status<TestCases>({ error: new Error("failed") })({
+				const result = Status<TestCases>({ error: new Error("failed") })({
 					value: 1,
 					error: 2,
 					loading: 3
@@ -55,7 +55,7 @@ describe("Status", () => {
 			});
 
 			it("should handle mixed function and constant handlers", () => {
-				const result = status<TestCases>({ loading: true })({
+				const result = Status<TestCases>({ loading: true })({
 					value: (v) => v.length,
 					error: 0,
 					loading: (l) => l ? 100 : 0
@@ -66,7 +66,7 @@ describe("Status", () => {
 
 			it("should correctly pass the active case value to handler", () => {
 				const testError = new Error("test error");
-				const result = status<TestCases>({ error: testError })({
+				const result = Status<TestCases>({ error: testError })({
 					value: (v) => `value: ${v}`,
 					error: (e) => e.message,
 					loading: (l) => `loading: ${l}`
@@ -80,7 +80,7 @@ describe("Status", () => {
 		describe("partial handlers without fallback", () => {
 
 			it("should return handler result when case matches", () => {
-				const result = status<TestCases>({ value: "done" })({
+				const result = Status<TestCases>({ value: "done" })({
 					value: "matched",
 					error: "error matched"
 				});
@@ -89,7 +89,7 @@ describe("Status", () => {
 			});
 
 			it("should return undefined when case does not match any handler", () => {
-				const result = status<TestCases>({ loading: true })({
+				const result = Status<TestCases>({ loading: true })({
 					value: "value matched",
 					error: "error matched"
 				});
@@ -98,13 +98,13 @@ describe("Status", () => {
 			});
 
 			it("should return undefined with empty handlers object", () => {
-				const result = status<TestCases>({ value: "test" })({});
+				const result = Status<TestCases>({ value: "test" })({});
 
 				expect(result).toBeUndefined();
 			});
 
 			it("should handle function handlers in partial mode", () => {
-				const result = status<TestCases>({ error: new Error("oops") })({
+				const result = Status<TestCases>({ error: new Error("oops") })({
 					error: (e) => `Error occurred: ${e.message}`
 				});
 
@@ -116,7 +116,7 @@ describe("Status", () => {
 		describe("partial handlers with fallback", () => {
 
 			it("should use specific handler when case matches", () => {
-				const result = status<TestCases>({ value: "hello" })({
+				const result = Status<TestCases>({ value: "hello" })({
 					value: "specific handler"
 				}, "fallback handler");
 
@@ -124,7 +124,7 @@ describe("Status", () => {
 			});
 
 			it("should use fallback when case does not match any specific handler", () => {
-				const result = status<TestCases>({ loading: false })({
+				const result = Status<TestCases>({ loading: false })({
 					value: "value handler"
 				}, "fallback handler");
 
@@ -132,7 +132,7 @@ describe("Status", () => {
 			});
 
 			it("should pass value to fallback function handler", () => {
-				const result = status<TestCases>({ error: new Error("fail") })({
+				const result = Status<TestCases>({ error: new Error("fail") })({
 					value: (v) => `value: ${v}`
 				}, (v) => {
 					if ( v instanceof Error ) {
@@ -145,13 +145,13 @@ describe("Status", () => {
 			});
 
 			it("should use constant fallback handler", () => {
-				const result = status<TestCases>({ loading: true })({}, 999);
+				const result = Status<TestCases>({ loading: true })({}, 999);
 
 				expect(result).toBe(999);
 			});
 
 			it("should prefer specific handler over fallback", () => {
-				const result = status<TestCases>({ value: "test" })({
+				const result = Status<TestCases>({ value: "test" })({
 					value: "specific",
 					error: "error",
 					loading: "loading"
@@ -173,7 +173,7 @@ describe("Status", () => {
 			}
 
 			it("should handle string values", () => {
-				const result = status<MixedCases>({ string: "hello" })({
+				const result = Status<MixedCases>({ string: "hello" })({
 					string: (v) => v.toUpperCase(),
 					number: (n) => n.toString(),
 					boolean: (b) => b.toString(),
@@ -185,7 +185,7 @@ describe("Status", () => {
 			});
 
 			it("should handle number values", () => {
-				const result = status<MixedCases>({ number: 42 })({
+				const result = Status<MixedCases>({ number: 42 })({
 					string: (v) => v.length,
 					number: (n) => n*2,
 					boolean: (b) => b ? 1 : 0,
@@ -197,7 +197,7 @@ describe("Status", () => {
 			});
 
 			it("should handle boolean values", () => {
-				const result = status<MixedCases>({ boolean: true })({
+				const result = Status<MixedCases>({ boolean: true })({
 					string: "string",
 					number: "number",
 					boolean: (b) => b ? "yes" : "no",
@@ -210,7 +210,7 @@ describe("Status", () => {
 
 			it("should handle object values", () => {
 				const obj = { id: 123, name: "test" };
-				const result = status<MixedCases>({ object: obj })({
+				const result = Status<MixedCases>({ object: obj })({
 					string: (v) => `string: ${v}`,
 					number: (n) => `number: ${n}`,
 					boolean: (b) => `boolean: ${b}`,
@@ -223,7 +223,7 @@ describe("Status", () => {
 
 			it("should handle array values", () => {
 				const arr = ["a", "b", "c"];
-				const result = status<MixedCases>({ array: arr })({
+				const result = Status<MixedCases>({ array: arr })({
 					string: (v) => [v],
 					number: (n) => [n.toString()],
 					boolean: (b) => [b.toString()],
@@ -245,19 +245,19 @@ describe("Status", () => {
 			}
 
 			it("should handle async operation states", () => {
-				const pending = status<AsyncResult<string>>({ pending: undefined })({
+				const pending = Status<AsyncResult<string>>({ pending: undefined })({
 					pending: "Loading...",
 					success: (data) => `Success: ${data}`,
 					failure: (err) => `Error: ${err.message}`
 				});
 
-				const success = status<AsyncResult<string>>({ success: "data loaded" })({
+				const success = Status<AsyncResult<string>>({ success: "data loaded" })({
 					pending: "Loading...",
 					success: (data) => `Success: ${data}`,
 					failure: (err) => `Error: ${err.message}`
 				});
 
-				const failure = status<AsyncResult<string>>({ failure: new Error("network error") })({
+				const failure = Status<AsyncResult<string>>({ failure: new Error("network error") })({
 					pending: "Loading...",
 					success: (data) => `Success: ${data}`,
 					failure: (err) => `Error: ${err.message}`
@@ -275,13 +275,13 @@ describe("Status", () => {
 			}
 
 			it("should handle HTTP response status patterns", () => {
-				const ok = status<HttpStatus>({ ok: { data: "response" } })({
+				const ok = Status<HttpStatus>({ ok: { data: "response" } })({
 					ok: (res) => res.data,
 					notFound: (err) => `Not found: ${err.path}`,
 					serverError: (err) => `Server error: ${err.code}`
 				});
 
-				const notFound = status<HttpStatus>({ notFound: { path: "/api/users" } })({
+				const notFound = Status<HttpStatus>({ notFound: { path: "/api/users" } })({
 					ok: (res) => res.data,
 					notFound: (err) => `Not found: ${err.path}`,
 					serverError: (err) => `Server error: ${err.code}`
@@ -299,7 +299,7 @@ describe("Status", () => {
 			}
 
 			it("should handle form state transitions with fallback", () => {
-				const result = status<FormState>({ editing: { value: "text" } })({
+				const result = Status<FormState>({ editing: { value: "text" } })({
 					submitted: (s) => `Submitted with id: ${s.id}`
 				}, "Form is not submitted");
 
@@ -316,7 +316,7 @@ describe("Status", () => {
 			}
 
 			it("should handle undefined as a valid case value", () => {
-				const result = status<OptionCases>({ none: undefined })({
+				const result = Status<OptionCases>({ none: undefined })({
 					some: (v) => `Value: ${v}`,
 					none: "No value"
 				});
@@ -325,7 +325,7 @@ describe("Status", () => {
 			});
 
 			it("should distinguish undefined from missing property", () => {
-				const result = status<OptionCases>({ none: undefined })({
+				const result = Status<OptionCases>({ none: undefined })({
 					none: (v) => `none: ${v}`,
 					some: (v) => `some: ${v}`
 				});
@@ -345,7 +345,7 @@ describe("Status", () => {
 			}
 
 			it("should handle zero as a value", () => {
-				const result = status<EdgeCases>({ zero: 0 })({
+				const result = Status<EdgeCases>({ zero: 0 })({
 					zero: (n) => `zero: ${n}`,
 					emptyString: "empty",
 					falseBool: "false",
@@ -356,7 +356,7 @@ describe("Status", () => {
 			});
 
 			it("should handle empty string as a value", () => {
-				const result = status<EdgeCases>({ emptyString: "" })({
+				const result = Status<EdgeCases>({ emptyString: "" })({
 					zero: "zero",
 					emptyString: (s) => `empty: ${s}`,
 					falseBool: "false",
@@ -367,7 +367,7 @@ describe("Status", () => {
 			});
 
 			it("should handle false as a value", () => {
-				const result = status<EdgeCases>({ falseBool: false })({
+				const result = Status<EdgeCases>({ falseBool: false })({
 					zero: "zero",
 					emptyString: "empty",
 					falseBool: (b) => `false: ${b}`,
@@ -378,7 +378,7 @@ describe("Status", () => {
 			});
 
 			it("should handle null as a value", () => {
-				const result = status<EdgeCases>({ nullValue: null })({
+				const result = Status<EdgeCases>({ nullValue: null })({
 					zero: "zero",
 					emptyString: "empty",
 					falseBool: "false",
@@ -448,7 +448,7 @@ describe("Status", () => {
 
 			it("type check: fallback accepts handler value", () => {
 				// ✅ Valid: fallback as handler
-				const singleProp = status<TestCases>({ string: "test" })({
+				const singleProp = Status<TestCases>({ string: "test" })({
 					string: "ok"
 				}, "default");
 
@@ -462,7 +462,7 @@ describe("Status", () => {
 
 			it("type check: should reject wrong handler parameter type", () => {
 				// @ts-expect-error - handler should accept string, not number
-				const result = status<TestCases>({ string: "test" })({
+				const result = Status<TestCases>({ string: "test" })({
 					string: (v: number) => v*2,
 					boolean: (b) => b ? "true" : "false",
 					number: (n) => n.toString()
@@ -474,7 +474,7 @@ describe("Status", () => {
 			it("type check: should reject inconsistent handler return types", () => {
 				// This test verifies that all handlers should return the same type
 				// When implemented, TypeScript should enforce consistent return types
-				const result = status<TestCases>({ string: "test" })({
+				const result = Status<TestCases>({ string: "test" })({
 					boolean: 42,
 					number: 10,
 					// @ts-expect-error - Type 'string' is not assignable to type 'Handler<string, number>'
@@ -486,7 +486,7 @@ describe("Status", () => {
 			});
 
 			it("should infer handler parameter types correctly", () => {
-				const result = status<TestCases>({ string: "test" })({
+				const result = Status<TestCases>({ string: "test" })({
 					boolean: (b) => b ? 1 : 0, // b is inferred as boolean
 					number: (n) => n*2, // n is inferred as number
 					string: (v) => v.length // v is inferred as string
@@ -499,7 +499,7 @@ describe("Status", () => {
 
 			it("should return R | undefined when some handlers missing", () => {
 				// Missing 'number' handler, so result is string | undefined
-				const result: string | undefined = status<TestCases>({ string: "test" })({
+				const result: string | undefined = Status<TestCases>({ string: "test" })({
 					string: "ok",
 					boolean: "error"
 				});
@@ -508,7 +508,7 @@ describe("Status", () => {
 			});
 
 			it("type check: should reject extra handler keys", () => {
-				const result = status<TestCases>({ string: "test" })({
+				const result = Status<TestCases>({ string: "test" })({
 					string: "ok",
 					boolean: "error",
 					number: "other",
@@ -524,7 +524,7 @@ describe("Status", () => {
 		describe("Fallback handler type behavior", () => {
 
 			it("should support fallback handler", () => {
-				const result: string = status<TestCases>({ string: "test" })({
+				const result: string = Status<TestCases>({ string: "test" })({
 					string: "matched string",
 					boolean: "matched boolean",
 					number: "matched number"
@@ -534,7 +534,7 @@ describe("Status", () => {
 			});
 
 			it("should pass union of all case types to fallback handler", () => {
-				const result: string = status<TestCases>({ number: 42 })({
+				const result: string = Status<TestCases>({ number: 42 })({
 					string: (v) => `string: ${v}`,
 					number: (n) => `number: ${n}`,
 					boolean: (b) => `boolean: ${b}`
@@ -553,7 +553,7 @@ describe("Status", () => {
 			});
 
 			it("should support constant fallback value", () => {
-				const result: number = status<TestCases>({ boolean: true })({
+				const result: number = Status<TestCases>({ boolean: true })({
 					boolean: 1,
 					string: 2,
 					number: 3
@@ -563,7 +563,7 @@ describe("Status", () => {
 			});
 
 			it("should return R (not R | undefined) with fallback", () => {
-				const result: string = status<TestCases>({ string: "test" })({
+				const result: string = Status<TestCases>({ string: "test" })({
 					boolean: "matched boolean"
 					// 'string' and 'number' handlers missing, but fallback guarantees a result
 				}, "default case");
@@ -573,7 +573,7 @@ describe("Status", () => {
 
 
 			it("type check: should reject wrong type for fallback handler", () => {
-				const result = status<TestCases>({ string: "test" })({
+				const result = Status<TestCases>({ string: "test" })({
 						string: (v) => v.length,
 						number: (n) => n*2,
 						boolean: (b) => b ? 1 : 0
@@ -591,7 +591,7 @@ describe("Status", () => {
 
 			it("type check: fallback parameter can be specified", () => {
 				// ✅ Valid: Fallback parameter specified
-				const a = status<{ value: string; error: Error }>({ value: "done" })({
+				const a = Status<{ value: string; error: Error }>({ value: "done" })({
 					value: (v) => `value: ${v}`
 				}, () => "unhandled");
 
