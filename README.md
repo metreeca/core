@@ -4,9 +4,8 @@
 
 A lightweight library of core TypeScript utilities.
 
-**@metreeca/core** is a zero-dependency foundation for type-safe operations, data validation, and functional
-programming, providing utilities for type guards, safe casts, comparisons, immutability, data manipulation, and error
-handling.
+**@metreeca/core** is a foundational toolkit for building type-safe, observable TypeScript applications, bridging
+compile-time type checking with runtime validation, structured logging, and functional programming patterns.
 
 # Installation
 
@@ -20,10 +19,11 @@ npm install @metreeca/core
 
 # Usage
 
-| Module                                                                       | Description                                                                |
-|------------------------------------------------------------------------------|----------------------------------------------------------------------------|
-| [@metreeca/core](https://metreeca.github.io/core/modules.html)               | Type guards, safe casts, and core utilities                                |
-| [@metreeca/core/status](https://metreeca.github.io/core/modules/status.html) | Pattern matching for values that can be in one of several exclusive states |
+| Module                                                                       | Description                                                                                    |
+|------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
+| [@metreeca/core](https://metreeca.github.io/core/modules.html)               | Runtime/value type guards, safe casts, deep equality and immutability, error utilities         |
+| [@metreeca/core/logger](https://metreeca.github.io/core/modules/logger.html) | Simplified [LogTape](https://logtape.org) facade with auto-configuration and logging utilities |
+| [@metreeca/core/status](https://metreeca.github.io/core/modules/status.html) | Pattern matching for values that can be in one of several exclusive states                     |
 
 # Support
 

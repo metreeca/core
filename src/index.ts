@@ -15,7 +15,7 @@
  */
 
 /**
- * Type guards, safe casts, and core utilities.
+ * Runtime/value type guards, safe casts, deep equality and immutability, error utilities.
  *
  * @groupDescription Runtime Guards
  *

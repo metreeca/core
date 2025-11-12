@@ -25,6 +25,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./dist/index.js",
+    "./logger": "./dist/logger/index.js",
     "./status": "./dist/status.js"
   },
   "files": [
@@ -41,6 +42,9 @@
     "build": "rm -rf dist docs && npx tsc && npx typedoc",
     "check": "npx vitest run",
     "watch": "npx typedoc && (npx typedoc --watch & npx five-server docs --open)"
+  },
+  "dependencies": {
+    "@logtape/logtape": "^1.2.0"
   },
   "devDependencies": {
     "five-server": "^0.4.4",
