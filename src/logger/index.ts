@@ -31,5 +31,7 @@
  * @module
  */
 
+export type { Config, Logger } from "@logtape/logtape";
+
 export * from "./facade";
 export * from "./utilities";
