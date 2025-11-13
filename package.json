@@ -1,6 +1,6 @@
 {
   "name": "@metreeca/core",
-  "version": "0.9.6",
+  "version": "0.9.7",
   "description": "A lightweight library of core TypeScript utilities.",
   "keywords": [
     "typescript",
