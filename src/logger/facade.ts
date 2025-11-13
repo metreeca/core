@@ -17,9 +17,8 @@
 /**
  * Simplified logging facade over LogTape.
  *
- * Provides a unified interface for logger retrieval and configuration with
- * automatic path-based categorization and zero-configuration defaults for
- * local code.
+ * Provides the {@link log} function for logger retrieval and configuration with
+ * automatic path-based categorization and zero-configuration defaults.
  *
  * @module
  */
@@ -34,7 +33,7 @@ import {
 	LoggerConfig
 } from "@logtape/logtape";
 import { isArray, isObject, isString } from "../index";
-import { category, local } from "./category";
+import { category, internal } from "./category";
 
 
 /**
@@ -67,19 +66,19 @@ export function log(): Logger;
  * Extracts a hierarchical category array from the path for logger categorization.
  *
  * Automatically configures LogTape on first use if the extracted category starts
- * with `"@"` (local code) and LogTape is not yet configured. Default configuration
+ * with `"."` (local code) and LogTape is not yet configured. Default configuration
  * includes console sink with visual severity prefixes, LogTape meta logger set to
  * `"warning"` level, and local code logger at `"info"` level.
  *
  * Path resolution:
  *
- * - **Local code** (your project): Paths prefixed with `"@"`. If URL provided
- *   (e.g., `import.meta.url`), pathname is parsed and segments after `src/`
+ * - **Local code** (your project): Paths prefixed with `"."`. If URL provided
+ *   (for instance, `import.meta.url`), pathname is parsed and segments after `src/`
  *   directory are extracted (or filename only if `src/` not found). Extensions
  *   and `"index"` segments are removed.
  *
- * - **Imported packages** (from `node_modules/`): Regular packages use single
- *   identifier (e.g., `"lodash"`), scoped packages use two segments (e.g.,
+ * - **Imported packages** (from `node_modules/`): Non-scoped packages prefixed with
+ *   `"@"` (for instance, `["@", "lodash"]`), scoped packages use two segments (for instance,
  *   `["@metreeca", "post"]`). Build directories (`dist`, `lib`, `build`, `out`)
  *   and redundant package name folders are skipped. Extensions and `"index"`
  *   segments are removed from remaining paths.
@@ -93,8 +92,8 @@ export function log(): Logger;
  * ```ts
  * const logger = log(import.meta.url);
  *
- * // file:///project/src/utils/logger.ts → ["@", "utils", "logger"]
- * // node_modules/lodash/map.js → ["lodash", "map"]
+ * // file:///project/src/utils/logger.ts → [".", "utils", "logger"]
+ * // node_modules/lodash/map.js → ["@", "lodash", "map"]
  * // node_modules/@metreeca/post/dist/index.js → ["@metreeca", "post"]
  * ```
  */
@@ -103,7 +102,7 @@ export function log(url: string): Logger;
 /**
  * Retrieves a logger for the specified category array.
  *
- * Automatically configures LogTape on first use if the category starts with `"@"`
+ * Automatically configures LogTape on first use if the category starts with `"."`
  * and LogTape is not yet configured. Default configuration includes console sink
  * with visual severity prefixes, LogTape meta logger at `"warning"` level, and
  * local code logger at `"info"` level.
@@ -115,11 +114,17 @@ export function log(url: string): Logger;
 export function log(category: readonly string[]): Logger;
 
 /**
- * Configures LogTape with path-to-level mappings.
+ * Configures LogTape with category-to-level mappings.
  *
- * Each key represents a path pattern (e.g., `"module/submodule"`), and each
- * value specifies the minimum log level (`"trace"`, `"debug"`, `"info"`,
- * `"warning"`, `"error"`, `"fatal"`). Invalid levels are filtered out.
+ * Configures LogTap with a single console logger using visual severity prefixes and a configuration derived from a
+ * simplified representation mapping categories to minimum log levels:
+ *
+ * - Each key represents a LogTape category array as a slash-separated path, with `"."` prefix
+ *   for internal project code and `"@"` prefix for external dependencies (for instance,
+ *   `"./utils"` for category `[".", "utils"]` or `"@/lodash"` for `["@", "lodash"]`).
+ *
+ * - Each value specifies the minimum log level (`"trace"`, `"debug"`, `"info"`,
+ *   `"warning"`, `"error"`, `"fatal"`); invalid levels are filtered out.
  *
  * @param config Path-to-level mapping for logger configuration
  */
@@ -145,7 +150,7 @@ export function log<S extends string, F extends string>(a?: unknown): unknown {
 
 		const c = category(a);
 
-		if ( c[0] === local && getConfig() === null ) {
+		if ( c[0] === internal && getConfig() === null ) {
 			configureSync(std({}));
 		}
 
@@ -153,7 +158,7 @@ export function log<S extends string, F extends string>(a?: unknown): unknown {
 
 	} else if ( isArray<string>(a) ) {
 
-		if ( a[0] === local && getConfig() === null ) {
+		if ( a[0] === internal && getConfig() === null ) {
 			configureSync(std({}));
 		}
 
@@ -221,7 +226,7 @@ function std(config: Record<string, string>): Config<"console", never> {
 			},
 
 			{
-				category: ["@"],
+				category: ["."],
 				lowestLevel: "info",
 				sinks: ["console"]
 			},

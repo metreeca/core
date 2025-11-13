@@ -8,7 +8,9 @@
       "WebFetch(domain:tsdoc.org)",
       "Bash(npm run check:*)",
       "Skill(typedoc-writer)",
-      "WebFetch(domain:logtape.org)"
+      "WebFetch(domain:logtape.org)",
+      "Skill(issue-debugger)",
+      "Bash(npx typedoc:*)"
     ],
     "deny": [],
     "ask": []

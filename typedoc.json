@@ -3,6 +3,7 @@
     "typedoc-github-theme"
   ],
   "includeVersion": true,
+  "excludeExternals": true,
   "sort": [
     "source-order"
   ],

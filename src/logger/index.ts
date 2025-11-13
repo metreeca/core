@@ -15,23 +15,69 @@
  */
 
 /**
- * Logging framework providing a simplified facade over {@link https://logtape.org | LogTape}.
+ * Logging framework providing a simplified facade over LogTape.
  *
- * Offers streamlined configuration and hierarchical logger management for TypeScript/JavaScript
- * applications with automatic module integration, path-based categorization, and zero-configuration
- * defaults for local code.
+ * Offers streamlined logger management for TypeScript/JavaScript applications with:
  *
- * Key capabilities:
- *
- * - Intuitive configuration API with sensible defaults
- * - Automatic logger setup for local codebase modules
- * - Hierarchical category derivation from `import.meta.url`
+ * - [Hierarchical category derivation](/functions/logger.log.html#log-1) from `import.meta.url`
+ * - [Automatic zero-code logger setup](/functions/logger.log.html#log-2) for local codebase modules
+ * - [Simplified configuration](/functions/logger.log.html#log-3) with sensible defaults
  * - Utility functions for message formatting, execution timing, and error handling
+
+ * **Category System**
+ *
+ * LogTape uses a hierarchical category system for organizing loggers. This module
+ * automatically generates category arrays from `import.meta.url`, distinguishing
+ * between internal project code and external dependencies:
+ *
+ * - **Internal modules** (project code):
+ *
+ *   - Prefixed with `"."` (for instance, `[".", "utils", "helper"]`)
+ *
+ * - **External modules** (from `node_modules/`):
+ *
+ *   - Non-scoped packages: Prefixed with `"@"` (for instance, `["@", "lodash", "map"]`)
+ *   - Scoped packages: Inherently prefixed (for instance, `["@scope", "pkg", "module"]`)
+ *
+ * **Usage**
+ *
+ * ```typescript
+ * import { log } from '@metreeca/core/logger';
+ *
+ * // Get logger for current module (auto-configures console logging for internal modules)
+ *
+ * const logger = log(import.meta.url);
+ *
+ * logger.info("Application started");
+ * logger.debug("Processing request", { id: 123 });
+ * logger.error("Failed to connect", error);
+ *
+ * // Configure logging levels (call once at startup)
+ *
+ * log({
+ *
+ *   // All internal code at debug level
+ *   ".": "debug",
+ *
+ *   // Specific internal module at info level
+ *   "./utils": "info"
+ *
+ *   // Specific external package at trace level
+ *   "@/lodash": "trace",
+ *
+ * });
+ * ```
+ *
+ * For advanced use cases, the {@link log} function accepts full LogTape configuration
+ * objects with custom sinks, filters, and logger hierarchies.
+ *
+ * @see https://logtape.org/ LogTape documentation
+ * @see https://logtape.org/manual/start LogTape configuration guide
  *
  * @module
  */
 
-export type { Config, Logger } from "@logtape/logtape";
+export * from "@logtape/logtape";
 
 export * from "./facade";
 export * from "./utilities";

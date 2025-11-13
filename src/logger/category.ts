@@ -36,11 +36,26 @@ const roots = new Set(["dist", "lib", "build", "out"]);
  *
  * @example
  * ```ts
- * "@/module"  // Project code
- * "pkg/util"  // External dependency
+ * "./module"  // Project code
  * ```
  */
-export const local = "@";
+export const internal = ".";
+
+/**
+ * Marker prefix for external dependency categories.
+ *
+ * Used to distinguish project code from external dependencies in logger hierarchies.
+ *
+ * @example
+ * ```ts
+ * "@/pkg/module"  // External dependency (non-scoped package)
+ * "@scope/pkg"    // External dependency (scoped package, inherently prefixed)
+ * ```
+ */
+export const external = "@";
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Normalizes a URL or path into hierarchical logger category segments.
@@ -48,8 +63,8 @@ export const local = "@";
  * Implementation details:
  *
  * - URIs with any scheme (file://, http://, data:, etc.) are parsed and pathname extracted
- * - node_modules paths: Extract package identifier (1 segment for regular, 2 for scoped)
- * - Local code: Prefix with `"@"`, extract segments after root directory (default: `"src"`)
+ * - node_modules paths: Extract package identifier, prefix non-scoped packages with `"@"`
+ * - Local code: Prefix with `"."`, extract segments after root directory (default: `"src"`)
  * - Cleaning: Remove extensions, filter empty/`"index"` segments
  * - Build directories (`dist`, `lib`, `build`, `out`) are skipped
  *
@@ -81,15 +96,16 @@ export function category(url: string, root = "src"): readonly string[] {
  * Builds path segments for imported npm packages.
  *
  * Extracts package identifier, removes build directories and redundant package names,
- * then cleans remaining segments.
+ * then cleans remaining segments. Non-scoped packages are prefixed with `"@"`.
  *
  * @param segments Path segments after "node_modules" in the file path
  *
- * @returns Array starting with package identifier followed by cleaned module path segments
+ * @returns Array starting with `"@"` prefix (for non-scoped) or package identifier
+ * (for scoped), followed by cleaned module path segments
  */
 function imported(segments: string[]): readonly string[] {
 
-	const scoped = segments[0]?.startsWith(local);
+	const scoped = segments[0]?.startsWith(external);
 	const module = scoped ? 2 : 1;
 
 	const packageId = segments.slice(0, module); // package id (e.g., "pkg" or "@scope/core")
@@ -100,12 +116,16 @@ function imported(segments: string[]): readonly string[] {
 	const buildOffset = roots.has(segments[module]) ? 1 : 0;
 	const nameOffset = segments[module+buildOffset] === packageName ? 1 : 0;
 
-	return [...packageId, ...clean(segments.slice(module+buildOffset+nameOffset))];
+	const category = clean(segments.slice(module+buildOffset+nameOffset));
+
+	return scoped
+		? [...packageId, ...category]
+		: [external, ...packageId, ...category];
 
 }
 
 /**
- * Builds project-relative path segments with "@" prefix.
+ * Builds project-relative path segments with "." prefix.
  *
  * When root directory is found, returns all segments after it.
  * Otherwise, returns only the last segment as a fallback.
@@ -113,14 +133,14 @@ function imported(segments: string[]): readonly string[] {
  * @param segments Path segments to process
  * @param root Root directory name to search for (typically "src")
  *
- * @returns Array starting with "@" followed by cleaned path segments
+ * @returns Array starting with "." followed by cleaned path segments
  */
 function exported(segments: string[], root: string): readonly string[] {
 
 	const cleaned = clean(segments);
 	const codebase = cleaned.indexOf(root);
 
-	return [local, ...cleaned.slice(codebase >= 0 ? codebase+1 : -1)];
+	return [internal, ...cleaned.slice(codebase >= 0 ? codebase+1 : -1)];
 }
 
 

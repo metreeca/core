@@ -25,7 +25,7 @@
  * ensures all states are covered and values are accessed safely. Eliminates verbose conditional
  * logic and prevents bugs from unhandled cases.
  *
- * ## Usage
+ * **Usage**
  *
  * ```typescript
  * import { status, Condition } from '@metreeca/core/status';
