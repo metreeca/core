@@ -19,9 +19,9 @@
  *
  * Offers streamlined logger management for TypeScript/JavaScript applications with:
  *
- * - [Hierarchical category derivation](/functions/logger.log.html#log-1) from `import.meta.url`
- * - [Automatic zero-code logger setup](/functions/logger.log.html#log-2) for local codebase modules
- * - [Simplified configuration](/functions/logger.log.html#log-3) with sensible defaults
+ * - Hierarchical category derivation from `import.meta.url`
+ * - Automatic zero-code logger setup for local codebase modules
+ * - Simplified configuration with sensible defaults
  * - Utility functions for message formatting, execution timing, and error handling
 
  * **Category System**
