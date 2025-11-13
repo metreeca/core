@@ -10,7 +10,8 @@
       "Skill(typedoc-writer)",
       "WebFetch(domain:logtape.org)",
       "Skill(issue-debugger)",
-      "Bash(npx typedoc:*)"
+      "Bash(npx typedoc:*)",
+      "Bash(npm view:*)"
     ],
     "deny": [],
     "ask": []
