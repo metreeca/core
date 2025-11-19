@@ -10,13 +10,16 @@
   "sortEntryPoints": false,
   "categorizeByGroup": true,
   "groupOrder": [
-    "Interfaces",
     "Type Aliases",
+    "Interfaces",
     "Runtime Guards",
     "Value Guards",
     "Value Casts",
     "Structural Utilities",
     "Error Utilities",
+    "Comparators",
+    "Factories",
+    "Combinators",
     "*"
   ],
   "useFirstParagraphOfCommentAsSummary": true,

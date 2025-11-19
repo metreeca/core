@@ -19,11 +19,14 @@ npm install @metreeca/core
 
 # Usage
 
-| Module                                                                       | Description                                                                                    |
-|------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
-| [@metreeca/core](https://metreeca.github.io/core/modules.html)               | Runtime/value type guards, safe casts, deep equality and immutability, error utilities         |
-| [@metreeca/core/logger](https://metreeca.github.io/core/modules/logger.html) | Simplified [LogTape](https://logtape.org) facade with auto-configuration and logging utilities |
-| [@metreeca/core/status](https://metreeca.github.io/core/modules/status.html) | Pattern matching for values that can be in one of several exclusive states                     |
+| Module                                                                                 | Description                                                                                  |
+|----------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
+| [@metreeca/core](https://metreeca.github.io/core/modules.html)                         | Runtime type guards, safe casts, deep equality and immutability, error utilities             |
+| [@metreeca/core/logger](https://metreeca.github.io/core/modules/logger.html)           | Simplified [LogTape](https://logtape.org) facade with auto-configuration and logging helpers |
+| [@metreeca/core/async](https://metreeca.github.io/core/modules/async.html)             | Composable primitives for asynchronous operations                                            |
+| [@metreeca/core/comparators](https://metreeca.github.io/core/modules/comparators.html) | Composable comparison functions and combinators for sorting operations                       |
+| [@metreeca/core/predicates](https://metreeca.github.io/core/modules/predicates.html)   | Composable predicate functions and combinators for filtering operations                      |
+| [@metreeca/core/status](https://metreeca.github.io/core/modules/status.html)           | Pattern matching for values that can be in one of several exclusive states                   |
 
 # Support
 
