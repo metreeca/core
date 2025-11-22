@@ -37,7 +37,7 @@ import {
 	isPromise,
 	isString,
 	isSymbol
-} from ".";
+} from "./index.js";
 
 
 describe("Runtime Guards", () => {

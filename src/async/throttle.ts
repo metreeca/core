@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import { isBoolean } from "..";
-import { Mutex } from "./mutex";
-import { sleep } from "./sleep";
+import { isBoolean } from "../index.js";
+import { Mutex } from "./mutex.js";
+import { sleep } from "./sleep.js";
 
 
 const pollLower = 0.1;  // poll at minimum 10% of effective delay

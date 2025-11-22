@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { Mutex } from "./mutex";
+import { Mutex } from "./mutex.js";
 
 describe("Mutex", () => {
 

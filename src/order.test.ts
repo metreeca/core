@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { ascending, by, chain, defined, descending, nullish, reverse } from "./order";
+import { ascending, by, chain, defined, descending, nullish, reverse } from "./order.js";
 
 
 describe("ascending()", () => {

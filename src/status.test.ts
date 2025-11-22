@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { Condition, Status } from "./status";
+import { Condition, Status } from "./status.js";
 
 
 describe("Status", () => {

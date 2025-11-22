@@ -89,6 +89,6 @@
  * @module
  */
 
-export * from "./sleep";
-export * from "./mutex";
-export * from "./throttle";
+export * from "./sleep.js";
+export * from "./mutex.js";
+export * from "./throttle.js";

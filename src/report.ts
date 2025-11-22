@@ -57,7 +57,7 @@
  * @module
  */
 
-import { isError, isNumber, isString } from ".";
+import { isError, isNumber, isString } from "./index.js";
 
 
 /**
