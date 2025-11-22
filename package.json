@@ -26,9 +26,8 @@
   "exports": {
     ".": "./dist/index.js",
     "./logger": "./dist/logger/index.js",
+    "./order": "./dist/order.js",
     "./async": "./dist/async/index.js",
-    "./comparators": "./dist/comparators.js",
-    "./predicates": "./dist/predicates.js",
     "./status": "./dist/status.js"
   },
   "files": [

@@ -38,6 +38,7 @@
  *   { name: 'Bob', age: 25 },
  *   { name: 'Alice', age: 30 }
  * ];
+ *
  * users.sort(by(user => user.name));        // Sort by name ascending
  * users.sort(by(user => user.age, descending)); // Sort by age descending
  *
@@ -48,6 +49,7 @@
  *   { category: 'A', priority: 1 },
  *   { category: 'A', priority: 3 }
  * ];
+ *
  * data.sort(chain(
  *   by(item => item.category),    // First by category
  *   by(item => item.priority)     // Then by priority

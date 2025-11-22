@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { ascending, by, chain, defined, descending, nullish, reverse } from "./comparators";
+import { ascending, by, chain, defined, descending, nullish, reverse } from "./order";
 
 
 describe("ascending()", () => {
