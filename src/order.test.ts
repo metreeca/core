@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { ascending, by, chain, defined, descending, nullish, reverse } from "./order.js";
+import { ascending, by, compound, defined, descending, nullish, reverse } from "./order.js";
 
 
 describe("ascending()", () => {
@@ -142,7 +142,7 @@ describe("by()", () => {
 	it("should compose with other comparators", () => {
 		type Person = { name: string; age: number };
 
-		const comparator = chain<Person>(
+		const comparator = compound<Person>(
 			by(p => p.age),
 			by(p => p.name)
 		);
@@ -305,17 +305,17 @@ describe("reverse()", () => {
 
 });
 
-describe("chain()", () => {
+describe("compound()", () => {
 
 	it("should use first comparator when values differ", () => {
-		const comparator = chain(ascending);
+		const comparator = compound(ascending);
 
 		expect(comparator(1, 2)).toBe(-1);
 		expect(comparator(2, 1)).toBe(1);
 	});
 
 	it("should use second comparator when first returns 0", () => {
-		const comparator = chain(
+		const comparator = compound(
 			(a: { x: number; y: number }, b: { x: number; y: number }) => a.x-b.x,
 			(a: { x: number; y: number }, b: { x: number; y: number }) => a.y-b.y
 		);
@@ -326,7 +326,7 @@ describe("chain()", () => {
 	});
 
 	it("should return 0 when all comparators return 0", () => {
-		const comparator = chain(
+		const comparator = compound(
 			(a: number, b: number) => 0,
 			(a: number, b: number) => 0
 		);
@@ -335,13 +335,13 @@ describe("chain()", () => {
 	});
 
 	it("should work with no comparators", () => {
-		const comparator = chain();
+		const comparator = compound();
 
 		expect(comparator(1, 2)).toBe(0);
 	});
 
 	it("should work with three or more comparators", () => {
-		const comparator = chain(
+		const comparator = compound(
 			(a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }) => a.x-b.x,
 			(a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }) => a.y-b.y,
 			(a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }) => a.z-b.z
@@ -353,7 +353,7 @@ describe("chain()", () => {
 	});
 
 	it("should combine with nullish wrapper", () => {
-		const comparator = chain<number | null>(
+		const comparator = compound<number | null>(
 			nullish((a, b) => a-b)
 		);
 
@@ -372,7 +372,7 @@ describe("chain()", () => {
 			{ category: "A", priority: 2, name: "b" }
 		];
 
-		const comparator = chain<Item>(
+		const comparator = compound<Item>(
 			(a, b) => a.category.localeCompare(b.category),
 			(a, b) => a.priority-b.priority,
 			(a, b) => a.name.localeCompare(b.name)

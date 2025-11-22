@@ -24,7 +24,7 @@
  * **Usage**
  *
  * ```typescript
- * import { ascending, descending, by, chain, nullish } from '@metreeca/core/comparators';
+ * import { ascending, descending, by, compound, nullish } from '@metreeca/core/comparators';
  *
  * // Basic sorting
  *
@@ -50,7 +50,7 @@
  *   { category: 'A', priority: 3 }
  * ];
  *
- * data.sort(chain(
+ * data.sort(compound(
  *   by(item => item.category),    // First by category
  *   by(item => item.priority)     // Then by priority
  * ));
@@ -238,7 +238,7 @@ export function defined<V>(comparator: (a: NonNullable<V>, b: NonNullable<V>) =>
  *
  * @returns A comparator that applies all provided comparators until a non-zero result is found
  */
-export function chain<V>(...comparators: readonly ((a: V, b: V) => number)[]) {
+export function compound<V>(...comparators: readonly ((a: V, b: V) => number)[]) {
 	return (a: V, b: V): number => comparators.reduce(
 		(order, comparator) => order !== 0 ? order : comparator(a, b),
 		0

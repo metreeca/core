@@ -17,6 +17,7 @@ npm install @metreeca/core
 >
 > TypeScript consumers must use `"moduleResolution": "nodenext"/"node16"/"bundler"` in `tsconfig.json`.
 > The legacy `"node"` resolver is not supported.
+
 # Usage
 
 | Module                                                                       | Description                                        |
