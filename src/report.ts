@@ -15,23 +15,91 @@
  */
 
 /**
- * Utility functions supporting logging operations.
+ * Error handling and execution reporting utilities.
  *
- * Provides message formatting and execution timing utilities for consistent
- * error handling and performance monitoring.
+ * Provides utilities for error handling, message formatting, and execution timing
+ * to support error reporting and performance analysis.
+ *
+ * **Usage**
+ *
+ * ```typescript
+ * import { error, message, time } from '@metreeca/core/report';
+ *
+ * // Throw errors in expression contexts
+ *
+ * const value = map.get(key) ?? error("Missing required key");
+ *
+ * const result = isValid(input)
+ *   ? processInput(input)
+ *   : error(new ValidationError("Invalid input"));
+ *
+ * // Format values for error messages
+ *
+ * console.error(`Failed with: ${message(errorValue)}`);
+ *
+ * // Error objects -> message property
+ * // Numbers -> locale-formatted strings
+ * // Other values -> string representation
+ *
+ * // Monitor execution timing
+ *
+ * const result = await time(
+ *   async () => fetchData(url),
+ *   (data, elapsed) => console.log(`Fetched in ${elapsed}ms`)
+ * );
+ *
+ * const computed = time(
+ *   () => expensiveCalculation(),
+ *   (result, elapsed) => logPerformance('calculation', elapsed)
+ * );
+ * ```
  *
  * @module
  */
 
-import { isError, isNumber } from "..";
-import { log } from "./facade";
+import { isError, isNumber, isString } from ".";
+
+
+/**
+ * Throws an error in expression contexts.
+ *
+ * Enables error throwing in functional style code where expressions are required,
+ * such as ternary operators, arrow functions, or array methods.
+ *
+ * @typeParam V The expected return type for type compatibility (never actually returns)
+ *
+ * @param cause The error message string or Error instance to throw
+ *
+ * @throws The provided error or a new Error with the provided message
+ *
+ * @returns Never returns (always throws)
+ *
+ * @example
+ *
+ * ```typescript
+ * // Use in ternary operator
+ *
+ * const value = isValid(input) ? input : error("Invalid input");
+ *
+ * // Use in arrow function
+ *
+ * const getRequired = (key: string) => map.get(key) ?? error(`Missing key: ${key}`);
+ *
+ * // Use in array method
+ *
+ * const items = data.map(item => item.value ?? error("Missing value"));
+ * ```
+ */
+export function error<V>(cause: string | Error): V {
+	throw isString(cause) ? new Error(cause) : cause;
+}
 
 
 /**
  * Extracts a readable message string from an unknown value.
  *
  * Converts `Error` objects to their message property, formats numbers with
- * locale-specific formatting, or converts other values to string representation.
+ * US locale conventions (`en-US`), or converts other values to string representation.
  *
  * @param value Unknown value to extract message from
  *
@@ -55,6 +123,8 @@ export function message(value: unknown) {
  * @param monitor Callback invoked with the result value and elapsed time in milliseconds
  *
  * @returns A promise resolving to the task's return value
+ *
+ * @throws Any error thrown by the task (monitor is not called on error)
  */
 export function time<T>(task: () => Promise<T>, monitor: (value: T, elapsed: number) => void): Promise<T>;
 
@@ -69,9 +139,16 @@ export function time<T>(task: () => Promise<T>, monitor: (value: T, elapsed: num
  * @param monitor Callback invoked with the result value and elapsed time in milliseconds
  *
  * @returns The task's return value
+ *
+ * @throws Any error thrown by the task (monitor is not called on error)
  */
 export function time<T>(task: () => T, monitor: (value: T, elapsed: number) => void): T;
 
+/**
+ * Executes a task (sync or async) and monitors its execution time.
+ *
+ * @internal
+ */
 export function time<T>(task: () => T | Promise<T>, monitor: (value: T, elapsed: number) => void): T | Promise<T> {
 
 	const start = Date.now();
@@ -96,69 +173,4 @@ export function time<T>(task: () => T | Promise<T>, monitor: (value: T, elapsed:
 
 	}
 
-}
-
-/**
- * Wraps an asynchronous function with error handling and logging.
- *
- * Catches errors thrown or rejected by the function, logs them via {@link log}
- * using the function's name, and returns `undefined` instead of propagating the error.
- *
- * @typeParam T The tuple type of function arguments
- * @typeParam R The return type of the function
- *
- * @param f Async function to wrap with error handling
- *
- * @returns Wrapped function that returns a promise resolving to the original result or `undefined` on error
- */
-export function guard<T extends unknown[], R>(f: (...args: T) => Promise<R>): (...args: T) => Promise<undefined | R>;
-
-/**
- * Wraps a synchronous function with error handling and logging.
- *
- * Catches errors thrown by the function, logs them via {@link log} using the
- * function's name, and returns `undefined` instead of propagating the error.
- *
- * @typeParam T The tuple type of function arguments
- * @typeParam R The return type of the function
- *
- * @param f Function to wrap with error handling
- *
- * @returns Wrapped function that returns the original result or `undefined` on error
- */
-export function guard<T extends unknown[], R>(f: (...args: T) => R): (...args: T) => undefined | R;
-
-export function guard<T extends unknown[], R>(f: (...args: T) => R | Promise<R>) {
-
-	const logger = log(import.meta.url).getChild(f.name);
-
-	return (...args: T) => {
-		try {
-
-			const result = f(...args);
-
-			if ( result instanceof Promise ) {
-
-				return result.catch(error => {
-
-					logger.error(message(error));
-
-					return undefined;
-
-				});
-
-			} else {
-
-				return result;
-
-			}
-
-		} catch ( error ) {
-
-			logger.error(message(error));
-
-			return undefined;
-
-		}
-	};
 }

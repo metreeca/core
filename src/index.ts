@@ -77,17 +77,6 @@
  * immutable({ a: [1, 2, 3] }); // deep frozen
  * ```
  *
- * @groupDescription Error Utilities
- *
- * Throw errors in expression contexts.
- *
- * ```typescript
- * import { error } from '@metreeca/core';
- *
- * isValid(input) ? input : error('Invalid input');
- * findUser(id) ?? error(`User ${id} not found`);
- * ```
- *
  * @module index
  */
 
@@ -447,38 +436,3 @@ export function immutable<T>(value: T): T extends Function ? T : Readonly<T> {
 
 
 //// Error Utilities ///////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * Throws an error in expression contexts.
- *
- * Enables error throwing in functional style code where expressions are required,
- * such as ternary operators, arrow functions, or array methods.
- *
- * @group Error Utilities
- *
- * @typeParam V The expected return type for type compatibility (never actually returns)
- *
- * @param error The error message string or Error instance to throw
- *
- * @throws The provided error or a new Error with the provided message
- *
- * @returns Never returns (always throws)
- *
- * @example
- * ```typescript
- * // Use in ternary operator
- *
- * const value = isValid(input) ? input : error("Invalid input");
- *
- * // Use in arrow function
- *
- * const getRequired = (key: string) => map.get(key) ?? error(`Missing key: ${key}`);
- *
- * // Use in array method
- *
- * const items = data.map(item => item.value ?? error("Missing value"));
- * ```
- */
-export function error<V>(error: string | Error): V {
-	throw isString(error) ? new Error(error) : error;
-}

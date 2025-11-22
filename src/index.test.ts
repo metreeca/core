@@ -23,7 +23,6 @@ import {
 	asObject,
 	asString,
 	equals,
-	error,
 	immutable,
 	isArray,
 	isAsyncIterable,
@@ -627,31 +626,5 @@ describe("Structural Utilities", () => {
 
 	});
 
-
-});
-
-describe("Error Utilities", () => {
-
-	describe("error()", () => {
-
-		it("should throw an Error from string message", () => {
-			expect(() => error("test message")).toThrow(Error);
-			expect(() => error("test message")).toThrow("test message");
-		});
-
-		it("should throw the provided Error instance", () => {
-			const customError = new TypeError("custom error");
-			expect(() => error(customError)).toThrow(TypeError);
-			expect(() => error(customError)).toThrow("custom error");
-		});
-
-		it("should never return a value", () => {
-			const fn = (): string => {
-				return error("unreachable");
-			};
-			expect(fn).toThrow();
-		});
-
-	});
 
 });

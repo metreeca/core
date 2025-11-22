@@ -1,7 +1,7 @@
 {
   "name": "@metreeca/core",
   "version": "0.9.8",
-  "description": "A lightweight library of core TypeScript utilities.",
+  "description": "Essential TypeScript utilities for type-safe application development.",
   "keywords": [
     "typescript",
     "utilities"
@@ -25,7 +25,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./dist/index.js",
-    "./logger": "./dist/logger/index.js",
+    "./report": "./dist/report.js",
     "./order": "./dist/order.js",
     "./async": "./dist/async/index.js",
     "./status": "./dist/status.js"

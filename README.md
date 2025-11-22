@@ -2,7 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/@metreeca/core)](https://www.npmjs.com/package/@metreeca/core)
 
-A lightweight library of core TypeScript utilities.
+Essential TypeScript utilities for type-safe application development.
 
 **@metreeca/core** is a foundational toolkit for building type-safe, observable TypeScript applications, bridging
 compile-time type checking with runtime validation, structured logging, and functional programming patterns.
@@ -14,18 +14,19 @@ npm install @metreeca/core
 ```
 
 > [!WARNING]
+>
 > TypeScript consumers must use `"moduleResolution": "bundler"` (or `"node16"`/`"nodenext"`) in `tsconfig.json`. The
 > legacy `"node"` resolver is not supported.
 
 # Usage
 
-| Module                                                                       | Description                                                                                  |
-|------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
-| [@metreeca/core](https://metreeca.github.io/core/modules.html)               | Runtime type guards, safe casts, deep equality and immutability, error utilities             |
-| [@metreeca/core/logger](https://metreeca.github.io/core/modules/logger.html) | Simplified [LogTape](https://logtape.org) facade with auto-configuration and logging helpers |
-| [@metreeca/core/order](https://metreeca.github.io/core/modules/order.html)   | Composable comparison functions and combinators for sorting operations                       |
-| [@metreeca/core/async](https://metreeca.github.io/core/modules/async.html)   | Composable primitives for asynchronous operations                                            |
-| [@metreeca/core/status](https://metreeca.github.io/core/modules/status.html) | Pattern matching for values that can be in one of several exclusive states                   |
+| Module                                                                       | Description                                        |
+|------------------------------------------------------------------------------|----------------------------------------------------|
+| [@metreeca/core](https://metreeca.github.io/core/modules.html)               | Type guards, safe casts, equality and immutability |
+| [@metreeca/core/report](https://metreeca.github.io/core/modules/report.html) | Error handling and execution reporting             |
+| [@metreeca/core/order](https://metreeca.github.io/core/modules/order.html)   | Composable comparison functions for sorting        |
+| [@metreeca/core/async](https://metreeca.github.io/core/modules/async.html)   | Composable primitives for asynchronous operations  |
+| [@metreeca/core/status](https://metreeca.github.io/core/modules/status.html) | Pattern matching for exclusive state values        |
 
 # Support
 
