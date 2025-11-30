@@ -66,6 +66,32 @@ import { isArray, isFunction, isObject } from "./index.js";
 
 
 /**
+ * Deep readonly type.
+ *
+ * Recursively makes all properties readonly while preserving type structure:
+ *
+ * - Functions are preserved unchanged
+ * - Arrays become {@link !ReadonlyArray} with deep readonly elements
+ * - Objects have readonly properties with deep readonly values
+ * - Primitives are preserved unchanged
+ *
+ * @typeParam T The type to make deeply readonly
+ */
+export type Immutable<T> = {
+
+	readonly [K in keyof T]:
+
+	T[K] extends Function ? T[K] :
+		T[K] extends (infer U)[] ? ReadonlyArray<Immutable<U>> :
+			T[K] extends object ? Immutable<T[K]> :
+				T[K];
+
+};
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
  * Checks deep object equality.
  *
  * Object pairs are deeply equal if they contain:
@@ -125,12 +151,12 @@ export function equals(x: unknown, y: unknown): boolean {
  * For functions with custom properties, built-in read-only properties (`length`, `name`, `prototype`)
  * are preserved unchanged while custom writable properties are frozen recursively.
  */
-export function immutable<T>(value: T): T extends Function ? T : Readonly<T> {
+export function immutable<T>(value: T): T extends Function ? T : Immutable<T> {
 
 	return isFunction(value) ? freeze(value, value)
 		: isArray(value) ? freeze(value, [])
 			: isObject(value) ? freeze(value, {})
-				: value as T extends Function ? T : Readonly<T>;
+				: value as T extends Function ? T : Immutable<T>;
 
 
 	function freeze(value: T, accumulator: {}) {
