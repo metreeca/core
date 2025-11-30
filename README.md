@@ -27,7 +27,7 @@ npm install @metreeca/core
 | [@metreeca/core/report](https://metreeca.github.io/core/modules/report.html) | Error handling and execution reporting            |
 | [@metreeca/core/order](https://metreeca.github.io/core/modules/order.html)   | Composable comparison functions for sorting       |
 | [@metreeca/core/async](https://metreeca.github.io/core/modules/async.html)   | Composable primitives for asynchronous operations |
-| [@metreeca/core/status](https://metreeca.github.io/core/modules/status.html) | Pattern matching for exclusive state values       |
+| [@metreeca/core/switch](https://metreeca.github.io/core/modules/switch.html) | Pattern matching for discriminated union values   |
 
 # Support
 

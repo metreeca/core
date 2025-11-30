@@ -15,22 +15,22 @@
  */
 
 /**
- * Pattern matching for values that can be in one of several exclusive states.
+ * Pattern matching for discriminated union values.
  *
  * Use when working with data where exactly one variant is active at a time - like operation results
  * that are either successful or failed, UI states that are loading, ready, or error, or any domain
  * model where alternatives are mutually exclusive.
  *
- * The {@link Status} function lets you handle each state with a dedicated handler, while TypeScript
- * ensures all states are covered and values are accessed safely. Eliminates verbose conditional
+ * The {@link Switch} function lets you handle each case with a dedicated handler, while TypeScript
+ * ensures all cases are covered and values are accessed safely. Eliminates verbose conditional
  * logic and prevents bugs from unhandled cases.
  *
  * **Usage**
  *
  * ```typescript
- * import { status, Condition } from '@metreeca/core/status';
+ * import { Switch, Case } from '@metreeca/core/switch';
  *
- * // Define condition patterns for form field state
+ * // Define case patterns for form field state
  *
  * type FieldState = {
  *   unset: void;
@@ -38,9 +38,9 @@
  *   error: Error;
  * };
  *
- * // Create status matcher (for example, for value condition)
+ * // Create pattern matcher (for example, for value case)
  *
- * const matcher = status<FieldState>({
+ * const matcher = Switch<FieldState>({
  *   value: "user@example.com"
  * });
  *
@@ -73,77 +73,75 @@
 import { isDefined, isFunction } from "./index.js";
 
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 /**
  * Pattern matcher.
  *
- * Accepts handlers for each condition and returns the result from the matched handler.
+ * Accepts handlers for each case and returns the result from the matched handler.
  * Three usage patterns are supported:
  *
- * - All conditions handled: provide a handler for every condition, returns `R`
- * - Some conditions with fallback: provide handlers for some conditions plus a fallback, returns `R`
- * - Some conditions without fallback: provide handlers for some conditions only, returns `R | undefined`
+ * - All cases handled: provide a handler for every case, returns `R`
+ * - Some cases with fallback: provide handlers for some cases plus a fallback, returns `R`
+ * - Some cases without fallback: provide handlers for some cases only, returns `R | undefined`
  *
- * @typeParam C The conditions type defining all possible condition variants
+ * @typeParam C The cases type defining all possible case variants
  */
-export interface Status<C extends Conditions> {
+export interface Switch<C extends Cases> {
 
 	/**
-	 * Handles all conditions with complete handlers.
+	 * Handles all cases with complete handlers.
 	 *
 	 * @typeParam R The return type of all handlers
 	 *
-	 * @param handlers Mapping of all condition keys to their handlers
+	 * @param handlers Mapping of all case keys to their handlers
 	 *
 	 * @returns The result from the matched handler
-	 */<R>(handlers: Handlers<C, R>): R
+	 */<R>(handlers: Handlers<C, R>): R;
 
 	/**
-	 * Handles some conditions without a fallback.
+	 * Handles some cases without a fallback.
 	 *
 	 * @typeParam R The return type of all handlers
 	 *
-	 * @param handlers Partial mapping of condition keys to handlers
+	 * @param handlers Partial mapping of case keys to handlers
 	 *
 	 * @returns The result from the matched handler, or `undefined` if no handler matched
-	 */<R>(handlers: Partial<Handlers<C, R>>): undefined | R
+	 */<R>(handlers: Partial<Handlers<C, R>>): undefined | R;
 
 	/**
-	 * Handles some conditions with a fallback handler for unmatched conditions.
+	 * Handles some cases with a fallback handler for unmatched cases.
 	 *
 	 * @typeParam R The return type of all handlers
 	 *
-	 * @param handlers Partial mapping of condition keys to handlers
-	 * @param fallback Fallback handler receiving union of condition values
+	 * @param handlers Partial mapping of case keys to handlers
+	 * @param fallback Fallback handler receiving union of case values
 	 *
 	 * @returns The result from the matched handler or fallback
-	 */<R>(handlers: Partial<Handlers<C, R>>, fallback: Handler<C[keyof C], R>): R
+	 */<R>(handlers: Partial<Handlers<C, R>>, fallback: Handler<C[keyof C], R>): R;
 
 }
 
 
 /**
- * Condition patterns.
+ * Case patterns.
  *
- * Defines matchable conditions as an object type where each property key names a distinct known condition
+ * Defines matchable cases as an object type where each property key names a distinct known case
  * and its type specifies the associated value.
  */
-export type Conditions = {
+export type Cases = {
 
 	readonly [key: string]: unknown
 
 }
 
 /**
- * Condition value.
+ * Case value.
  *
- * Represents a specific state with exactly one active property from the condition patterns.
+ * Represents a specific case with exactly one active property from the case patterns.
  * TypeScript enforces mutual exclusivity, preventing invalid multi-variant values at compile time.
  *
- * @typeParam C The condition patterns defining available states
+ * @typeParam C The case patterns defining available cases
  */
-export type Condition<C extends Conditions> = {
+export type Case<C extends Cases> = {
 
 	readonly [K in keyof C]: { [P in K]: C[P] } & { [P in Exclude<keyof C, K>]?: never }
 
@@ -151,29 +149,29 @@ export type Condition<C extends Conditions> = {
 
 
 /**
- * Condition handlers.
+ * Case handlers.
  *
- * Maps each condition name to a {@link Handler} that processes the matched value and produces
+ * Maps each case name to a {@link Handler} that processes the matched value and produces
  * a result of type `R`.
  *
- * @typeParam C The condition patterns
+ * @typeParam C The case patterns
  * @typeParam R The return type of all handlers
  */
-export type Handlers<C extends Conditions, R> = {
+export type Handlers<C extends Cases, R> = {
 
 	readonly [K in keyof C]: Handler<C[K], R>
 
 }
 
 /**
- * Condition handler.
+ * Case handler.
  *
  * Either a constant value of type `R`, or a function `(value: V) => R` that computes the result.
  *
- * @typeParam V The type of the matched condition value
+ * @typeParam V The type of the matched case value
  * @typeParam R The return type of the handler
  */
-export type Handler<V, R> =
+export type Handler<V = unknown, R = unknown> =
 	| R
 	| ((value: V) => R)
 
@@ -181,17 +179,17 @@ export type Handler<V, R> =
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Creates a type-safe pattern matching function for a condition.
+ * Creates a type-safe pattern matching function for a case.
  *
- * @typeParam C The conditions type defining all possible condition variants
+ * @typeParam C The cases type defining all possible case variants
  *
- * @param condition A condition
+ * @param variant A case variant
  *
- * @returns A {@link Status} function that accepts handlers for each condition and an optional fallback
+ * @returns A {@link Switch} function that accepts handlers for each case and an optional fallback
  */
-export function Status<C extends Conditions>(condition: Condition<C>): Status<C> {
+export function Switch<C extends Cases>(variant: Case<C>): Switch<C> {
 
-	const [label, value] = Object.entries(condition)[0] ?? []; // find the active condition
+	const [label, value] = Object.entries(variant)[0] ?? []; // find the active case
 
 	return <R>(handlers: Partial<Handlers<C, R>>, fallback?: Handler<C[keyof C], R>): unknown => {
 
