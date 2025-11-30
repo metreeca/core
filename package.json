@@ -25,12 +25,12 @@
   "sideEffects": false,
   "exports": {
     ".": "./dist/index.js",
-    "./nested": "./dist/nested.js",
-    "./report": "./dist/report.js",
-    "./order": "./dist/order.js",
+    "./nested": "./dist/basic/nested.js",
+    "./report": "./dist/basic/report.js",
     "./async": "./dist/async/index.js",
-    "./switch": "./dist/switch.js",
-    "./state": "./dist/state.js"
+    "./order": "./dist/functional/order.js",
+    "./switch": "./dist/functional/switch.js",
+    "./state": "./dist/functional/state.js"
   },
   "files": [
     "README.md",

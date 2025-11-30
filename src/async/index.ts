@@ -15,7 +15,7 @@
  */
 
 /**
- * Composable primitives for asynchronous operations.
+ * Primitives for asynchronous operations.
  *
  * Provides utilities for coordinating concurrent operations and managing execution flow.
  *

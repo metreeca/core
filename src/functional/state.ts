@@ -105,30 +105,7 @@
  * @module
  */
 
-import { immutable, Immutable } from "./nested.js";
-
-
-/**
- * State action.
- *
- * Actions are methods defined in state interfaces that generate a new immutable state object
- * by applying a {@link Transition} to the current state.
- *
- * @typeParam T The state type
- * @typeParam I The action input parameters as a readonly tuple
- */
-export type Action<T, I extends readonly unknown[]> = (...args: I) => T;
-
-/**
- * State transition.
- *
- * Transitions receive the current state and action inputs, returning a partial state object
- * containing only the properties to update.
- *
- * @typeParam T The state type
- * @typeParam I The action input parameters as a readonly tuple
- */
-export type Transition<T, I extends readonly unknown[]> = (state: Immutable<T>, inputs: I) => Partial<T>;
+import { immutable, Immutable } from "../basic/nested.js";
 
 
 /**
@@ -154,6 +131,44 @@ export type Spec<T> = {
 	T[K] extends Action<T, infer I> ? Transition<T, I>
 		: T[K] extends Function ? never
 			: T[K];
+
+};
+
+
+/**
+ * State action.
+ *
+ * Actions are methods defined in state interfaces that generate a new immutable state object
+ * by applying a {@link Transition} to the current state.
+ *
+ * @typeParam T The state type
+ * @typeParam I The action input parameters as a readonly tuple
+ */
+export type Action<T, I extends readonly unknown[]> = (...args: I) => T;
+
+/**
+ * State transition.
+ *
+ * Transitions receive the current state data properties and action inputs, returning a partial
+ * state object containing only the properties to update.
+ *
+ * @typeParam T The state type
+ * @typeParam I The action input parameters as a readonly tuple
+ */
+export type Transition<T, I extends readonly unknown[]> = (state: Data<T>, inputs: I) => Partial<T>;
+
+
+/**
+ * State data.
+ *
+ * Represents the immutable data subset of a state interface, extracting properties and
+ * excluding all action methods.
+ *
+ * @typeParam T The state interface type
+ */
+export type Data<T> = {
+
+	readonly [K in keyof T as T[K] extends Function ? never : K]: Immutable<T[K]>
 
 };
 
@@ -194,7 +209,7 @@ export function State<T>(spec: Spec<T>): Immutable<T> {
 		.filter(([, value]) => typeof value === "function")
 		.map(([key, value]) => [key, function (this: Immutable<T>, ...inputs: readonly unknown[]): Immutable<T> {
 
-			const partial = (value as Transition<T, readonly unknown[]>)(this, inputs);
+			const partial = (value as Transition<T, readonly unknown[]>)(this as Data<T>, inputs);
 
 			const changed = Object.entries(partial).some(([key, value]) =>
 				!Object.is(value, this[key as keyof Immutable<T>])

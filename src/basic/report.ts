@@ -69,7 +69,7 @@
  * @module
  */
 
-import { isError, isNumber, isString } from "./index.js";
+import { isError, isNumber, isString } from "../index.js";
 
 
 /**

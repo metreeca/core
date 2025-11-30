@@ -72,8 +72,8 @@ describe("State", () => {
 			const state = State<ValidMultiAction>({
 				count: 0,
 				delta: 1,
-				increment({ count, delta }: ValidMultiAction) { return { count: count+delta }; },
-				decrement({ count, delta }: ValidMultiAction) { return { count: count-delta }; },
+				increment({ count, delta }) { return { count: count+delta }; },
+				decrement({ count, delta }) { return { count: count-delta }; },
 				reset() { return { count: 0 }; }
 			});
 
@@ -241,7 +241,7 @@ describe("State", () => {
 			const state = State<Counter>({
 				count: 0,
 				delta: 1,
-				increment({ count, delta }: Counter) {
+				increment({ count, delta }) {
 					// only return count update, delta remains unchanged
 					return { count: count+delta };
 				}
@@ -325,7 +325,7 @@ describe("State", () => {
 
 			const impl: ImplementationType = {
 				value: 0,
-				step(state: SimpleState, _inputs: []) {
+				step(state, _inputs: []) {
 					// state parameter should be typed as SimpleState
 					return { value: state.value+1 };
 				}
@@ -353,7 +353,7 @@ describe("State", () => {
 				count: 42,
 				label: "test",
 				active: true,
-				increment({ count }: MixedState) { return { count: count+1 }; }
+				increment({ count }) { return { count: count+1 }; }
 			});
 
 			expect(state.count).toBe(42);
@@ -407,7 +407,7 @@ describe("State", () => {
 
 			const state = State<Toggle>({
 				items: [],
-				toggle(state: Toggle, [item]: [string]) {
+				toggle(state, [item]: [string]) {
 					const items = state.items.includes(item)
 						? state.items.filter(i => i !== item)
 						: [...state.items, item];
@@ -436,10 +436,10 @@ describe("State", () => {
 
 			const state = State<Calculator>({
 				result: 0,
-				add(state: Calculator, [x, y]: [number, number]) {
+				add(state, [x, y]: [number, number]) {
 					return { result: state.result+x+y };
 				},
-				multiply(state: Calculator, [x, y]: [number, number]) {
+				multiply(state, [x, y]: [number, number]) {
 					return { result: state.result*x*y };
 				}
 			});
@@ -468,13 +468,13 @@ describe("State", () => {
 
 			const state = State<Counter>({
 				count: 0,
-				increment(state: Counter, _inputs: []) {
+				increment(state, _inputs: []) {
 					return { count: state.count+1 };
 				},
-				add(state: Counter, [delta]: [number]) {
+				add(state, [delta]: [number]) {
 					return { count: state.count+delta };
 				},
-				reset(_state: Counter, _inputs: []) {
+				reset(_state, _inputs: []) {
 					return { count: 0 };
 				}
 			});
@@ -696,10 +696,10 @@ describe("State", () => {
 
 			const impl: ImplementationType = {
 				items: [],
-				push(state: StateWithParams, [value]: [number]) {
+				push(state, [value]: [number]) {
 					return { items: [...state.items, value] };
 				},
-				extend(state: StateWithParams, [a, b]: [number, string]) {
+				extend(state, [a, b]: [number, string]) {
 					return { items: [...state.items, a, Number(b)] };
 				}
 			};
@@ -953,7 +953,7 @@ describe("State()", () => {
 
 			const state = State<Toggle>({
 				items: [],
-				toggle(state: Toggle, [item]: [string]) {
+				toggle(state, [item]: [string]) {
 					const items = state.items.includes(item)
 						? state.items.filter(i => i !== item)
 						: [...state.items, item];
@@ -977,7 +977,7 @@ describe("State()", () => {
 
 			const state = State<Calculator>({
 				result: 0,
-				add(state: Calculator, [x, y]: [number, number]) {
+				add(state, [x, y]: [number, number]) {
 					return { result: state.result+x+y };
 				}
 			});
@@ -998,7 +998,7 @@ describe("State()", () => {
 
 			const state = State<Counter>({
 				count: 0,
-				add(state: Counter, [delta]: [number]) {
+				add(state, [delta]: [number]) {
 					return { count: state.count+delta };
 				}
 			});
@@ -1026,13 +1026,13 @@ describe("State()", () => {
 
 			const state = State<Counter>({
 				count: 0,
-				increment(state: Counter, _inputs: []) {
+				increment(state, _inputs: []) {
 					return { count: state.count+1 };
 				},
-				add(state: Counter, [delta]: [number]) {
+				add(state, [delta]: [number]) {
 					return { count: state.count+delta };
 				},
-				reset(_state: Counter, _inputs: []) {
+				reset(_state, _inputs: []) {
 					return { count: 0 };
 				}
 			});
@@ -1057,7 +1057,7 @@ describe("State()", () => {
 
 			const state = State<Toggle>({
 				items: [],
-				toggle(state: Toggle, [item]: [string]) {
+				toggle(state, [item]: [string]) {
 					const items = state.items.includes(item)
 						? state.items.filter(i => i !== item)
 						: [...state.items, item];
@@ -1092,10 +1092,10 @@ describe("State()", () => {
 
 			const state = State<UserManager>({
 				user: { name: "Alice", age: 30 },
-				setUser(_state: UserManager, [user]: [User]) {
+				setUser(_state, [user]: [User]) {
 					return { user };
 				},
-				updateName(state: UserManager, [name]: [string]) {
+				updateName(state, [name]: [string]) {
 					return { user: { ...state.user, name } };
 				}
 			});
@@ -1120,7 +1120,7 @@ describe("State()", () => {
 			const state = State<ShoppingCart>({
 				items: [],
 				total: 0,
-				addItem(state: ShoppingCart, [item, price]: [string, number]) {
+				addItem(state, [item, price]: [string, number]) {
 					return {
 						items: [...state.items, item],
 						total: state.total+price
@@ -1148,7 +1148,7 @@ describe("State()", () => {
 
 			const state = State<Counter>({
 				count: 0,
-				increment(state: Counter, [delta]: [number?]) {
+				increment(state, [delta]: [number?]) {
 					return { count: state.count+(delta ?? 1) };
 				}
 			});
@@ -1179,10 +1179,10 @@ describe("State()", () => {
 				host: "localhost",
 				port: 8080,
 				enabled: true,
-				setHost(_state: Config, [host]: [string]) {
+				setHost(_state, [host]: [string]) {
 					return { host };
 				},
-				setPort(_state: Config, [port]: [number]) {
+				setPort(_state, [port]: [number]) {
 					return { port };
 				}
 			});

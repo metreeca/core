@@ -76,7 +76,7 @@
  * @module
  */
 
-import { isDefined, isFunction } from "./index.js";
+import { isDefined, isFunction } from "../index.js";
 
 
 /**
