@@ -15,10 +15,7 @@
  */
 
 /**
- * Deep operations on nested data structures.
- *
- * Provides utilities for deep equality checking and creating immutable clones
- * of nested objects and arrays.
+ * Deep operations on nested objects and arrays.
  *
  * **Usage**
  *
@@ -73,9 +70,9 @@ import { isArray, isFunction, isObject } from "./index.js";
  *
  * Object pairs are deeply equal if they contain:
  *
- * - two equal primitive values or two equal functions
  * - two {@link isObject plain objects} with deeply equal entry sets
  * - two {@link isArray arrays} with pairwise deeply equal items
+ * - two values otherwise equal according to {@link !Object.is}
  *
  * @param x The target object to be checked for equality
  * @param y The reference object to be checked for equality

@@ -2,10 +2,10 @@
 
 [![npm](https://img.shields.io/npm/v/@metreeca/core)](https://www.npmjs.com/package/@metreeca/core)
 
-Essential TypeScript utilities for type-safe application development.
+Essential TypeScript abstractions.
 
-**@metreeca/core** is a foundational toolkit for building type-safe, observable TypeScript applications, bridging
-compile-time type checking with runtime validation, structured logging, and functional programming patterns.
+**@metreeca/core** is a foundational toolkit for effective TypeScript development, providing clean and composable
+abstractions for common patterns.
 
 # Installation
 
@@ -23,7 +23,7 @@ npm install @metreeca/core
 | Module                                                                       | Description                                       |
 |------------------------------------------------------------------------------|---------------------------------------------------|
 | [@metreeca/core](https://metreeca.github.io/core/modules.html)               | Type guards and safe casts                        |
-| [@metreeca/core/nested](https://metreeca.github.io/core/modules/nested.html) | Deep operations on nested data structures         |
+| [@metreeca/core/nested](https://metreeca.github.io/core/modules/nested.html) | Deep operations on nested objects and arrays      |
 | [@metreeca/core/report](https://metreeca.github.io/core/modules/report.html) | Error handling and execution reporting            |
 | [@metreeca/core/order](https://metreeca.github.io/core/modules/order.html)   | Composable comparison functions for sorting       |
 | [@metreeca/core/async](https://metreeca.github.io/core/modules/async.html)   | Composable primitives for asynchronous operations |

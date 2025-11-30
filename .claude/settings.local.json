@@ -11,7 +11,8 @@
       "WebFetch(domain:logtape.org)",
       "Skill(issue-debugger)",
       "Bash(npx typedoc:*)",
-      "Bash(npm view:*)"
+      "Bash(npm view:*)",
+      "WebFetch(domain:www.npmjs.com)"
     ],
     "deny": [],
     "ask": []

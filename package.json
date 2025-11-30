@@ -1,7 +1,7 @@
 {
   "name": "@metreeca/core",
   "version": "0.9.11",
-  "description": "Essential TypeScript utilities for type-safe application development.",
+  "description": "Essential TypeScript abstractions.",
   "keywords": [
     "typescript",
     "utilities"
