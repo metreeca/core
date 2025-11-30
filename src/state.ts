@@ -141,9 +141,78 @@ export type Spec<T> = {
  */
 export function State<T>(spec: Spec<T>): Immutable<T> {
 
-	// !!! empty updates don't change state objevt (return unchanged)
-	// !!! immutable values
+	const buildState = (data: Record<string, unknown>): Immutable<T> => {
 
-	throw new Error(";( to be implemented"); // !!!
+		const specKeys = Object.keys(spec) as Array<keyof T>;
+		const stateObject: Record<string, unknown> = {};
+
+		for (const key of specKeys) {
+			const specValue = spec[key];
+			const isTransition = typeof specValue === "function";
+
+			stateObject[key as string] = isTransition
+				? createAction(specValue as Transition<T>)
+				: data[key as string];
+		}
+
+		return immutable(stateObject) as Immutable<T>;
+
+	};
+
+	const createAction = (transition: Transition<T>) => {
+
+		return function (this: Immutable<T>): Immutable<T> {
+
+			const partial = transition(this);
+			const partialKeys = Object.keys(partial);
+			const isEmpty = partialKeys.length === 0;
+
+			if ( isEmpty ) {
+				return this;
+			} else {
+
+				const hasChanges = partialKeys.some(key =>
+					!Object.is(
+						partial[key as keyof Partial<T>],
+						this[key as keyof Immutable<T>]
+					)
+				);
+
+				if ( hasChanges ) {
+					const currentData = extractData(this);
+					const mergedData = { ...currentData, ...partial };
+
+					return buildState(mergedData);
+				} else {
+					return this;
+				}
+
+			}
+
+		};
+
+	};
+
+	const extractData = (state: Immutable<T> | Spec<T>): Record<string, unknown> => {
+
+		const specKeys = Object.keys(spec) as Array<keyof T>;
+		const dataRecord: Record<string, unknown> = {};
+
+		for (const key of specKeys) {
+			const value = state[key];
+			const isFunction = typeof value === "function";
+
+			if ( !isFunction ) {
+				dataRecord[key as string] = value;
+			}
+		}
+
+		return dataRecord;
+
+	};
+
+	const initialData = extractData(spec);
+
+	return buildState(initialData);
 
 }

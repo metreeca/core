@@ -66,6 +66,17 @@ import { isArray, isFunction, isObject } from "./index.js";
 
 
 /**
+ * Symbol used to tag objects that have been made immutable.
+ *
+ * This allows for efficient idempotency checking - if an object has this symbol,
+ * we know it was already processed by immutable() and is deeply frozen.
+ */
+const Immutable = Symbol("immutable");
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
  * Deep readonly type.
  *
  * Recursively makes all properties readonly while preserving type structure:
@@ -77,7 +88,7 @@ import { isArray, isFunction, isObject } from "./index.js";
  *
  * @typeParam T The type to make deeply readonly
  */
-export type Immutable<T> = {
+export type Immutable<T> = T extends Function ? T : {
 
 	readonly [K in keyof T]:
 
@@ -105,10 +116,11 @@ export type Immutable<T> = {
  *
  * @returns `true` if `x` and `y` are deeply equal; `false` otherwise
  *
+ * @throws {RangeError} Stack overflow when `x` or `y` contains circular references
+ *
  * @remarks
  *
- * This function does not handle circular references and will cause
- * infinite recursion leading to a stack overflow if the inputs contain cycles.
+ * **Circular references are not supported**. Do not pass objects with cycles.
  */
 export function equals(x: unknown, y: unknown): boolean {
 
@@ -135,44 +147,107 @@ export function equals(x: unknown, y: unknown): boolean {
  *
  * Plain objects, arrays, and functions with custom properties are recursively cloned
  * and frozen. Functions without custom properties are returned as-is. Other object types
- * (Date, RegExp, Buffer, etc.) are returned as-is to preserve their functionality.
+ * (`Date`, `RegExp`, `Buffer`, etc.) are returned as-is to preserve their functionality.
  *
  * @typeParam T The type of the value to be cloned
  *
  * @param value The value to make immutable
  *
- * @returns A deeply immutable clone of `value`
+ * @returns A deeply immutable clone of `value` with type {@link Immutable}
+ *
+ * @throws {RangeError} Stack overflow when `value` contains circular references
  *
  * @remarks
  *
- * This function does not handle circular references and will cause
- * infinite recursion leading to a stack overflow if the input contains cycles.
- *
- * For functions with custom properties, built-in read-only properties (`length`, `name`, `prototype`)
- * are preserved unchanged while custom writable properties are frozen recursively.
+ * - **Circular references are not supported**. Do not pass objects with cycles.
+ * - Only plain objects (those with `Object.prototype`) and arrays are cloned and frozen.
+ *   All other objects (`Date`, `RegExp`, `Map`, `Set`, class instances, objects with `null`
+ *   prototype, etc.) are returned as-is to preserve their functionality.
+ * - This function is idempotent: calling it multiple times on the same value returns the same
+ *   reference after the first call, making it safe and efficient to use defensively.
+ * - For functions with custom properties, built-in read-only properties (`length`, `name`, `prototype`)
+ *   are preserved unchanged while custom writable properties are frozen recursively. Non-configurable
+ *   custom properties are skipped and remain in their original state.
+ * - Accessor properties (getters/setters) are preserved as-is without freezing the accessor
+ *   functions themselves. Getters may still return mutable values.
  */
-export function immutable<T>(value: T): T extends Function ? T : Immutable<T> {
+export function immutable<T>(value: T): Immutable<T> {
 
 	return isFunction(value) ? freeze(value, value)
 		: isArray(value) ? freeze(value, [])
 			: isObject(value) ? freeze(value, {})
-				: value as T extends Function ? T : Immutable<T>;
+				: value as Immutable<T>;
 
 
-	function freeze(value: T, accumulator: {}) {
-		return Object.freeze(Reflect.ownKeys(value as object).reduce((object: any, key) => {
+	/**
+	 * Recursively freezes a value by copying properties to an accumulator.
+	 *
+	 * @param value The source value to freeze (object, array, or function)
+	 * @param accumulator The target object to receive frozen properties
+	 *
+	 * @returns The frozen accumulator with type {@link Immutable}
+	 *
+	 * @remarks
+	 *
+	 * Property descriptors omit `writable` and `configurable` attributes since
+	 * `Object.freeze()` will make all properties non-writable and non-configurable.
+	 */
+	function freeze(value: T & object, accumulator: {}): Immutable<T> {
 
-			const descriptor = Object.getOwnPropertyDescriptor(value, key);
+		if ( Immutable in value ) {
 
-			if ( descriptor && descriptor.writable !== false && descriptor.configurable !== false ) {
+			return value as Immutable<T>;
 
-				object[key] = immutable((value as Record<PropertyKey, unknown>)[key]);
+		} else {
 
-			}
+			const source = value as Record<PropertyKey, unknown>;
 
-			return object;
+			Reflect.ownKeys(source).forEach(key => {
 
-		}, accumulator));
+				const builtin = isFunction(value) && (
+					key === "length" || key === "name" || key === "prototype"
+				);
+
+				if ( !builtin ) {
+
+					const descriptor = Object.getOwnPropertyDescriptor(source, key)!;
+
+					// leave non-configurable properties as-is when modifying in-place (functions only);
+					// for objects/arrays, accumulator is a fresh object so we can copy them
+
+					if ( accumulator !== value || descriptor.configurable ) {
+
+						if ( "value" in descriptor ) { // data property: freeze the value recursively
+
+							Object.defineProperty(accumulator, key, {
+								value: immutable(descriptor.value),
+								enumerable: descriptor.enumerable
+							});
+
+						} else { // accessor property: preserve getter/setter as-is
+
+							Object.defineProperty(accumulator, key, {
+								get: descriptor.get,
+								set: descriptor.set,
+								enumerable: descriptor.enumerable
+							});
+
+						}
+
+					}
+				}
+
+			});
+
+			Object.defineProperty(accumulator, Immutable, {
+				value: true,
+				enumerable: false
+			});
+
+			return Object.freeze(accumulator) as Immutable<T>;
+
+		}
+
 	}
 
 }
