@@ -255,8 +255,8 @@ describe("Value Guards", () => {
 			expect(isObject({ uno: 1 })).toBeTruthy();
 		});
 
-		it("should return true for objects with null prototype", () => {
-			expect(isObject(Object.create(null))).toBeTruthy();
+		it("should return false for objects with null prototype", () => {
+			expect(isObject(Object.create(null))).toBeFalsy();
 		});
 
 		it("should return false for arrays", () => {
@@ -363,9 +363,9 @@ describe("Value Casts", () => {
 			expect(asObject({})).toEqual({});
 		});
 
-		it("should return objects with null prototype", () => {
+		it("should return undefined for objects with null prototype", () => {
 			const obj = Object.create(null);
-			expect(asObject(obj)).toBe(obj);
+			expect(asObject(obj)).toBeUndefined();
 		});
 
 		it("should return undefined for arrays", () => {

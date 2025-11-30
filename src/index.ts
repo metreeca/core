@@ -227,15 +227,13 @@ export function isString(value: unknown): value is string {
  * @see https://stackoverflow.com/a/52694022/739773
  */
 export function isObject<K extends PropertyKey = PropertyKey, V = unknown>(value: unknown): value is Record<K, V> {
-	if ( value === null || value === undefined || typeof value !== "object" ) {
+	if ( value === undefined || value === null || typeof value !== "object" ) {
 
 		return false;
 
 	} else {
 
-		const proto = Object.getPrototypeOf(value);
-
-		return proto === Object.prototype || proto === null;
+		return Object.getPrototypeOf(value) === Object.prototype;
 
 	}
 }
