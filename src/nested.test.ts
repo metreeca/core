@@ -16,6 +16,7 @@
 
 import { describe, expect, it } from "vitest";
 
+import type { Immutable } from "./nested.js";
 import { equals, immutable } from "./nested.js";
 
 
@@ -140,6 +141,127 @@ describe("equals()", () => {
 
 			expect(equals([{ uno: 1, due: 2 }], [{ uno: 1, due: 2 }])).toBeTruthy();
 			expect(equals([{ uno: 1, due: 2 }], [{ uno: 1, tre: 3 }])).toBeFalsy();
+
+		});
+
+	});
+
+});
+
+describe("Immutable<T> type", () => {
+
+	describe("Type-level Idempotence", () => {
+
+		it("should be idempotent for objects (Immutable<Immutable<Immutable<T>>> === Immutable<T>)", () => {
+
+			type Original = { name: string; age: number };
+			type Once = Immutable<Original>;
+			type Twice = Immutable<Once>;
+			type Thrice = Immutable<Twice>;
+
+			// Type-level test: all levels should be assignable to each other
+			const testOnce: Once = { name: "Alice", age: 30 };
+			const testTwice: Twice = testOnce; // Should compile without error
+			const testThrice: Thrice = testTwice; // Should compile without error
+			const testBack: Once = testThrice; // Should compile without error
+
+			// Verify they work the same at runtime
+			expect(testThrice).toBe(testOnce);
+			expect(testBack).toBe(testThrice);
+
+		});
+
+		it("should be idempotent for arrays (Immutable<Immutable<Immutable<T[]>>> === Immutable<T[]>)", () => {
+
+			type Original = number[];
+			type Once = Immutable<Original>;
+			type Twice = Immutable<Once>;
+			type Thrice = Immutable<Twice>;
+
+			// Type-level test: all levels should be assignable to each other
+			const testOnce: Once = [1, 2, 3];
+			const testTwice: Twice = testOnce; // Should compile without error
+			const testThrice: Thrice = testTwice; // Should compile without error
+			const testBack: Once = testThrice; // Should compile without error
+
+			// Verify they work the same at runtime
+			expect(testThrice).toBe(testOnce);
+			expect(testBack).toBe(testThrice);
+
+		});
+
+		it("should be idempotent for nested structures", () => {
+
+			type Original = {
+				user: { name: string; age: number };
+				items: number[];
+			};
+			type Once = Immutable<Original>;
+			type Twice = Immutable<Once>;
+			type Thrice = Immutable<Twice>;
+
+			// Type-level test: all levels should be assignable to each other
+			const testOnce: Once = {
+				user: { name: "Alice", age: 30 },
+				items: [1, 2, 3]
+			};
+			const testTwice: Twice = testOnce; // Should compile without error
+			const testThrice: Thrice = testTwice; // Should compile without error
+			const testBack: Once = testThrice; // Should compile without error
+
+			// Verify they work the same at runtime
+			expect(testThrice).toBe(testOnce);
+			expect(testBack).toBe(testThrice);
+
+		});
+
+		it("should be idempotent for functions", () => {
+
+			type Original = () => string;
+			type Once = Immutable<Original>;
+			type Twice = Immutable<Once>;
+			type Thrice = Immutable<Twice>;
+
+			// Type-level test: all levels should be assignable to each other
+			const testOnce: Once = () => "hello";
+			const testTwice: Twice = testOnce; // Should compile without error
+			const testThrice: Thrice = testTwice; // Should compile without error
+			const testBack: Once = testThrice; // Should compile without error
+
+			// Verify they work the same at runtime
+			expect(testThrice).toBe(testOnce);
+			expect(testBack).toBe(testThrice);
+
+		});
+
+		it("should be idempotent for primitives", () => {
+
+			type OriginalString = string;
+			type OnceString = Immutable<OriginalString>;
+			type TwiceString = Immutable<OnceString>;
+			type ThriceString = Immutable<TwiceString>;
+
+			type OriginalNumber = number;
+			type OnceNumber = Immutable<OriginalNumber>;
+			type TwiceNumber = Immutable<OnceNumber>;
+			type ThriceNumber = Immutable<TwiceNumber>;
+
+			// Type-level test: all levels should be assignable to each other
+			const testString: OnceString = "hello";
+			const testStringTwice: TwiceString = testString; // Should compile without error
+			const testStringThrice: ThriceString = testStringTwice; // Should compile without error
+			const testStringBack: OnceString = testStringThrice; // Should compile without error
+
+			const testNumber: OnceNumber = 42;
+			const testNumberTwice: TwiceNumber = testNumber; // Should compile without error
+			const testNumberThrice: ThriceNumber = testNumberTwice; // Should compile without error
+			const testNumberBack: OnceNumber = testNumberThrice; // Should compile without error
+
+			// Verify they work the same at runtime
+			expect(testStringThrice).toBe(testString);
+			expect(testStringBack).toBe(testStringThrice);
+			expect(testNumberThrice).toBe(testNumber);
+			expect(testNumberBack).toBe(testNumberThrice);
 
 		});
 

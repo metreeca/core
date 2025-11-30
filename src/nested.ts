@@ -91,17 +91,24 @@ const Immutable = Symbol("immutable");
  * - Primitives are preserved unchanged
  *
  * @typeParam T The type to make deeply readonly
+ *
+ * @remarks
+ *
+ * This type is idempotent: `Immutable<Immutable<T>>` is the same as `Immutable<T>`.
  */
-export type Immutable<T> = T extends Function ? T : {
+export type Immutable<T> =
+	T extends Function ? T :
+		T extends ReadonlyArray<any> ? T :
+			T extends object ? {
 
-	readonly [K in keyof T]:
+				readonly [K in keyof T]:
 
-	T[K] extends Function ? T[K] :
-		T[K] extends (infer U)[] ? ReadonlyArray<Immutable<U>> :
-			T[K] extends object ? Immutable<T[K]> :
-				T[K];
+				T[K] extends Function ? T[K] :
+					T[K] extends (infer U)[] ? ReadonlyArray<Immutable<U>> :
+						T[K] extends object ? Immutable<T[K]> :
+							T[K];
 
-};
+			} : T;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
