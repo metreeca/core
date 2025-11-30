@@ -20,13 +20,14 @@ npm install @metreeca/core
 
 # Usage
 
-| Module                                                                       | Description                                        |
-|------------------------------------------------------------------------------|----------------------------------------------------|
-| [@metreeca/core](https://metreeca.github.io/core/modules.html)               | Type guards, safe casts, equality and immutability |
-| [@metreeca/core/report](https://metreeca.github.io/core/modules/report.html) | Error handling and execution reporting             |
-| [@metreeca/core/order](https://metreeca.github.io/core/modules/order.html)   | Composable comparison functions for sorting        |
-| [@metreeca/core/async](https://metreeca.github.io/core/modules/async.html)   | Composable primitives for asynchronous operations  |
-| [@metreeca/core/status](https://metreeca.github.io/core/modules/status.html) | Pattern matching for exclusive state values        |
+| Module                                                                       | Description                                       |
+|------------------------------------------------------------------------------|---------------------------------------------------|
+| [@metreeca/core](https://metreeca.github.io/core/modules.html)               | Type guards and safe casts                        |
+| [@metreeca/core/nested](https://metreeca.github.io/core/modules/nested.html) | Deep operations on nested data structures         |
+| [@metreeca/core/report](https://metreeca.github.io/core/modules/report.html) | Error handling and execution reporting            |
+| [@metreeca/core/order](https://metreeca.github.io/core/modules/order.html)   | Composable comparison functions for sorting       |
+| [@metreeca/core/async](https://metreeca.github.io/core/modules/async.html)   | Composable primitives for asynchronous operations |
+| [@metreeca/core/status](https://metreeca.github.io/core/modules/status.html) | Pattern matching for exclusive state values       |
 
 # Support
 

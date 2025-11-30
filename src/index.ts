@@ -15,7 +15,7 @@
  */
 
 /**
- * Runtime/value type guards, safe casts, deep equality and immutability, error utilities.
+ * Type guards and safe casts.
  *
  * @groupDescription Runtime Guards
  *
@@ -64,17 +64,6 @@
  *
  * asNumber(42); // 42
  * asNumber('42'); // undefined
- * ```
- *
- * @groupDescription Structural Utilities
- *
- * Deep operations on complex types.
- *
- * ```typescript
- * import { equals, immutable } from '@metreeca/core';
- *
- * equals({ a: [1, 2] }, { a: [1, 2] }); // true
- * immutable({ a: [1, 2, 3] }); // deep frozen
  * ```
  *
  * @module index
@@ -221,7 +210,7 @@ export function isString(value: unknown): value is string {
  * Checks if a value is a plain object.
  *
  * A plain object is one created by the Object constructor (or object literal syntax),
- * with Object.prototype as its direct prototype. This excludes built-in objects like
+ * with `Object.prototype` as its direct prototype. This excludes built-in objects like
  * Date, RegExp, Array, Buffer, DOM elements, and objects created with custom constructors.
  *
  * This strict definition ensures safe operations like deep cloning, serialization,
@@ -339,97 +328,4 @@ export function asObject<K extends PropertyKey = PropertyKey, V = unknown>(value
  */
 export function asArray<T = unknown>(value: unknown, is?: (value: unknown) => value is T): undefined | T[] {
 	return isArray<T>(value, is) ? value : undefined;
-}
-
-
-//// Structural Utilities //////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * Checks deep object equality.
- *
- * Object pairs are deeply equal if they contain:
- *
- * - two equal primitive values or two equal functions
- * - two {@link isObject plain objects} with deeply equal entry sets
- * - two {@link isArray arrays} with pairwise deeply equal items
- *
- * @group Structural Utilities
- *
- * @param x The target object to be checked for equality
- * @param y The reference object to be checked for equality
- *
- * @returns `true` if `x` and `y` are deeply equal; `false` otherwise
- *
- * @remarks
- *
- * This function does not handle circular references and will cause
- * infinite recursion leading to a stack overflow if the inputs contain cycles.
- */
-export function equals(x: unknown, y: unknown): boolean {
-
-	function objectEquals(x: { [s: string | number | symbol]: unknown }, y: typeof x) {
-
-		const xKeys = Object.keys(x);
-		const yKeys = Object.keys(y);
-
-		return xKeys.length !== yKeys.length ? false
-			: xKeys.every(key => key in y && equals(x[key], y[key]));
-	}
-
-	function arrayEquals(x: unknown[], y: typeof x) {
-		return x.length === y.length && x.every((value, index) => equals(value, y[index]));
-	}
-
-	return isArray(x) ? isArray(y) && arrayEquals(x, y)
-		: isObject(x) ? isObject(y) && objectEquals(x, y)
-			: Object.is(x, y);
-}
-
-/**
- * Creates an immutable deep clone.
- *
- * Plain objects, arrays, and functions with custom properties are recursively cloned
- * and frozen. Functions without custom properties are returned as-is. Other object types
- * (Date, RegExp, Buffer, etc.) are returned as-is to preserve their functionality.
- *
- * @group Structural Utilities
- *
- * @typeParam T The type of the value to be cloned
- *
- * @param value The value to make immutable
- *
- * @returns A deeply immutable clone of `value`
- *
- * @remarks
- *
- * This function does not handle circular references and will cause
- * infinite recursion leading to a stack overflow if the input contains cycles.
- *
- * For functions with custom properties, built-in read-only properties (`length`, `name`, `prototype`)
- * are preserved unchanged while custom writable properties are frozen recursively.
- */
-export function immutable<T>(value: T): T extends Function ? T : Readonly<T> {
-
-	return isFunction(value) ? freeze(value, value)
-		: isArray(value) ? freeze(value, [])
-			: isObject(value) ? freeze(value, {})
-				: value as T extends Function ? T : Readonly<T>;
-
-
-	function freeze(value: T, accumulator: {}) {
-		return Object.freeze(Reflect.ownKeys(value as object).reduce((object: any, key) => {
-
-			const descriptor = Object.getOwnPropertyDescriptor(value, key);
-
-			if ( descriptor && descriptor.writable !== false && descriptor.configurable !== false ) {
-
-				object[key] = immutable((value as Record<PropertyKey, unknown>)[key]);
-
-			}
-
-			return object;
-
-		}, accumulator));
-	}
-
 }

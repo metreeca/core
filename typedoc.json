@@ -15,7 +15,6 @@
     "Runtime Guards",
     "Value Guards",
     "Value Casts",
-    "Structural Utilities",
     "Comparators",
     "Factories",
     "Combinators",

@@ -25,6 +25,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./dist/index.js",
+    "./nested": "./dist/nested.js",
     "./report": "./dist/report.js",
     "./order": "./dist/order.js",
     "./async": "./dist/async/index.js",
