@@ -21,18 +21,24 @@
  * {@link https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array/sort | Array.sort()}
  * and other comparator-based operations.
  *
- * **Usage**
+ * **Basic Sorting**
+ *
+ * Sort arrays using ascending or descending order:
  *
  * ```typescript
- * import { ascending, descending, by, compound, nullish } from '@metreeca/core/comparators';
- *
- * // Basic sorting
+ * import { ascending, descending } from '@metreeca/core/order';
  *
  * const numbers = [3, 1, 4, 1, 5];
  * numbers.sort(ascending);  // [1, 1, 3, 4, 5]
  * numbers.sort(descending); // [5, 4, 3, 1, 1]
+ * ```
  *
- * // Sort by property
+ * **Sorting by Property**
+ *
+ * Extract and compare specific properties from objects:
+ *
+ * ```typescript
+ * import { by, descending } from '@metreeca/core/order';
  *
  * const users = [
  *   { name: 'Bob', age: 25 },
@@ -41,8 +47,14 @@
  *
  * users.sort(by(user => user.name));        // Sort by name ascending
  * users.sort(by(user => user.age, descending)); // Sort by age descending
+ * ```
  *
- * // Combine multiple criteria
+ * **Combining Multiple Criteria**
+ *
+ * Sort by multiple properties with priority order:
+ *
+ * ```typescript
+ * import { by, compound } from '@metreeca/core/order';
  *
  * const data = [
  *   { category: 'B', priority: 2 },
@@ -54,8 +66,14 @@
  *   by(item => item.category),    // First by category
  *   by(item => item.priority)     // Then by priority
  * ));
+ * ```
  *
- * // Handle null/undefined values
+ * **Handling Nullish Values**
+ *
+ * Place `null` and `undefined` values first, before comparing others:
+ *
+ * ```typescript
+ * import { nullish, ascending } from '@metreeca/core/order';
  *
  * const values = [3, null, 1, undefined, 2];
  * values.sort(nullish(ascending)); // [null, undefined, 1, 2, 3]

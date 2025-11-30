@@ -19,12 +19,12 @@
  *
  * Provides utilities for coordinating concurrent operations and managing execution flow.
  *
- * **Usage**
+ * **Asynchronous Delays**
+ *
+ * Pause execution for a specified duration:
  *
  * ```typescript
- * import { sleep, Mutex, Throttle } from '@metreeca/core/async';
- *
- * // Simple delay
+ * import { sleep } from '@metreeca/core/async';
  *
  * async function retry(task: () => Promise<void>) {
  *   for (let i = 0; i < 3; i++) {
@@ -36,8 +36,14 @@
  *     }
  *   }
  * }
+ * ```
  *
- * // Prevent race conditions
+ * **Mutual Exclusion**
+ *
+ * Prevent race conditions in concurrent operations:
+ *
+ * ```typescript
+ * import { Mutex, sleep } from '@metreeca/core/async';
  *
  * const mutex = Mutex();
  * let counter = 0;
@@ -49,8 +55,14 @@
  *     counter = current + 1;        // Safe write - no race condition
  *   });
  * }
+ * ```
  *
- * // Rate limit API calls
+ * **Adaptive Rate Limiting**
+ *
+ * Control execution rate with automatic backoff:
+ *
+ * ```typescript
+ * import { Throttle } from '@metreeca/core/async';
  *
  * const throttle = Throttle({
  *   minimum: 100,   // At least 100ms between requests
@@ -69,9 +81,13 @@
  *     throw error;
  *   }
  * }
+ * ```
  *
- * // Automatic retry with throttling
+ * **Automatic Retry Logic**
  *
+ * Combine throttling with intelligent retry behavior:
+ *
+ * ```typescript
  * const result = await throttle.retry(
  *   () => fetch('https://api.example.com/data'),
  *   {

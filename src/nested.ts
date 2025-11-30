@@ -17,39 +17,43 @@
 /**
  * Deep operations on nested objects and arrays.
  *
- * **Usage**
+ * **Deep Equality**
+ *
+ * Compare nested structures for structural equality:
  *
  * ```typescript
- * import { equals, immutable } from '@metreeca/core/nested';
+ * import { equals } from '@metreeca/core/nested';
  *
- * // Deep equality checking
- *
+ * // Objects and arrays
  * equals({ a: [1, 2] }, { a: [1, 2] }); // true
  * equals({ a: 1, b: 2 }, { b: 2, a: 1 }); // true (order-independent)
  * equals([1, [2, 3]], [1, [2, 3]]); // true (nested arrays)
  *
- * // Primitive values and functions
- *
+ * // Primitives and functions
  * equals(42, 42); // true
  * equals(-0, +0); // false (distinguishes -0 from +0)
  *
  * const fn = () => {};
- * equals(fn, fn); // true
+ * equals(fn, fn); // true (same reference)
+ * ```
  *
- * // Create immutable deep clones
+ * **Deep Freezing**
  *
+ * Create deeply frozen structures that prevent all mutations:
+ *
+ * ```typescript
+ * import { immutable } from '@metreeca/core/nested';
+ *
+ * // Objects and arrays
  * const original = { a: [1, 2, 3], b: { c: 4 } };
  * const frozen = immutable(original);
  *
  * frozen.a[0] = 999; // throws Error
  * frozen.b.c = 999; // throws Error
  *
- * // Primitives returned as-is
- *
+ * // Primitives and functions
  * immutable(42); // 42
  * immutable("hello"); // "hello"
- *
- * // Functions with custom properties are frozen
  *
  * const fn = () => "hello";
  * fn.config = { port: 3000 };

@@ -25,12 +25,12 @@
  * ensures all cases are covered and values are accessed safely. Eliminates verbose conditional
  * logic and prevents bugs from unhandled cases.
  *
- * **Usage**
+ * **Basic Pattern Matching**
+ *
+ * Define cases and match with function handlers:
  *
  * ```typescript
- * import { Switch, Case } from '@metreeca/core/switch';
- *
- * // Define case patterns for form field state
+ * import { Switch } from '@metreeca/core/switch';
  *
  * type FieldState = {
  *   unset: void;
@@ -38,33 +38,39 @@
  *   error: Error;
  * };
  *
- * // Create pattern matcher (for example, for value case)
- *
  * const matcher = Switch<FieldState>({
  *   value: "user@example.com"
  * });
- *
- * // Pattern match with function handlers
  *
  * const message = matcher({
  *   unset: () => "Enter email",
  *   value: (email) => `Email: ${email}`,
  *   error: (err) => `Error: ${err.message}`
  * });
+ * ```
  *
- * // Use constant handlers
+ * **Constant Handlers**
  *
+ * Use constant values instead of functions when handlers don't need case data:
+ *
+ * ```typescript
  * const isValid = matcher({
  *   unset: false,
  *   value: true,
  *   error: false
  * });
+ * ```
  *
- * // Use fallback for partial matching
+ * **Partial Matching with Fallback**
  *
+ * Handle specific cases and provide a fallback for others:
+ *
+ * ```typescript
  * const display = matcher({
  *   value: (email) => email
- * }, "‹blank›");
+ * }, (
+ *   "‹blank›"
+ * ));
  * ```
  *
  * @module

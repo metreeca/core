@@ -20,28 +20,40 @@
  * Provides utilities for error handling, message formatting, and execution timing
  * to support error reporting and performance analysis.
  *
- * **Usage**
+ * **Error Throwing in Expressions**
+ *
+ * Throw errors in expression contexts where statements aren't allowed:
  *
  * ```typescript
- * import { error, message, time } from '@metreeca/core/report';
- *
- * // Throw errors in expression contexts
+ * import { error } from '@metreeca/core/report';
  *
  * const value = map.get(key) ?? error("Missing required key");
  *
  * const result = isValid(input)
  *   ? processInput(input)
  *   : error(new ValidationError("Invalid input"));
+ * ```
  *
- * // Format values for error messages
+ * **Message Formatting**
+ *
+ * Extract readable messages from various value types:
+ *
+ * ```typescript
+ * import { message } from '@metreeca/core/report';
  *
  * console.error(`Failed with: ${message(errorValue)}`);
  *
  * // Error objects -> message property
  * // Numbers -> locale-formatted strings
  * // Other values -> string representation
+ * ```
  *
- * // Monitor execution timing
+ * **Execution Timing**
+ *
+ * Monitor timing for synchronous and asynchronous operations:
+ *
+ * ```typescript
+ * import { time } from '@metreeca/core/report';
  *
  * const result = await time(
  *   async () => fetchData(url),
