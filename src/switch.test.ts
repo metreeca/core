@@ -270,7 +270,6 @@ describe("Switch", () => {
 
 });
 
-
 describe("Switch()", () => {
 
 	/**

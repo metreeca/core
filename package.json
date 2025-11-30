@@ -29,7 +29,8 @@
     "./report": "./dist/report.js",
     "./order": "./dist/order.js",
     "./async": "./dist/async/index.js",
-    "./switch": "./dist/switch.js"
+    "./switch": "./dist/switch.js",
+    "./state": "./dist/state.js"
   },
   "files": [
     "README.md",

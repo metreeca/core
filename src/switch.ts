@@ -15,7 +15,7 @@
  */
 
 /**
- * Pattern matching for discriminated union values.
+ * Type-safe pattern matcher for discriminated unions.
  *
  * Use when working with data where exactly one variant is active at a time - like operation results
  * that are either successful or failed, UI states that are loading, ready, or error, or any domain

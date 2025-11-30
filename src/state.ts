@@ -26,33 +26,29 @@
  * updates are merged into a new immutable state object, and the action methods return the
  * new state. Eliminates manual state spreading and ensures type-safe updates.
  *
- * **Usage**
+ * **Basic Usage**
+ *
+ * Define a state interface with data properties and action methods, then create a state
+ * object by providing initial values and transition functions:
  *
  * ```typescript
  * import { State } from '@metreeca/core/state';
  *
- * // Define state interface with data fields and action methods
- *
  * interface Counter {
  *
  *   readonly count: number;
- *   readonly step: number;
  *
  *   increment(): this;
- *
  *   reset(): this;
  *
  * }
  *
- * // Create state from specification
- *
  * const counter = State<Counter>({
  *
  *   count: 0,
- *   step: 1,
  *
- *   increment({ count, step }) {
- *     return { count: count + step };
+ *   increment({ count }) {
+ *     return { count: count + 1 };
  *   },
  *
  *   reset() {
@@ -60,39 +56,79 @@
  *   }
  *
  * });
+ * ```
  *
- * // Actions return new immutable state objects
+ * **Chaining Actions**
  *
+ * Actions return new immutable state objects, enabling fluent chaining:
+ *
+ * ```typescript
  * counter
  *   .increment()  // count is 1
  *   .increment()  // count is 2
  *   .reset();     // count is 0
  * ```
  *
+ * **Parameterized Actions**
+ *
+ * Actions can accept parameters, which are passed as a tuple to the transition function:
+ *
+ * ```typescript
+ * interface Toggle {
+ *
+ *   readonly items: readonly string[];
+ *
+ *   toggle(item: string): this;
+ *
+ * }
+ *
+ * const toggle = State<Toggle>({
+ *
+ *   items: [],
+ *
+ *   toggle({ items }, [item]) {
+ *     return {
+ *       items: items.includes(item)
+ *         ? items.filter(i => i !== item)
+ *         : [...items, item]
+ *     };
+ *   }
+ *
+ * });
+ *
+ * toggle
+ *   .toggle("apple")    // items is ["apple"]
+ *   .toggle("banana")   // items is ["apple", "banana"]
+ *   .toggle("apple");   // items is ["banana"]
+ * ```
+ *
  * @module
  */
 
-import { Immutable } from "./nested.js";
+import { Immutable, immutable } from "./nested.js";
+
 
 /**
  * State action.
  *
- * Actions are methods defined in state interfaces that generate a new immutble state object
+ * Actions are methods defined in state interfaces that generate a new immutable state object
  * by applying a {@link Transition} to the current state.
  *
  * @typeParam T The state type
+ * @typeParam I The action input parameters as a readonly tuple
  */
-export type Action<T> = () => T;
+export type Action<T, I extends readonly unknown[]> = (...args: I) => T;
 
 /**
  * State transition.
  *
- * Transitions receive the current state and return a partial state object
+ * Transitions receive the current state and action inputs, returning a partial state object
  * containing only the properties to update.
  *
  * @typeParam T The state type
+ * @typeParam I The action input parameters as a readonly tuple
  */
-export type Transition<T> = (state: T) => Partial<T>;
+export type Transition<T, I extends readonly unknown[]> = (state: Immutable<T>, inputs: I) => Partial<T>;
 
 
 /**
@@ -100,17 +136,24 @@ export type Transition<T> = (state: T) => Partial<T>;
  *
  * Maps a state interface to the specification format required by {@link State}:
  *
- * - {@link Action} methods become {@link Transition} functions
+ * - {@link Action} methods become {@link Transition} functions with inferred parameter types
  * - Other function types are excluded
  * - Data properties are preserved unchanged
  *
  * @typeParam T The state interface type
+ *
+ * @remarks
+ *
+ * The type automatically infers input parameter types from action signatures, ensuring
+ * type safety between action method parameters and their corresponding transition implementations.
  */
 export type Spec<T> = {
 
-	[K in keyof T]: T[K] extends Function
-		? T[K] extends Action<T> ? Transition<T> : never
-		: T[K];
+	[K in keyof T]:
+
+	T[K] extends Action<T, infer I> ? Transition<T, I>
+		: T[K] extends Function ? never
+			: T[K];
 
 };
 
@@ -120,99 +163,48 @@ export type Spec<T> = {
 /**
  * Creates a state object from a specification.
  *
- * Takes a state specification where action methods are provided as
- * {@link Transition} functions, and returns a state object
- * conforming to the original state interface. Action methods in the
- * returned object apply transitions and return a new immutable state.
+ * Takes a state specification object that must provide:
  *
- * @typeParam T The state interface type
+ * - For each data field in the interface: a data field providing the initial value
+ * - For each action in the interface: a {@link Transition} function taking the same inputs
  *
- * @param spec The state specification with data properties and transition functions
+ * Returns a state object conforming to the expected state interface. Action methods
+ * in the returned object apply transitions and return a new immutable state.
  *
- * @returns An immutable state object
+ * Supports both parameterless actions and parameterized actions with type-safe parameter inference.
+ *
+ * @typeParam T The state interface type defining data properties and action methods
+ *
+ * @param spec The state specification with initial values and transition functions
+ *
+ * @returns An immutable state object of type T
  *
  * @remarks
  *
- * State objects are immutable. All state changes must be managed through action
- * methods, which apply transitions and return new state objects.
- *
- * The implementation optimizes updates by returning the same state object reference when
- * a transition returns an empty partial update, avoiding unnecessary state changes.
+ * - State objects are immutable; all changes must go through action methods
+ * - Action methods apply transitions and return new state objects
+ * - Parameterized actions receive inputs as a tuple in the transition function
+ * - Returns same state reference when transition returns empty partial update
+ * - Returns same state reference when all partial values are shallowly equal (`Object.is`) to current values
  */
 export function State<T>(spec: Spec<T>): Immutable<T> {
 
-	const buildState = (data: Record<string, unknown>): Immutable<T> => {
+	const actions = Object.fromEntries(Object.entries(spec)
+		.filter(([, value]) => typeof value === "function")
+		.map(([key, value]) => [key, function (this: Immutable<T>, ...inputs: readonly unknown[]): Immutable<T> {
 
-		const specKeys = Object.keys(spec) as Array<keyof T>;
-		const stateObject: Record<string, unknown> = {};
+			const partial = (value as Transition<T, readonly unknown[]>)(this, inputs);
 
-		for (const key of specKeys) {
-			const specValue = spec[key];
-			const isTransition = typeof specValue === "function";
+			const changed = Object.entries(partial).some(([key, value]) =>
+				!Object.is(value, this[key as keyof Immutable<T>])
+			);
 
-			stateObject[key as string] = isTransition
-				? createAction(specValue as Transition<T>)
-				: data[key as string];
-		}
+			return changed ? immutable(Object.assign({}, this, partial)) as Immutable<T> : this;
 
-		return immutable(stateObject) as Immutable<T>;
+		}]));
 
-	};
+	// actions overwrite transition methods in spec, so the final object conforms to the expected interface
 
-	const createAction = (transition: Transition<T>) => {
-
-		return function (this: Immutable<T>): Immutable<T> {
-
-			const partial = transition(this);
-			const partialKeys = Object.keys(partial);
-			const isEmpty = partialKeys.length === 0;
-
-			if ( isEmpty ) {
-				return this;
-			} else {
-
-				const hasChanges = partialKeys.some(key =>
-					!Object.is(
-						partial[key as keyof Partial<T>],
-						this[key as keyof Immutable<T>]
-					)
-				);
-
-				if ( hasChanges ) {
-					const currentData = extractData(this);
-					const mergedData = { ...currentData, ...partial };
-
-					return buildState(mergedData);
-				} else {
-					return this;
-				}
-
-			}
-
-		};
-
-	};
-
-	const extractData = (state: Immutable<T> | Spec<T>): Record<string, unknown> => {
-
-		const specKeys = Object.keys(spec) as Array<keyof T>;
-		const dataRecord: Record<string, unknown> = {};
-
-		for (const key of specKeys) {
-			const value = state[key];
-			const isFunction = typeof value === "function";
-
-			if ( !isFunction ) {
-				dataRecord[key as string] = value;
-			}
-		}
-
-		return dataRecord;
-
-	};
-
-	const initialData = extractData(spec);
-
-	return buildState(initialData);
+	return immutable(Object.assign({}, spec, actions)) as Immutable<T>;
 
 }

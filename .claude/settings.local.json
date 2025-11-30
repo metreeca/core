@@ -12,7 +12,13 @@
       "Skill(issue-debugger)",
       "Bash(npx typedoc:*)",
       "Bash(npm view:*)",
-      "WebFetch(domain:www.npmjs.com)"
+      "WebFetch(domain:www.npmjs.com)",
+      "mcp__ide__getDiagnostics",
+      "Bash(npx tsc:*)",
+      "SlashCommand(/review src/state.test.ts)",
+      "Skill(typescript-tester)",
+      "Bash(npx vitest:*)",
+      "Skill(typescript-developer)"
     ],
     "deny": [],
     "ask": []

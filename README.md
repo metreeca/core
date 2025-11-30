@@ -20,14 +20,15 @@ npm install @metreeca/core
 
 # Usage
 
-| Module                                                                       | Description                                       |
-|------------------------------------------------------------------------------|---------------------------------------------------|
-| [@metreeca/core](https://metreeca.github.io/core/modules.html)               | Type guards and safe casts                        |
-| [@metreeca/core/nested](https://metreeca.github.io/core/modules/nested.html) | Deep operations on nested objects and arrays      |
-| [@metreeca/core/report](https://metreeca.github.io/core/modules/report.html) | Error handling and execution reporting            |
-| [@metreeca/core/order](https://metreeca.github.io/core/modules/order.html)   | Composable comparison functions for sorting       |
-| [@metreeca/core/async](https://metreeca.github.io/core/modules/async.html)   | Composable primitives for asynchronous operations |
-| [@metreeca/core/switch](https://metreeca.github.io/core/modules/switch.html) | Pattern matching for discriminated union values   |
+| Module                                                                       | Description                                        |
+|------------------------------------------------------------------------------|----------------------------------------------------|
+| [@metreeca/core](https://metreeca.github.io/core/modules.html)               | Type guards and safe casts                         |
+| [@metreeca/core/nested](https://metreeca.github.io/core/modules/nested.html) | Deep operations on nested objects and arrays       |
+| [@metreeca/core/report](https://metreeca.github.io/core/modules/report.html) | Error handling and execution reporting             |
+| [@metreeca/core/order](https://metreeca.github.io/core/modules/order.html)   | Composable comparison functions for sorting        |
+| [@metreeca/core/async](https://metreeca.github.io/core/modules/async.html)   | Composable primitives for asynchronous operations  |
+| [@metreeca/core/switch](https://metreeca.github.io/core/modules/switch.html) | Type-safe pattern matcher for discriminated unions |
+| [@metreeca/core/state](https://metreeca.github.io/core/modules/state.html)   | Type-safe immutable state manager                  |
 
 # Support
 

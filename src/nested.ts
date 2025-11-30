@@ -82,7 +82,7 @@ const Immutable = Symbol("immutable");
  * Recursively makes all properties readonly while preserving type structure:
  *
  * - Functions are preserved unchanged
- * - Arrays become {@link !ReadonlyArray} with deep readonly elements
+ * - Arrays become `ReadonlyArray` with deep readonly elements
  * - Objects have readonly properties with deep readonly values
  * - Primitives are preserved unchanged
  *
@@ -109,7 +109,7 @@ export type Immutable<T> = T extends Function ? T : {
  *
  * - two {@link isObject plain objects} with deeply equal entry sets
  * - two {@link isArray arrays} with pairwise deeply equal items
- * - two values otherwise equal according to {@link !Object.is}
+ * - two values otherwise equal according to `Object.is`
  *
  * @param x The target object to be checked for equality
  * @param y The reference object to be checked for equality
