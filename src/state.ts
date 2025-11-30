@@ -105,7 +105,7 @@
  * @module
  */
 
-import { Immutable, immutable } from "./nested.js";
+import { immutable, Immutable } from "./nested.js";
 
 
 /**
@@ -183,6 +183,7 @@ export type Spec<T> = {
  *
  * - State objects are immutable; all changes must go through action methods
  * - Action methods apply transitions and return new state objects
+ * - Action methods can be destructured and called independently (e.g., `const { increment } = state; increment();`)
  * - Parameterized actions receive inputs as a tuple in the transition function
  * - Returns same state reference when transition returns empty partial update
  * - Returns same state reference when all partial values are shallowly equal (`Object.is`) to current values
@@ -199,12 +200,22 @@ export function State<T>(spec: Spec<T>): Immutable<T> {
 				!Object.is(value, this[key as keyof Immutable<T>])
 			);
 
-			return changed ? immutable(Object.assign({}, this, partial)) as Immutable<T> : this;
+			return changed ? bind(Object.assign({}, this, immutable(partial))) : this;
 
 		}]));
 
-	// actions overwrite transition methods in spec, so the final object conforms to the expected interface
 
-	return immutable(Object.assign({}, spec, actions)) as Immutable<T>;
+	// bind actions to enable method destructuring: const { increment } = state; increment();
+	// use Object.freeze() instead of immutable() to avoid cloning, which would break method bindings
+
+	function bind(data: any) {
+		return Object.freeze(Object.assign(data, Object.fromEntries(Object.entries(actions)
+			.map(([key, value]) => [key, value.bind(data)])
+		)));
+	}
+
+	// actions overwrite transition methods in spec; the final object conforms to the expected interface
+
+	return bind(Object.assign({}, immutable(spec)));
 
 }

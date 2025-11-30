@@ -795,6 +795,60 @@ describe("State()", () => {
 
 		});
 
+		it("should support method extraction (destructuring)", () => {
+
+			interface Counter {
+				readonly value: number;
+
+				up(): this;
+			}
+
+			const counter = State<Counter>({
+				value: 0,
+				up({ value }) { return { value: value+1 }; }
+			});
+
+			// Extract method
+			const { up } = counter;
+
+			// Should work when called standalone
+			const next = up();
+
+			expect(next.value).toBe(1);
+			expect(next).not.toBe(counter);
+
+		});
+
+		it("should support method extraction with chaining", () => {
+
+			interface Counter {
+				readonly count: number;
+
+				increment(): this;
+
+				reset(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment({ count }) { return { count: count+1 }; },
+				reset() { return { count: 0 }; }
+			});
+
+			// Extract methods
+			const { increment, reset } = state;
+
+			// Should work when called standalone and chained
+			const next = increment();
+			const next2 = next.increment();
+			const next3 = reset();
+
+			expect(next.count).toBe(1);
+			expect(next2.count).toBe(2);
+			expect(next3.count).toBe(0);
+
+		});
+
 		it("should chain multiple action calls", () => {
 
 			interface Counter {
