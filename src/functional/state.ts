@@ -47,8 +47,8 @@
  *
  *   count: 0,
  *
- *   increment({ count }) {
- *     return { count: count + 1 };
+ *   increment() {
+ *     return { count: this.count + 1 };
  *   },
  *
  *   reset() {
@@ -71,7 +71,7 @@
  *
  * **Parameterized Actions**
  *
- * Actions can accept parameters, which are passed as a tuple to the transition function:
+ * Actions can accept parameters, which are passed as individual arguments to the transition function:
  *
  * ```typescript
  * interface Toggle {
@@ -86,11 +86,11 @@
  *
  *   items: [],
  *
- *   toggle({ items }, [item]) {
+ *   toggle(item) {
  *     return {
- *       items: items.includes(item)
- *         ? items.filter(i => i !== item)
- *         : [...items, item]
+ *       items: this.items.includes(item)
+ *         ? this.items.filter(i => i !== item)
+ *         : [...this.items, item]
  *     };
  *   }
  *
@@ -149,28 +149,13 @@ export type Action<T, I extends readonly unknown[]> = (...args: I) => T;
 /**
  * State transition.
  *
- * Transitions receive the current state data properties and action inputs, returning a partial
- * state object containing only the properties to update.
+ * Transitions receive action inputs, access current state data via `this`, and return
+ * a partial state object containing only the properties to update.
  *
  * @typeParam T The state type
  * @typeParam I The action input parameters as a readonly tuple
  */
-export type Transition<T, I extends readonly unknown[]> = (state: Data<T>, inputs: I) => Partial<T>;
-
-
-/**
- * State data.
- *
- * Represents the immutable data subset of a state interface, extracting properties and
- * excluding all action methods.
- *
- * @typeParam T The state interface type
- */
-export type Data<T> = {
-
-	readonly [K in keyof T as T[K] extends Function ? never : K]: Immutable<T[K]>
-
-};
+export type Transition<T, I extends readonly unknown[]> = (...args: I) => Partial<T>;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -199,7 +184,7 @@ export type Data<T> = {
  * - State objects are immutable; all changes must go through action methods
  * - Action methods apply transitions and return new state objects
  * - Action methods can be destructured and called independently (e.g., `const { increment } = state; increment();`)
- * - Parameterized actions receive inputs as a tuple in the transition function
+ * - Transition functions receive inputs as individual parameters and access state via `this`
  * - Returns same state reference when transition returns empty partial update
  * - Returns same state reference when all partial values are shallowly equal (`Object.is`) to current values
  */
@@ -209,7 +194,7 @@ export function State<T>(spec: Spec<T>): Immutable<T> {
 		.filter(([, value]) => typeof value === "function")
 		.map(([key, value]) => [key, function (this: Immutable<T>, ...inputs: readonly unknown[]): Immutable<T> {
 
-			const partial = (value as Transition<T, readonly unknown[]>)(this as Data<T>, inputs);
+			const partial = (value as Transition<T, readonly unknown[]>).call(this, ...inputs);
 
 			const changed = Object.entries(partial).some(([key, value]) =>
 				!Object.is(value, this[key as keyof Immutable<T>])

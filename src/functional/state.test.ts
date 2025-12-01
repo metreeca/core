@@ -16,7 +16,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { Action, State, Transition } from "./state.js";
+import { State } from "./state.js";
 
 /**
  * Type system validation tests.
@@ -72,8 +72,8 @@ describe("State", () => {
 			const state = State<ValidMultiAction>({
 				count: 0,
 				delta: 1,
-				increment({ count, delta }) { return { count: count+delta }; },
-				decrement({ count, delta }) { return { count: count-delta }; },
+				increment() { return { count: this.count+this.delta }; },
+				decrement() { return { count: this.count-this.delta }; },
 				reset() { return { count: 0 }; }
 			});
 
@@ -152,51 +152,6 @@ describe("State", () => {
 
 		});
 
-		it("type check: should reject action returning void instead of this", async () => {
-
-			// invalid state interface with action returning `void`
-
-			interface InvalidVoidReturn {
-				readonly count: number;
-
-				increment(): void;
-			}
-
-			// ✗ invalid: action method returns `void` instead of `this`
-			// Type error is caught at compile time by @ts-expect-error
-
-			State<InvalidVoidReturn>({
-				count: 0,
-				// @ts-expect-error
-				increment() { return {}; }
-			});
-
-			expect(true).toBe(true); // Type check test
-
-		});
-
-		it("type check: should reject action returning number instead of this", async () => {
-
-			// invalid state interface with action returning primitive type
-
-			interface InvalidNumberReturn {
-				readonly value: number;
-
-				getValue(): number;
-			}
-
-			// ✗ invalid: action method returns `number` instead of `this`
-			// Type error is caught at compile time by @ts-expect-error
-
-			State<InvalidNumberReturn>({
-				value: 42,
-				// @ts-expect-error
-				getValue() { return { value: 0 }; }
-			});
-
-			expect(true).toBe(true); // Type check test
-
-		});
 
 		it("type check: should reject async actions (Promise<this>)", async () => {
 
@@ -241,9 +196,9 @@ describe("State", () => {
 			const state = State<Counter>({
 				count: 0,
 				delta: 1,
-				increment({ count, delta }) {
+				increment() {
 					// only return count update, delta remains unchanged
-					return { count: count+delta };
+					return { count: this.count+this.delta };
 				}
 			});
 
@@ -301,190 +256,9 @@ describe("State", () => {
 
 	});
 
-	describe("Type transformation behavior", () => {
-
-		it("should transform Action<T> to Transition<T>", async () => {
-
-			// verify the mapped type transformation
-
-			interface SimpleState {
-				readonly value: number;
-
-				step(): this;
-			}
-
-			type ImplementationType = {
-				[K in keyof SimpleState]: SimpleState[K] extends Action<SimpleState, infer I>
-					? Transition<SimpleState, I>
-					: SimpleState[K] extends Function
-						? never
-					: SimpleState[K];
-			};
-
-			// type check: step should be Transition<SimpleState>
-
-			const impl: ImplementationType = {
-				value: 0,
-				step(state, _inputs: []) {
-					// state parameter should be typed as SimpleState
-					return { value: state.value+1 };
-				}
-			};
-
-			expect(impl.value).toBe(0);
-
-		});
-
-		it("should preserve data properties unchanged", async () => {
-
-			// verify data properties maintain their types
-
-			interface MixedState {
-				readonly count: number;
-				readonly label: string;
-				readonly active: boolean;
-
-				increment(): this;
-			}
-
-			// data properties should have same types in implementation
-
-			const state = State<MixedState>({
-				count: 42,
-				label: "test",
-				active: true,
-				increment({ count }) { return { count: count+1 }; }
-			});
-
-			expect(state.count).toBe(42);
-			expect(state.label).toBe("test");
-			expect(state.active).toBe(true);
-
-		});
-
-		it("type check: should exclude non-Action function types as never", async () => {
-
-			// functions that don't return `this` become `never` in implementation type
-
-			interface WithNonAction {
-				readonly value: number;
-
-				validAction(): this;
-
-				invalidAction(): string; // this becomes `never`
-			}
-
-			// type check: attempting to use this interface shows invalidAction is required but impossible
-			// this demonstrates the type system correctly rejects invalid action signatures
-			// Type error is caught at compile time by @ts-expect-error
-
-			// @ts-expect-error - invalidAction is typed as `never` (impossible to satisfy)
-			State<WithNonAction>({
-				value: 0,
-				validAction() { return { value: 1 }; }
-				// cannot provide invalidAction because it's typed as `never`
-			});
-
-			expect(true).toBe(true); // Type check test
-
-		});
-
-	});
 
 	describe("Parameterized actions - Action<T, I> to Transition<T, I> mapping", () => {
 
-		it("should accept action with single parameter", async () => {
-
-			// valid state interface with parameterized action
-
-			interface Toggle {
-				readonly items: readonly string[];
-
-				toggle(item: string): this;
-			}
-
-			// ✓ valid: action with parameter maps to transition with inputs tuple
-
-			const state = State<Toggle>({
-				items: [],
-				toggle(state, [item]: [string]) {
-					const items = state.items.includes(item)
-						? state.items.filter(i => i !== item)
-						: [...state.items, item];
-					return { items };
-				}
-			});
-
-			expect(state.items).toEqual([]);
-			expect(typeof state.toggle).toBe("function");
-
-		});
-
-		it("should accept action with multiple parameters", async () => {
-
-			// valid state interface with multi-parameter action
-
-			interface Calculator {
-				readonly result: number;
-
-				add(x: number, y: number): this;
-
-				multiply(x: number, y: number): this;
-			}
-
-			// ✓ valid: actions with multiple parameters map to transition with inputs tuple
-
-			const state = State<Calculator>({
-				result: 0,
-				add(state, [x, y]: [number, number]) {
-					return { result: state.result+x+y };
-				},
-				multiply(state, [x, y]: [number, number]) {
-					return { result: state.result*x*y };
-				}
-			});
-
-			expect(state.result).toBe(0);
-			expect(typeof state.add).toBe("function");
-			expect(typeof state.multiply).toBe("function");
-
-		});
-
-		it("should accept mixed parameterless and parameterized actions", async () => {
-
-			// valid state interface with both parameterless and parameterized actions
-
-			interface Counter {
-				readonly count: number;
-
-				increment(): this;
-
-				add(delta: number): this;
-
-				reset(): this;
-			}
-
-			// ✓ valid: mix of parameterless and parameterized actions
-
-			const state = State<Counter>({
-				count: 0,
-				increment(state, _inputs: []) {
-					return { count: state.count+1 };
-				},
-				add(state, [delta]: [number]) {
-					return { count: state.count+delta };
-				},
-				reset(_state, _inputs: []) {
-					return { count: 0 };
-				}
-			});
-
-			expect(state.count).toBe(0);
-			expect(typeof state.increment).toBe("function");
-			expect(typeof state.add).toBe("function");
-			expect(typeof state.reset).toBe("function");
-
-		});
 
 		it("type check: should reject transition with wrong parameter type", async () => {
 
@@ -502,8 +276,8 @@ describe("State", () => {
 			State<Adder>({
 				value: 0,
 				// @ts-expect-error
-				add(state: Adder, [delta]: [string]) {
-					return { value: state.value+Number(delta) };
+				add(delta: string) {
+					return { value: this.value+Number(delta) };
 				}
 			});
 
@@ -521,14 +295,14 @@ describe("State", () => {
 				multiply(x: number, y: number): this;
 			}
 
-			// ✗ invalid: transition expects [number, number] but receives [number]
+			// ✗ invalid: transition expects 2 parameters but receives 3
 			// Type error is caught at compile time by @ts-expect-error
 
 			State<Multiplier>({
 				value: 1,
 				// @ts-expect-error
-				multiply(state: Multiplier, [x]: [number]) {
-					return { value: state.value*x };
+				multiply(x: number, y: number, z: number) {
+					return { value: this.value*x*y*z };
 				}
 			});
 
@@ -552,8 +326,8 @@ describe("State", () => {
 			State<InvalidParamReturn>({
 				items: [],
 				// @ts-expect-error
-				add(state: InvalidParamReturn, [item]: [string]) {
-					return { items: [...state.items, item] };
+				add(item: string) {
+					return { items: [...this.items, item] };
 				}
 			});
 
@@ -561,92 +335,6 @@ describe("State", () => {
 
 		});
 
-		it("type check: should reject primitive type mismatch in inputs", async () => {
-
-			// invalid implementation with wrong primitive type
-
-			interface StringSetter {
-				readonly value: string;
-
-				setValue(newValue: string): this;
-			}
-
-			// ✗ invalid: transition expects [string] but receives [number]
-			// Type error is caught at compile time by @ts-expect-error
-
-			State<StringSetter>({
-				value: "",
-				// @ts-expect-error
-				setValue(_state: StringSetter, [newValue]: [number]) {
-					return { value: String(newValue) };
-				}
-			});
-
-			expect(true).toBe(true); // Type check test
-
-		});
-
-		it("type check: should reject object type mismatch in inputs", async () => {
-
-			// invalid implementation with incompatible object types
-
-			interface User {
-				name: string;
-				age: number;
-			}
-
-			interface Profile {
-				readonly user: User;
-
-				setUser(user: User): this;
-			}
-
-			interface WrongUser {
-				name: string;
-				email: string; // different structure
-			}
-
-			// ✗ invalid: transition expects [User] but receives [WrongUser]
-			// Type error is caught at compile time by @ts-expect-error
-
-			State<Profile>({
-				user: { name: "", age: 0 },
-				// @ts-expect-error
-				setUser(_state: Profile, [user]: [WrongUser]) {
-					return { user: { name: user.name, age: 0 } };
-				}
-			});
-
-			expect(true).toBe(true); // Type check test
-
-		});
-
-		it("type check: should reject mixed correct and incorrect parameter types", async () => {
-
-			// invalid implementation where some parameters have wrong types
-
-			interface Updater {
-				readonly value: number;
-				readonly label: string;
-
-				update(newValue: number, newLabel: string): this;
-			}
-
-			// ✗ invalid: second parameter type is wrong (number instead of string)
-			// Type error is caught at compile time by @ts-expect-error
-
-			State<Updater>({
-				value: 0,
-				label: "",
-				// @ts-expect-error
-				update(_state: Updater, [newValue, newLabel]: [number, number]) {
-					return { value: newValue, label: String(newLabel) };
-				}
-			});
-
-			expect(true).toBe(true); // Type check test
-
-		});
 
 		it("type check: should reject optional parameter type mismatch", async () => {
 
@@ -664,8 +352,8 @@ describe("State", () => {
 			State<OptionalParam>({
 				count: 0,
 				// @ts-expect-error
-				increment(state: OptionalParam, [delta]: [string?]) {
-					return { count: state.count+(Number(delta) || 1) };
+				increment(delta?: string) {
+					return { count: this.count+(Number(delta) || 1) };
 				}
 			});
 
@@ -673,42 +361,6 @@ describe("State", () => {
 
 		});
 
-		it("should transform Action<T, I> to Transition<T, I> with correct parameter types", async () => {
-
-			// verify the mapped type transformation for parameterized actions
-
-			interface StateWithParams {
-				readonly items: readonly number[];
-
-				push(value: number): this;
-
-				extend(a: number, b: string): this;
-			}
-
-			type ImplementationType = {
-				[K in keyof StateWithParams]: StateWithParams[K] extends Action<StateWithParams, infer I>
-					? Transition<StateWithParams, I>
-					: StateWithParams[K];
-			};
-
-			// type check: push should be Transition<StateWithParams, [number]>
-			// type check: extend should be Transition<StateWithParams, [number, string]>
-
-			const impl: ImplementationType = {
-				items: [],
-				push(state, [value]: [number]) {
-					return { items: [...state.items, value] };
-				},
-				extend(state, [a, b]: [number, string]) {
-					return { items: [...state.items, a, Number(b)] };
-				}
-			};
-
-			expect(impl.items).toEqual([]);
-			expect(typeof impl.push).toBe("function");
-			expect(typeof impl.extend).toBe("function");
-
-		});
 
 	});
 
@@ -745,7 +397,7 @@ describe("State()", () => {
 
 			const state = State<Counter>({
 				count: 0,
-				increment({ count }) { return { count: count+1 }; }
+				increment() { return { count: this.count+1 }; }
 			});
 
 			expect(typeof state.increment).toBe("function");
@@ -786,7 +438,7 @@ describe("State()", () => {
 
 			const state = State<Counter>({
 				count: 0,
-				increment({ count }) { return { count: count+1 }; }
+				increment() { return { count: this.count+1 }; }
 			});
 
 			const next = state.increment();
@@ -805,7 +457,7 @@ describe("State()", () => {
 
 			const counter = State<Counter>({
 				value: 0,
-				up({ value }) { return { value: value+1 }; }
+				up() { return { value: this.value+1 }; }
 			});
 
 			// Extract method
@@ -831,7 +483,7 @@ describe("State()", () => {
 
 			const state = State<Counter>({
 				count: 0,
-				increment({ count }) { return { count: count+1 }; },
+				increment() { return { count: this.count+1 }; },
 				reset() { return { count: 0 }; }
 			});
 
@@ -859,7 +511,7 @@ describe("State()", () => {
 
 			const state = State<Counter>({
 				count: 0,
-				increment({ count }) { return { count: count+1 }; }
+				increment() { return { count: this.count+1 }; }
 			});
 
 			const next = state
@@ -883,7 +535,7 @@ describe("State()", () => {
 			const state = State<Counter>({
 				count: 0,
 				step: 5,
-				increment({ count, step }) { return { count: count+step }; }
+				increment() { return { count: this.count+this.step }; }
 			});
 
 			const next = state.increment();
@@ -905,7 +557,7 @@ describe("State()", () => {
 
 			const state = State<Counter>({
 				count: 0,
-				increment({ count }) { return { count: count+1 }; },
+				increment() { return { count: this.count+1 }; },
 				reset() { return { count: 0 }; }
 			});
 
@@ -929,7 +581,7 @@ describe("State()", () => {
 			const state = State<Counter>({
 				count: 10,
 				delta: 3,
-				increment({ count, delta }) { return { count: count+delta }; }
+				increment() { return { count: this.count+this.delta }; }
 			});
 
 			const next = state.increment();
@@ -953,10 +605,10 @@ describe("State()", () => {
 
 			const state = State<Toggle>({
 				items: [],
-				toggle(state, [item]: [string]) {
-					const items = state.items.includes(item)
-						? state.items.filter(i => i !== item)
-						: [...state.items, item];
+				toggle(item: string) {
+					const items = this.items.includes(item)
+						? this.items.filter(i => i !== item)
+						: [...this.items, item];
 					return { items };
 				}
 			});
@@ -977,8 +629,8 @@ describe("State()", () => {
 
 			const state = State<Calculator>({
 				result: 0,
-				add(state, [x, y]: [number, number]) {
-					return { result: state.result+x+y };
+				add(x: number, y: number) {
+					return { result: this.result+x+y };
 				}
 			});
 
@@ -998,8 +650,8 @@ describe("State()", () => {
 
 			const state = State<Counter>({
 				count: 0,
-				add(state, [delta]: [number]) {
-					return { count: state.count+delta };
+				add(delta: number) {
+					return { count: this.count+delta };
 				}
 			});
 
@@ -1026,13 +678,13 @@ describe("State()", () => {
 
 			const state = State<Counter>({
 				count: 0,
-				increment(state, _inputs: []) {
-					return { count: state.count+1 };
+				increment() {
+					return { count: this.count+1 };
 				},
-				add(state, [delta]: [number]) {
-					return { count: state.count+delta };
+				add(delta: number) {
+					return { count: this.count+delta };
 				},
-				reset(_state, _inputs: []) {
+				reset() {
 					return { count: 0 };
 				}
 			});
@@ -1057,10 +709,10 @@ describe("State()", () => {
 
 			const state = State<Toggle>({
 				items: [],
-				toggle(state, [item]: [string]) {
-					const items = state.items.includes(item)
-						? state.items.filter(i => i !== item)
-						: [...state.items, item];
+				toggle(item: string) {
+					const items = this.items.includes(item)
+						? this.items.filter(i => i !== item)
+						: [...this.items, item];
 					return { items };
 				}
 			});
@@ -1092,11 +744,11 @@ describe("State()", () => {
 
 			const state = State<UserManager>({
 				user: { name: "Alice", age: 30 },
-				setUser(_state, [user]: [User]) {
+				setUser(user: User) {
 					return { user };
 				},
-				updateName(state, [name]: [string]) {
-					return { user: { ...state.user, name } };
+				updateName(name: string) {
+					return { user: { ...this.user, name } };
 				}
 			});
 
@@ -1120,10 +772,10 @@ describe("State()", () => {
 			const state = State<ShoppingCart>({
 				items: [],
 				total: 0,
-				addItem(state, [item, price]: [string, number]) {
+				addItem(item: string, price: number) {
 					return {
-						items: [...state.items, item],
-						total: state.total+price
+						items: [...this.items, item],
+						total: this.total+price
 					};
 				}
 			});
@@ -1148,8 +800,8 @@ describe("State()", () => {
 
 			const state = State<Counter>({
 				count: 0,
-				increment(state, [delta]: [number?]) {
-					return { count: state.count+(delta ?? 1) };
+				increment(delta?: number) {
+					return { count: this.count+(delta ?? 1) };
 				}
 			});
 
@@ -1179,10 +831,10 @@ describe("State()", () => {
 				host: "localhost",
 				port: 8080,
 				enabled: true,
-				setHost(_state, [host]: [string]) {
+				setHost(host: string) {
 					return { host };
 				},
-				setPort(_state, [port]: [number]) {
+				setPort(port: number) {
 					return { port };
 				}
 			});
@@ -1194,147 +846,6 @@ describe("State()", () => {
 			expect(next.host).toBe("example.com");
 			expect(next.port).toBe(443);
 			expect(next.enabled).toBe(true);
-
-		});
-
-	});
-
-	describe("Parameterized action immutability", () => {
-
-		it("should return new state object after parameterized action", () => {
-
-			interface Counter {
-				readonly count: number;
-
-				add(delta: number): this;
-			}
-
-			const state = State<Counter>({
-				count: 0,
-				add({ count }, [delta]: [number]) {
-					return { count: count+delta };
-				}
-			});
-
-			const next = state.add(5);
-
-			expect(next).not.toBe(state);
-
-		});
-
-		it("should not mutate original state with parameterized actions", () => {
-
-			interface Toggle {
-				readonly items: readonly string[];
-
-				toggle(item: string): this;
-			}
-
-			const state = State<Toggle>({
-				items: ["apple"],
-				toggle({ items }, [item]: [string]) {
-					return {
-						items: items.includes(item)
-							? items.filter(i => i !== item)
-							: [...items, item]
-					};
-				}
-			});
-
-			state.toggle("banana");
-
-			expect(state.items).toEqual(["apple"]);
-
-		});
-
-		it("should preserve intermediate states with parameterized actions", () => {
-
-			interface Counter {
-				readonly count: number;
-
-				add(delta: number): this;
-			}
-
-			const state = State<Counter>({
-				count: 0,
-				add({ count }, [delta]: [number]) {
-					return { count: count+delta };
-				}
-			});
-
-			const step1 = state.add(10);
-			const step2 = step1.add(5);
-			const step3 = step2.add(3);
-
-			expect(state.count).toBe(0);
-			expect(step1.count).toBe(10);
-			expect(step2.count).toBe(15);
-			expect(step3.count).toBe(18);
-
-		});
-
-		it("should return same state reference when parameterized action returns empty object", () => {
-
-			interface Counter {
-				readonly count: number;
-
-				noop(value: number): this;
-			}
-
-			const state = State<Counter>({
-				count: 42,
-				noop(_state, _inputs: [number]) {
-					return {};
-				}
-			});
-
-			const next = state.noop(999);
-
-			expect(next).toBe(state);
-
-		});
-
-		it("should return same state reference when parameterized action returns unchanged values", () => {
-
-			interface Counter {
-				readonly count: number;
-
-				setToSame(value: number): this;
-			}
-
-			const state = State<Counter>({
-				count: 42,
-				setToSame({ count }, _inputs: [number]) {
-					return { count };
-				}
-			});
-
-			const next = state.setToSame(999);
-
-			expect(next).toBe(state);
-
-		});
-
-		it("should return new state when parameterized action changes at least one property", () => {
-
-			interface Counter {
-				readonly count: number;
-				readonly step: number;
-
-				add(delta: number): this;
-			}
-
-			const state = State<Counter>({
-				count: 0,
-				step: 1,
-				add({ count }, [delta]: [number]) {
-					return { count: count+delta };
-				}
-			});
-
-			const next = state.add(5);
-
-			expect(next).not.toBe(state);
 
 		});
 
@@ -1352,7 +863,7 @@ describe("State()", () => {
 
 			const state = State<Counter>({
 				count: 0,
-				increment({ count }) { return { count: count+1 }; }
+				increment() { return { count: this.count+1 }; }
 			});
 
 			const next = state.increment();
@@ -1371,7 +882,7 @@ describe("State()", () => {
 
 			const state = State<Counter>({
 				count: 0,
-				increment({ count }) { return { count: count+1 }; }
+				increment() { return { count: this.count+1 }; }
 			});
 
 			state.increment();
@@ -1390,7 +901,7 @@ describe("State()", () => {
 
 			const state = State<Counter>({
 				count: 0,
-				increment({ count }) { return { count: count+1 }; }
+				increment() { return { count: this.count+1 }; }
 			});
 
 			const step1 = state.increment();
@@ -1437,7 +948,7 @@ describe("State()", () => {
 
 			const state = State<Counter>({
 				count: 42,
-				setToSame({ count }) { return { count }; }
+				setToSame() { return { count: this.count }; }
 			});
 
 			const next = state.setToSame();
@@ -1458,7 +969,7 @@ describe("State()", () => {
 			const state = State<Counter>({
 				count: 0,
 				step: 1,
-				increment({ count, step }) { return { count: count+step }; }
+				increment() { return { count: this.count+this.step }; }
 			});
 
 			const next = state.increment();
@@ -1505,8 +1016,8 @@ describe("State()", () => {
 			const state = State<Counter>({
 				count: 0,
 				max: 10,
-				increment({ count, max }) {
-					return count < max ? { count: count+1 } : {};
+				increment() {
+					return this.count < this.max ? { count: this.count+1 } : {};
 				}
 			});
 
@@ -1516,8 +1027,8 @@ describe("State()", () => {
 			const atMax = State<Counter>({
 				count: 10,
 				max: 10,
-				increment({ count, max }) {
-					return count < max ? { count: count+1 } : {};
+				increment() {
+					return this.count < this.max ? { count: this.count+1 } : {};
 				}
 			});
 
@@ -1539,7 +1050,7 @@ describe("State()", () => {
 			const state = State<Point>({
 				x: 0,
 				y: 0,
-				move({ x, y }) { return { x: x+1, y: y+1 }; }
+				move() { return { x: this.x+1, y: this.y+1 }; }
 			});
 
 			const next = state.move();
@@ -1563,7 +1074,7 @@ describe("State()", () => {
 			const counter = State<Counter>({
 				count: 0,
 				step: 1,
-				increment({ count, step }) { return { count: count+step }; },
+				increment() { return { count: this.count+this.step }; },
 				reset() { return { count: 0 }; }
 			});
 
