@@ -36,38 +36,59 @@
  * isPromise(Promise.resolve(42)); // true
  * isIterable([1, 2, 3]); // true
  * ```
+ * @module index
  *
- * @groupDescription Value Guards
+ * @groupDescription JSON Guards
  *
- * Type guards for JSON-like values and data structures.
+ * Type guards for JSON values and data structures.
  *
  * ```typescript
- * import { isBoolean, isNumber, isString, isObject, isArray } from '@metreeca/core';
+ * import { isBoolean, isNumber, isString, isObject, isArray, isJSON } from '@metreeca/core';
+ *
+ * isJSON({ a: [1, 2], b: "test" }); // true
+ * isJSON({ a: new Date() }); // false
  *
  * isBoolean(true); // true
  * isNumber(42); // true (excludes NaN, Infinity)
  * isString('hello'); // true
  *
- * isObject({ a: 1 }); // true
- * isObject(new Date()); // false
- *
  * isArray([1, 2, 3], isNumber); // true
  * isArray([1, 'two'], isNumber); // false
+ *
+ * isObject({ a: 1 }); // true
+ * isObject(new Date()); // false
  * ```
  *
- * @groupDescription Value Casts
+ * @groupDescription JSON Casts
  *
- * Safe casts for JSON-like primitive values and data structures, returning `undefined` instead of throwing.
+ * Safe casts for JSON primitive values and data structures, returning `undefined` instead of throwing.
  *
  * ```typescript
- * import { asNumber, asString, asObject, asArray } from '@metreeca/core';
+ * import { asNumber, asString, asObject, asArray, asJSON } from '@metreeca/core';
+ *
+ * asJSON({ a: 1 }); // { a: 1 }
+ * asJSON({ a: new Date() }); // undefined
  *
  * asNumber(42); // 42
  * asNumber('42'); // undefined
  * ```
- *
- * @module index
  */
+
+
+/**
+ * Immutable JSON value type.
+ *
+ * Represents deeply immutable JSON-compatible structures.
+ *
+ * @see https://datatracker.ietf.org/doc/html/rfc8259
+ */
+export type JSONValue =
+	| null
+	| boolean
+	| number
+	| string
+	| readonly JSONValue[]
+	| { readonly [name: string]: JSONValue }
 
 
 //// Runtime Guards ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -174,9 +195,30 @@ export function isAsyncIterable<T = unknown>(value: unknown): value is AsyncIter
 //// Value Guards //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * Checks if a value is a valid JSON value.
+ *
+ * Recursively validates that the value and all nested structures conform to the {@link JSONValue} type,
+ * which includes `null`, booleans, finite numbers, strings, arrays of JSON values, and plain objects
+ * with string keys and JSON values.
+ *
+ * @group JSON Guards
+ *
+ * @param value The value to check
+ *
+ * @returns `true` if the value is a valid JSON structure
+ */
+export function isJSON(value: unknown): value is JSONValue {
+	return value === null ? true
+		: isBoolean(value) || isNumber(value) || isString(value) ? true
+			: Array.isArray(value) ? value.every(isJSON)
+				: isObject(value) ? Object.values(value).every(isJSON)
+					: false;
+}
+
+/**
  * Checks if a value is a boolean.
  *
- * @group Value Guards
+ * @group JSON Guards
  *
  * @returns `true` if the value is a boolean
  */
@@ -187,7 +229,7 @@ export function isBoolean(value: unknown): value is boolean {
 /**
  * Checks if a value is a finite number.
  *
- * @group Value Guards
+ * @group JSON Guards
  *
  * @returns `true` if the value is a finite number
  */
@@ -198,12 +240,28 @@ export function isNumber(value: unknown): value is number {
 /**
  * Checks if a value is a string.
  *
- * @group Value Guards
+ * @group JSON Guards
  *
  * @returns `true` if the value is a string
  */
 export function isString(value: unknown): value is string {
 	return typeof value === "string";
+}
+
+/**
+ * Checks if a value is an array.
+ *
+ * @group JSON Guards
+ *
+ * @typeParam T The type of array elements
+ *
+ * @param value The value to check
+ * @param is Optional type guard to validate array elements
+ *
+ * @returns `true` if the value is an array. Empty arrays return `true` even when an element type guard is provided.
+ */
+export function isArray<T = unknown>(value: unknown, is?: (value: unknown) => value is T): value is T[] {
+	return Array.isArray(value) && (is === undefined || value.every(is));
 }
 
 /**
@@ -217,7 +275,7 @@ export function isString(value: unknown): value is string {
  * and property enumeration that assume simple key-value structure without special
  * behavior or internal state.
  *
- * @group Value Guards
+ * @group JSON Guards
  *
  * @typeParam K The type of property keys
  * @typeParam V The type of property values
@@ -238,29 +296,29 @@ export function isObject<K extends PropertyKey = PropertyKey, V = unknown>(value
 	}
 }
 
-/**
- * Checks if a value is an array.
- *
- * @group Value Guards
- *
- * @typeParam T The type of array elements
- *
- * @param value The value to check
- * @param is Optional type guard to validate array elements
- *
- * @returns `true` if the value is an array. Empty arrays return `true` even when an element type guard is provided.
- */
-export function isArray<T = unknown>(value: unknown, is?: (value: unknown) => value is T): value is T[] {
-	return Array.isArray(value) && (is === undefined || value.every(is));
-}
 
 
 //// Value Casts ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * Retrieves a value as a JSON value if it is one, otherwise returns `undefined`.
+ *
+ * Uses {@link isJSON} to validate the value and all nested structures.
+ *
+ * @group JSON Casts
+ *
+ * @param value The value to check
+ *
+ * @returns The value if it is a valid JSON structure, `undefined` otherwise
+ */
+export function asJSON(value: unknown): undefined | JSONValue {
+	return isJSON(value) ? value : undefined;
+}
+
+/**
  * Retrieves a value as a boolean if it is one, otherwise returns `undefined`.
  *
- * @group Value Casts
+ * @group JSON Casts
  *
  * @param value The value to check
  *
@@ -273,7 +331,7 @@ export function asBoolean(value: unknown): undefined | boolean {
 /**
  * Retrieves a value as a number if it is one, otherwise returns `undefined`.
  *
- * @group Value Casts
+ * @group JSON Casts
  *
  * @param value The value to check
  *
@@ -286,7 +344,7 @@ export function asNumber(value: unknown): undefined | number {
 /**
  * Retrieves a value as a string if it is one, otherwise returns `undefined`.
  *
- * @group Value Casts
+ * @group JSON Casts
  *
  * @param value The value to check
  *
@@ -297,25 +355,9 @@ export function asString(value: unknown): undefined | string {
 }
 
 /**
- * Retrieves a value as a plain object if it is one, otherwise returns `undefined`.
- *
- * @group Value Casts
- *
- * @typeParam K The type of property keys
- * @typeParam V The type of property values
- *
- * @param value The value to check
- *
- * @returns The value if it is a plain object, `undefined` otherwise
- */
-export function asObject<K extends PropertyKey = PropertyKey, V = unknown>(value: unknown): undefined | Record<K, V> {
-	return isObject<K, V>(value) ? value : undefined;
-}
-
-/**
  * Retrieves a value as an array if it is one, otherwise returns `undefined`.
  *
- * @group Value Casts
+ * @group JSON Casts
  *
  * @typeParam T The type of array elements
  *
@@ -326,4 +368,20 @@ export function asObject<K extends PropertyKey = PropertyKey, V = unknown>(value
  */
 export function asArray<T = unknown>(value: unknown, is?: (value: unknown) => value is T): undefined | T[] {
 	return isArray<T>(value, is) ? value : undefined;
+}
+
+/**
+ * Retrieves a value as a plain object if it is one, otherwise returns `undefined`.
+ *
+ * @group JSON Casts
+ *
+ * @typeParam K The type of property keys
+ * @typeParam V The type of property values
+ *
+ * @param value The value to check
+ *
+ * @returns The value if it is a plain object, `undefined` otherwise
+ */
+export function asObject<K extends PropertyKey = PropertyKey, V = unknown>(value: unknown): undefined | Record<K, V> {
+	return isObject<K, V>(value) ? value : undefined;
 }

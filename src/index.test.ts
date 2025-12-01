@@ -19,6 +19,7 @@ import { describe, expect, it } from "vitest";
 import {
 	asArray,
 	asBoolean,
+	asJSON,
 	asNumber,
 	asObject,
 	asString,
@@ -30,6 +31,7 @@ import {
 	isError,
 	isFunction,
 	isIterable,
+	isJSON,
 	isNumber,
 	isObject,
 	isPromise,
@@ -197,6 +199,80 @@ describe("Runtime Guards", () => {
 
 describe("Value Guards", () => {
 
+	describe("isJSON()", () => {
+
+		it("should return true for null", () => {
+			expect(isJSON(null)).toBeTruthy();
+		});
+
+		it("should return true for booleans", () => {
+			expect(isJSON(true)).toBeTruthy();
+			expect(isJSON(false)).toBeTruthy();
+		});
+
+		it("should return true for finite numbers", () => {
+			expect(isJSON(0)).toBeTruthy();
+			expect(isJSON(123)).toBeTruthy();
+			expect(isJSON(-456.78)).toBeTruthy();
+		});
+
+		it("should return false for non-finite numbers", () => {
+			expect(isJSON(NaN)).toBeFalsy();
+			expect(isJSON(Infinity)).toBeFalsy();
+			expect(isJSON(-Infinity)).toBeFalsy();
+		});
+
+		it("should return true for strings", () => {
+			expect(isJSON("")).toBeTruthy();
+			expect(isJSON("test")).toBeTruthy();
+		});
+
+		it("should return true for JSON arrays", () => {
+			expect(isJSON([])).toBeTruthy();
+			expect(isJSON([1, 2, 3])).toBeTruthy();
+			expect(isJSON(["a", "b", "c"])).toBeTruthy();
+			expect(isJSON([1, "two", true, null])).toBeTruthy();
+		});
+
+		it("should return false for arrays with non-JSON values", () => {
+			expect(isJSON([undefined])).toBeFalsy();
+			expect(isJSON([1, undefined])).toBeFalsy();
+			expect(isJSON([Symbol()])).toBeFalsy();
+			expect(isJSON([() => {}])).toBeFalsy();
+		});
+
+		it("should return true for JSON objects", () => {
+			expect(isJSON({})).toBeTruthy();
+			expect(isJSON({ a: 1 })).toBeTruthy();
+			expect(isJSON({ a: 1, b: "two", c: true, d: null })).toBeTruthy();
+		});
+
+		it("should return false for objects with non-JSON values", () => {
+			expect(isJSON({ a: undefined })).toBeFalsy();
+			expect(isJSON({ a: 1, b: undefined })).toBeFalsy();
+			expect(isJSON({ a: Symbol() })).toBeFalsy();
+			expect(isJSON({ a: () => {} })).toBeFalsy();
+		});
+
+		it("should return true for nested JSON structures", () => {
+			expect(isJSON({ a: [1, 2, 3], b: { c: "test" } })).toBeTruthy();
+			expect(isJSON([{ a: 1 }, { b: 2 }])).toBeTruthy();
+		});
+
+		it("should return false for non-plain objects", () => {
+			expect(isJSON(new Date())).toBeFalsy();
+			expect(isJSON(new RegExp(""))).toBeFalsy();
+			expect(isJSON(new Error())).toBeFalsy();
+		});
+
+		it("should return false for non-JSON primitives", () => {
+			expect(isJSON(undefined)).toBeFalsy();
+			expect(isJSON(Symbol())).toBeFalsy();
+			expect(isJSON(() => {})).toBeFalsy();
+		});
+
+	});
+
 	describe("isBoolean()", () => {
 
 		it("should return true for booleans", () => {
@@ -301,6 +377,65 @@ describe("Value Guards", () => {
 });
 
 describe("Value Casts", () => {
+
+	describe("asJSON()", () => {
+
+		it("should return JSON primitives", () => {
+			expect(asJSON(null)).toBe(null);
+			expect(asJSON(true)).toBe(true);
+			expect(asJSON(false)).toBe(false);
+			expect(asJSON(123)).toBe(123);
+			expect(asJSON("test")).toBe("test");
+		});
+
+		it("should return JSON arrays", () => {
+			const arr = [1, 2, 3];
+			expect(asJSON(arr)).toBe(arr);
+			expect(asJSON([])).toEqual([]);
+			expect(asJSON([1, "two", true, null])).toEqual([1, "two", true, null]);
+		});
+
+		it("should return JSON objects", () => {
+			const obj = { a: 1, b: "two" };
+			expect(asJSON(obj)).toBe(obj);
+			expect(asJSON({})).toEqual({});
+		});
+
+		it("should return nested JSON structures", () => {
+			const nested = { a: [1, 2, 3], b: { c: "test" } };
+			expect(asJSON(nested)).toBe(nested);
+		});
+
+		it("should return undefined for non-finite numbers", () => {
+			expect(asJSON(NaN)).toBeUndefined();
+			expect(asJSON(Infinity)).toBeUndefined();
+			expect(asJSON(-Infinity)).toBeUndefined();
+		});
+
+		it("should return undefined for arrays with non-JSON values", () => {
+			expect(asJSON([undefined])).toBeUndefined();
+			expect(asJSON([1, undefined])).toBeUndefined();
+			expect(asJSON([Symbol()])).toBeUndefined();
+		});
+
+		it("should return undefined for objects with non-JSON values", () => {
+			expect(asJSON({ a: undefined })).toBeUndefined();
+			expect(asJSON({ a: 1, b: undefined })).toBeUndefined();
+			expect(asJSON({ a: Symbol() })).toBeUndefined();
+		});
+
+		it("should return undefined for non-plain objects", () => {
+			expect(asJSON(new Date())).toBeUndefined();
+			expect(asJSON(new Error())).toBeUndefined();
+		});
+
+		it("should return undefined for non-JSON primitives", () => {
+			expect(asJSON(undefined)).toBeUndefined();
+			expect(asJSON(Symbol())).toBeUndefined();
+			expect(asJSON(() => {})).toBeUndefined();
+		});
+
+	});
 
 	describe("asBoolean()", () => {
 
