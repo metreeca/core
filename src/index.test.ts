@@ -324,6 +324,26 @@ describe("Value Guards", () => {
 
 	});
 
+	describe("isArray()", () => {
+
+		it("should return true for arrays", () => {
+			expect(isArray([])).toBeTruthy();
+			expect(isArray([1, 2, 3])).toBeTruthy();
+		});
+
+		it("should validate elements with type guard", () => {
+			expect(isArray([1, 2, 3], isNumber)).toBeTruthy();
+			expect(isArray([1, "2", 3], isNumber)).toBeFalsy();
+		});
+
+		it("should return false for non-arrays", () => {
+			expect(isArray({})).toBeFalsy();
+			expect(isArray("array")).toBeFalsy();
+			expect(isArray(null)).toBeFalsy();
+		});
+
+	});
+
 	describe("isObject()", () => {
 
 		it("should return true for plain objects", () => {
@@ -350,26 +370,6 @@ describe("Value Guards", () => {
 			expect(isObject(undefined)).toBeFalsy();
 			expect(isObject("string")).toBeFalsy();
 			expect(isObject(123)).toBeFalsy();
-		});
-
-	});
-
-	describe("isArray()", () => {
-
-		it("should return true for arrays", () => {
-			expect(isArray([])).toBeTruthy();
-			expect(isArray([1, 2, 3])).toBeTruthy();
-		});
-
-		it("should validate elements with type guard", () => {
-			expect(isArray([1, 2, 3], isNumber)).toBeTruthy();
-			expect(isArray([1, "2", 3], isNumber)).toBeFalsy();
-		});
-
-		it("should return false for non-arrays", () => {
-			expect(isArray({})).toBeFalsy();
-			expect(isArray("array")).toBeFalsy();
-			expect(isArray(null)).toBeFalsy();
 		});
 
 	});
@@ -490,6 +490,27 @@ describe("Value Casts", () => {
 
 	});
 
+	describe("asArray()", () => {
+
+		it("should return array values", () => {
+			const arr = [1, 2, 3];
+			expect(asArray(arr)).toBe(arr);
+			expect(asArray([])).toEqual([]);
+		});
+
+		it("should validate elements with type guard", () => {
+			expect(asArray([1, 2, 3], isNumber)).toEqual([1, 2, 3]);
+			expect(asArray([1, "2", 3], isNumber)).toBeUndefined();
+		});
+
+		it("should return undefined for non-arrays", () => {
+			expect(asArray({})).toBeUndefined();
+			expect(asArray("array")).toBeUndefined();
+			expect(asArray(null)).toBeUndefined();
+		});
+
+	});
+
 	describe("asObject()", () => {
 
 		it("should return plain objects", () => {
@@ -516,27 +537,6 @@ describe("Value Casts", () => {
 			expect(asObject(null)).toBeUndefined();
 			expect(asObject(123)).toBeUndefined();
 			expect(asObject("string")).toBeUndefined();
-		});
-
-	});
-
-	describe("asArray()", () => {
-
-		it("should return array values", () => {
-			const arr = [1, 2, 3];
-			expect(asArray(arr)).toBe(arr);
-			expect(asArray([])).toEqual([]);
-		});
-
-		it("should validate elements with type guard", () => {
-			expect(asArray([1, 2, 3], isNumber)).toEqual([1, 2, 3]);
-			expect(asArray([1, "2", 3], isNumber)).toBeUndefined();
-		});
-
-		it("should return undefined for non-arrays", () => {
-			expect(asArray({})).toBeUndefined();
-			expect(asArray("array")).toBeUndefined();
-			expect(asArray(null)).toBeUndefined();
 		});
 
 	});

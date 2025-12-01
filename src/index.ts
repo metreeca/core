@@ -76,7 +76,7 @@
 
 
 /**
- * Immutable JSON value type.
+ * Immutable JSON value.
  *
  * Represents deeply immutable JSON-compatible structures.
  *

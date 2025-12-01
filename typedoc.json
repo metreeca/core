@@ -12,12 +12,6 @@
   "groupOrder": [
     "Type Aliases",
     "Interfaces",
-    "Runtime Guards",
-    "Value Guards",
-    "Value Casts",
-    "Comparators",
-    "Factories",
-    "Combinators",
     "*"
   ],
   "useFirstParagraphOfCommentAsSummary": true,

@@ -27,6 +27,7 @@
     ".": "./dist/index.js",
     "./nested": "./dist/common/nested.js",
     "./report": "./dist/common/report.js",
+    "./network": "./dist/common/network.js",
     "./meta": "./dist/common/meta.js",
     "./async": "./dist/async/index.js",
     "./order": "./dist/functional/order.js",
