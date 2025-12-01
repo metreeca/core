@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { State } from "./state.js";
 
@@ -1085,6 +1085,497 @@ describe("State()", () => {
 
 			expect(result.count).toBe(0);
 
+		});
+
+	});
+
+});
+
+describe("State observers", () => {
+
+	describe("attach()", () => {
+
+		it("should return new state with observer attached", () => {
+			interface Counter {
+				readonly count: number;
+				increment(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count + 1 }; }
+			});
+
+			const observer = (s: Counter) => {};
+			const next = state.attach(observer);
+
+			expect(next).not.toBe(state);
+		});
+
+		it("should return same state when observer already attached (idempotent)", () => {
+			interface Counter {
+				readonly count: number;
+			}
+
+			const state = State<Counter>({ count: 0 });
+			const observer = (s: Counter) => {};
+
+			const first = state.attach(observer);
+			const second = first.attach(observer);
+
+			expect(second).toBe(first);
+		});
+
+		it("should allow attaching multiple different observers", () => {
+			interface Counter {
+				readonly count: number;
+			}
+
+			const state = State<Counter>({ count: 0 });
+			const observer1 = (s: Counter) => {};
+			const observer2 = (s: Counter) => {};
+
+			const next = state.attach(observer1).attach(observer2);
+
+			expect(next).not.toBe(state);
+		});
+
+		it("should support method destructuring", () => {
+			interface Counter {
+				readonly count: number;
+			}
+
+			const state = State<Counter>({ count: 0 });
+			const { attach } = state;
+			const observer = (s: Counter) => {};
+
+			const next = attach(observer);
+
+			expect(next).not.toBe(state);
+		});
+
+	});
+
+	describe("detach()", () => {
+
+		it("should return new state without observer", () => {
+			interface Counter {
+				readonly count: number;
+			}
+
+			const state = State<Counter>({ count: 0 });
+			const observer = (s: Counter) => {};
+
+			const withObserver = state.attach(observer);
+			const withoutObserver = withObserver.detach(observer);
+
+			expect(withoutObserver).not.toBe(withObserver);
+		});
+
+		it("should return same state when observer not attached (idempotent)", () => {
+			interface Counter {
+				readonly count: number;
+			}
+
+			const state = State<Counter>({ count: 0 });
+			const observer = (s: Counter) => {};
+
+			const next = state.detach(observer);
+
+			expect(next).toBe(state);
+		});
+
+		it("should preserve other observers when detaching one", () => {
+			interface Counter {
+				readonly count: number;
+				increment(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count + 1 }; }
+			});
+
+			let observer1Called = false;
+			let observer2Called = false;
+
+			const observer1 = () => { observer1Called = true; };
+			const observer2 = () => { observer2Called = true; };
+
+			const withBoth = state.attach(observer1).attach(observer2);
+			const withOne = withBoth.detach(observer1);
+
+			withOne.increment();
+
+			// Wait for microtasks
+			return new Promise<void>(resolve => setTimeout(() => {
+				expect(observer1Called).toBe(false);
+				expect(observer2Called).toBe(true);
+				resolve();
+			}, 0));
+		});
+
+		it("should require exact same reference (reference equality)", () => {
+			interface Counter {
+				readonly count: number;
+			}
+
+			const state = State<Counter>({ count: 0 });
+			const observer1 = (s: Counter) => {};
+			const observer2 = (s: Counter) => {}; // Different reference
+
+			const withObserver = state.attach(observer1);
+			const next = withObserver.detach(observer2);
+
+			// Should return same state since observer2 was never attached
+			expect(next).toBe(withObserver);
+		});
+
+	});
+
+	describe("observer notification", () => {
+
+		it("should notify observer on state change", async () => {
+			interface Counter {
+				readonly count: number;
+				increment(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count + 1 }; }
+			});
+
+			let notified = false;
+			const observer = () => { notified = true; };
+
+			const withObserver = state.attach(observer);
+			withObserver.increment();
+
+			// Wait for microtasks
+			await new Promise(resolve => setTimeout(resolve, 0));
+
+			expect(notified).toBe(true);
+		});
+
+		it("should pass new state to observer", async () => {
+			interface Counter {
+				readonly count: number;
+				increment(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count + 1 }; }
+			});
+
+			let receivedState: Counter | null = null;
+			const observer = (s: Counter) => { receivedState = s; };
+
+			const withObserver = state.attach(observer);
+			const next = withObserver.increment();
+
+			await new Promise(resolve => setTimeout(resolve, 0));
+
+			expect(receivedState).toBe(next);
+			expect(receivedState?.count).toBe(1);
+		});
+
+		it("should notify all observers", async () => {
+			interface Counter {
+				readonly count: number;
+				increment(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count + 1 }; }
+			});
+
+			let observer1Called = false;
+			let observer2Called = false;
+			let observer3Called = false;
+
+			const observer1 = () => { observer1Called = true; };
+			const observer2 = () => { observer2Called = true; };
+			const observer3 = () => { observer3Called = true; };
+
+			const withObservers = state
+				.attach(observer1)
+				.attach(observer2)
+				.attach(observer3);
+
+			withObservers.increment();
+
+			await new Promise(resolve => setTimeout(resolve, 0));
+
+			expect(observer1Called).toBe(true);
+			expect(observer2Called).toBe(true);
+			expect(observer3Called).toBe(true);
+		});
+
+		it("should NOT notify when state doesn't change (same-state optimization)", async () => {
+			interface Counter {
+				readonly count: number;
+				noop(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				noop() { return {}; }
+			});
+
+			let notified = false;
+			const observer = () => { notified = true; };
+
+			const withObserver = state.attach(observer);
+			withObserver.noop();
+
+			await new Promise(resolve => setTimeout(resolve, 0));
+
+			expect(notified).toBe(false);
+		});
+
+		it("should notify asynchronously using microtasks", () => {
+			interface Counter {
+				readonly count: number;
+				increment(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count + 1 }; }
+			});
+
+			let notified = false;
+			const observer = () => { notified = true; };
+
+			const withObserver = state.attach(observer);
+			withObserver.increment();
+
+			// Should not be called yet (microtasks run after sync code)
+			expect(notified).toBe(false);
+		});
+
+	});
+
+	describe("observer inheritance", () => {
+
+		it("should inherit observers through state transitions", async () => {
+			interface Counter {
+				readonly count: number;
+				increment(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count + 1 }; }
+			});
+
+			let callCount = 0;
+			const observer = () => { callCount++; };
+
+			const withObserver = state.attach(observer);
+			withObserver.increment().increment().increment();
+
+			await new Promise(resolve => setTimeout(resolve, 0));
+
+			expect(callCount).toBe(3);
+		});
+
+		it("should preserve observers through chained actions", async () => {
+			interface Counter {
+				readonly count: number;
+				increment(): this;
+				reset(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count + 1 }; },
+				reset() { return { count: 0 }; }
+			});
+
+			const states: number[] = [];
+			const observer = (s: Counter) => { states.push(s.count); };
+
+			const withObserver = state.attach(observer);
+			withObserver
+				.increment()
+				.increment()
+				.reset()
+				.increment();
+
+			await new Promise(resolve => setTimeout(resolve, 0));
+
+			expect(states).toEqual([1, 2, 0, 1]);
+		});
+
+		it("should work with destructured methods", async () => {
+			interface Counter {
+				readonly count: number;
+				increment(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count + 1 }; }
+			});
+
+			let notified = false;
+			const observer = () => { notified = true; };
+
+			const withObserver = state.attach(observer);
+			const { increment } = withObserver;
+
+			increment();
+
+			await new Promise(resolve => setTimeout(resolve, 0));
+
+			expect(notified).toBe(true);
+		});
+
+	});
+
+	describe("error handling", () => {
+
+		it("should continue notifying other observers after error", async () => {
+			interface Counter {
+				readonly count: number;
+				increment(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count + 1 }; }
+			});
+
+			const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+			let observer2Called = false;
+			let observer3Called = false;
+
+			const observer1 = () => { throw new Error("Error"); };
+			const observer2 = () => { observer2Called = true; };
+			const observer3 = () => { observer3Called = true; };
+
+			const withObservers = state
+				.attach(observer1)
+				.attach(observer2)
+				.attach(observer3);
+
+			withObservers.increment();
+
+			await new Promise(resolve => setTimeout(resolve, 0));
+
+			expect(observer2Called).toBe(true);
+			expect(observer3Called).toBe(true);
+
+			errorSpy.mockRestore();
+		});
+
+		it("should complete state transition even if observer throws", async () => {
+			interface Counter {
+				readonly count: number;
+				increment(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count + 1 }; }
+			});
+
+			const throwingObserver = () => { throw new Error("Error"); };
+			const withObserver = state.attach(throwingObserver);
+
+			const next = withObserver.increment();
+
+			expect(next.count).toBe(1);
+		});
+
+	});
+
+	describe("edge cases", () => {
+
+		it("should handle empty observer list", () => {
+			interface Counter {
+				readonly count: number;
+				increment(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count + 1 }; }
+			});
+
+			// Should not throw
+			expect(() => {
+				state.increment();
+			}).not.toThrow();
+		});
+
+		it("should handle attaching and detaching same observer multiple times", () => {
+			interface Counter {
+				readonly count: number;
+			}
+
+			const state = State<Counter>({ count: 0 });
+			const observer = (s: Counter) => {};
+
+			const s1 = state.attach(observer);
+			const s2 = s1.attach(observer); // Should return same
+			const s3 = s2.detach(observer);
+			const s4 = s3.detach(observer); // Should return same
+
+			expect(s2).toBe(s1);
+			expect(s4).toBe(s3);
+		});
+
+		it("should work with parameterized actions", async () => {
+			interface Counter {
+				readonly count: number;
+				add(delta: number): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				add(delta) { return { count: this.count + delta }; }
+			});
+
+			let receivedCount = 0;
+			const observer = (s: Counter) => { receivedCount = s.count; };
+
+			const withObserver = state.attach(observer);
+			withObserver.add(5);
+
+			await new Promise(resolve => setTimeout(resolve, 0));
+
+			expect(receivedCount).toBe(5);
+		});
+
+		it("should work with multiple data properties", async () => {
+			interface Point {
+				readonly x: number;
+				readonly y: number;
+				move(dx: number, dy: number): this;
+			}
+
+			const state = State<Point>({
+				x: 0,
+				y: 0,
+				move(dx, dy) { return { x: this.x + dx, y: this.y + dy }; }
+			});
+
+			let receivedPoint: Point | null = null;
+			const observer = (s: Point) => { receivedPoint = s; };
+
+			const withObserver = state.attach(observer);
+			withObserver.move(3, 4);
+
+			await new Promise(resolve => setTimeout(resolve, 0));
+
+			expect(receivedPoint?.x).toBe(3);
+			expect(receivedPoint?.y).toBe(4);
 		});
 
 	});
