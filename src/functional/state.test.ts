@@ -16,7 +16,8 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { Snapshot, State } from "./state.js";
+import { $ } from "../common/meta.js";
+import { State, Version } from "./state.js";
 
 /**
  * Type system validation tests.
@@ -28,19 +29,19 @@ import { Snapshot, State } from "./state.js";
  */
 describe("State", () => {
 
-	describe("State interface - Action signature validation", () => {
+	describe("State interface - Transition signature validation", () => {
 
-		it("should accept simple state with single action", async () => {
+		it("should accept simple state with single transition", async () => {
 
-			// valid state interface with action returning `this`
+			// valid state interface with transition returning `this`
 
-			interface ValidSimple {
+			interface ValidSimple extends State {
 				readonly value: number;
 
 				step(): this;
 			}
 
-			// ✓ valid: action method returns `this`
+			// ✓ valid: transition method returns `this`
 
 			const state = State<ValidSimple>({
 				value: 0,
@@ -56,7 +57,7 @@ describe("State", () => {
 
 			// valid state interface with multiple actions
 
-			interface ValidMultiAction {
+			interface ValidMultiAction extends State {
 				readonly count: number;
 				readonly delta: number;
 
@@ -86,7 +87,7 @@ describe("State", () => {
 
 			// valid state interface with optional properties
 
-			interface ValidOptional {
+			interface ValidOptional extends State {
 				readonly value: number;
 				readonly label?: string;
 
@@ -108,7 +109,7 @@ describe("State", () => {
 
 			// valid state interface with readonly data only
 
-			interface ValidDataOnly {
+			interface ValidDataOnly extends State {
 				readonly x: number;
 				readonly y: number;
 			}
@@ -133,7 +134,7 @@ describe("State", () => {
 
 			// invalid state interface with action returning non-`this` type
 
-			interface InvalidReturnType {
+			interface InvalidReturnType extends State {
 				readonly value: number;
 
 				step(): string;
@@ -157,7 +158,7 @@ describe("State", () => {
 
 			// invalid state interface with action returning Promise
 
-			interface InvalidPromiseReturn {
+			interface InvalidPromiseReturn extends State {
 				readonly data: string;
 
 				load(): Promise<this>;
@@ -184,7 +185,7 @@ describe("State", () => {
 
 			// verify transitions can return partial updates
 
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 				readonly delta: number;
 
@@ -211,7 +212,7 @@ describe("State", () => {
 
 			// invalid implementation with wrong transition signature
 
-			interface ValidInterface {
+			interface ValidInterface extends State {
 				readonly value: number;
 
 				increment(): this;
@@ -234,7 +235,7 @@ describe("State", () => {
 
 			// invalid implementation missing required data property
 
-			interface RequiredData {
+			interface RequiredData extends State {
 				readonly value: number;
 				readonly label: string;
 
@@ -264,7 +265,7 @@ describe("State", () => {
 
 			// invalid implementation with wrong parameter type in transition
 
-			interface Adder {
+			interface Adder extends State {
 				readonly value: number;
 
 				add(delta: number): this;
@@ -289,7 +290,7 @@ describe("State", () => {
 
 			// invalid implementation with wrong parameter count
 
-			interface Multiplier {
+			interface Multiplier extends State {
 				readonly value: number;
 
 				multiply(x: number, y: number): this;
@@ -314,7 +315,7 @@ describe("State", () => {
 
 			// invalid state interface with parameterized action returning non-`this` type
 
-			interface InvalidParamReturn {
+			interface InvalidParamReturn extends State {
 				readonly items: readonly string[];
 
 				add(item: string): string; // returns string instead of this
@@ -340,7 +341,7 @@ describe("State", () => {
 
 			// invalid implementation with optional parameter type mismatch
 
-			interface OptionalParam {
+			interface OptionalParam extends State {
 				readonly count: number;
 
 				increment(delta?: number): this;
@@ -372,7 +373,7 @@ describe("State()", () => {
 
 		it("should create state object with initial data properties", () => {
 
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 				readonly step: number;
 			}
@@ -389,7 +390,7 @@ describe("State()", () => {
 
 		it("should create state object with action methods", () => {
 
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				increment(): this;
@@ -406,7 +407,7 @@ describe("State()", () => {
 
 		it("should handle multiple data properties", () => {
 
-			interface Person {
+			interface Person extends State {
 				readonly name: string;
 				readonly age: number;
 				readonly active: boolean;
@@ -430,7 +431,7 @@ describe("State()", () => {
 
 		it("should apply transition and return new state", () => {
 
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				increment(): this;
@@ -449,7 +450,7 @@ describe("State()", () => {
 
 		it("should support method extraction (destructuring)", () => {
 
-			interface Counter {
+			interface Counter extends State {
 				readonly value: number;
 
 				up(): this;
@@ -473,7 +474,7 @@ describe("State()", () => {
 
 		it("should support method extraction with chaining", () => {
 
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				increment(): this;
@@ -503,7 +504,7 @@ describe("State()", () => {
 
 		it("should chain multiple action calls", () => {
 
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				increment(): this;
@@ -525,7 +526,7 @@ describe("State()", () => {
 
 		it("should preserve unchanged properties", () => {
 
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 				readonly step: number;
 
@@ -547,7 +548,7 @@ describe("State()", () => {
 
 		it("should allow multiple actions on same state", () => {
 
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				increment(): this;
@@ -571,7 +572,7 @@ describe("State()", () => {
 
 		it("should provide current state to transition function", () => {
 
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 				readonly delta: number;
 
@@ -597,7 +598,7 @@ describe("State()", () => {
 
 		it("should accept and use single parameter", () => {
 
-			interface Toggle {
+			interface Toggle extends State {
 				readonly items: readonly string[];
 
 				toggle(item: string): this;
@@ -621,7 +622,7 @@ describe("State()", () => {
 
 		it("should handle multiple parameters", () => {
 
-			interface Calculator {
+			interface Calculator extends State {
 				readonly result: number;
 
 				add(x: number, y: number): this;
@@ -642,7 +643,7 @@ describe("State()", () => {
 
 		it("should chain parameterized action calls", () => {
 
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				add(delta: number): this;
@@ -666,7 +667,7 @@ describe("State()", () => {
 
 		it("should mix parameterless and parameterized actions", () => {
 
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				increment(): this;
@@ -701,7 +702,7 @@ describe("State()", () => {
 
 		it("should toggle items with parameterized action", () => {
 
-			interface Toggle {
+			interface Toggle extends State {
 				readonly items: readonly string[];
 
 				toggle(item: string): this;
@@ -734,7 +735,7 @@ describe("State()", () => {
 				age: number;
 			}
 
-			interface UserManager {
+			interface UserManager extends State {
 				readonly user: User;
 
 				setUser(user: User): this;
@@ -762,7 +763,7 @@ describe("State()", () => {
 
 		it("should access current state in parameterized actions", () => {
 
-			interface ShoppingCart {
+			interface ShoppingCart extends State {
 				readonly items: readonly string[];
 				readonly total: number;
 
@@ -792,7 +793,7 @@ describe("State()", () => {
 
 		it("should handle optional parameters", () => {
 
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				increment(delta?: number): this;
@@ -817,7 +818,7 @@ describe("State()", () => {
 
 		it("should preserve other properties in parameterized actions", () => {
 
-			interface Config {
+			interface Config extends State {
 				readonly host: string;
 				readonly port: number;
 				readonly enabled: boolean;
@@ -855,7 +856,7 @@ describe("State()", () => {
 
 		it("should return new state object after action", () => {
 
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				increment(): this;
@@ -874,7 +875,7 @@ describe("State()", () => {
 
 		it("should not mutate original state", () => {
 
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				increment(): this;
@@ -893,7 +894,7 @@ describe("State()", () => {
 
 		it("should preserve intermediate states", () => {
 
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				increment(): this;
@@ -921,7 +922,7 @@ describe("State()", () => {
 
 		it("should return same state reference when transition returns empty object", () => {
 
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				noop(): this;
@@ -940,7 +941,7 @@ describe("State()", () => {
 
 		it("should return same state reference when no properties change", () => {
 
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				setToSame(): this;
@@ -959,7 +960,7 @@ describe("State()", () => {
 
 		it("should return new state when at least one property changes", () => {
 
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 				readonly step: number;
 
@@ -984,7 +985,7 @@ describe("State()", () => {
 
 		it("should handle state with nested objects", () => {
 
-			interface AppState {
+			interface AppState extends State {
 				readonly user: { name: string; age: number };
 				readonly settings: { theme: string };
 
@@ -1006,7 +1007,7 @@ describe("State()", () => {
 
 		it("should support conditional transitions", () => {
 
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 				readonly max: number;
 
@@ -1040,7 +1041,7 @@ describe("State()", () => {
 
 		it("should handle multiple properties updating together", () => {
 
-			interface Point {
+			interface Point extends State {
 				readonly x: number;
 				readonly y: number;
 
@@ -1062,7 +1063,7 @@ describe("State()", () => {
 
 		it("should support realistic counter example from documentation", () => {
 
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 				readonly step: number;
 
@@ -1093,10 +1094,10 @@ describe("State()", () => {
 
 describe("State observers", () => {
 
-	describe("attach (functional signature with attached=true)", () => {
+	describe("attach via $(state).attach(observer)", () => {
 
 		it("should return new state with observer attached", () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 				increment(): this;
 			}
@@ -1106,28 +1107,28 @@ describe("State observers", () => {
 				increment() { return { count: this.count + 1 }; }
 			});
 
-			const observer = (s: Counter) => {};
-			const next = state(observer, true);
+			const observer = () => {};
+			const next = $(state).attach(observer);
 
 			expect(next).not.toBe(state);
 		});
 
 		it("should return same state when observer already attached (idempotent)", () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 			}
 
 			const state = State<Counter>({ count: 0 });
-			const observer = (s: Counter) => {};
+			const observer = () => {};
 
-			const first = state(observer, true);
-			const second = first(observer, true);
+			const first = $(state).attach(observer);
+			const second = $(first).attach(observer);
 
 			expect(second).toBe(first);
 		});
 
 		it("should allow attaching multiple different observers", () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 			}
 
@@ -1135,58 +1136,58 @@ describe("State observers", () => {
 			const observer1 = (s: Counter) => {};
 			const observer2 = (s: Counter) => {};
 
-			const next = state(observer1, true)(observer2, true);
+			const next = $($(state).attach(observer1)).attach(observer2);
 
 			expect(next).not.toBe(state);
 		});
 
-		it("should support function call destructuring", () => {
-			interface Counter {
+		it("should support method destructuring", () => {
+			interface Counter extends State {
 				readonly count: number;
 			}
 
 			const state = State<Counter>({ count: 0 });
-			const stateFunc = state;
-			const observer = (s: Counter) => {};
+			const manager = $(state);
+			const observer = () => {};
 
-			const next = stateFunc(observer, true);
+			const next = manager.attach(observer);
 
 			expect(next).not.toBe(state);
 		});
 
 	});
 
-	describe("detach (functional signature with attached=false)", () => {
+	describe("detach via $(state).detach(observer)", () => {
 
 		it("should return new state without observer", () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 			}
 
 			const state = State<Counter>({ count: 0 });
-			const observer = (s: Counter) => {};
+			const observer = () => {};
 
-			const withObserver = state(observer, true);
-			const withoutObserver = withObserver(observer, false);
+			const withObserver = $(state).attach(observer);
+			const withoutObserver = $(withObserver).detach(observer);
 
 			expect(withoutObserver).not.toBe(withObserver);
 		});
 
 		it("should return same state when observer not attached (idempotent)", () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 			}
 
 			const state = State<Counter>({ count: 0 });
-			const observer = (s: Counter) => {};
+			const observer = () => {};
 
-			const next = state(observer, false);
+			const next = $(state).detach(observer);
 
 			expect(next).toBe(state);
 		});
 
 		it("should preserve other observers when detaching one", () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 				increment(): this;
 			}
@@ -1202,8 +1203,8 @@ describe("State observers", () => {
 			const observer1 = () => { observer1Called = true; };
 			const observer2 = () => { observer2Called = true; };
 
-			const withBoth = state(observer1, true)(observer2, true);
-			const withOne = withBoth(observer1, false);
+			const withBoth = $($(state).attach(observer1)).attach(observer2);
+			const withOne = $(withBoth).detach(observer1);
 
 			withOne.increment();
 
@@ -1216,16 +1217,16 @@ describe("State observers", () => {
 		});
 
 		it("should require exact same reference (reference equality)", () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 			}
 
 			const state = State<Counter>({ count: 0 });
-			const observer1 = (s: Counter) => {};
-			const observer2 = (s: Counter) => {}; // Different reference
+			const observer1 = () => {};
+			const observer2 = () => {}; // Different reference
 
-			const withObserver = state(observer1, true);
-			const next = withObserver(observer2, false);
+			const withObserver = $(state).attach(observer1);
+			const next = $(withObserver).detach(observer2);
 
 			// Should return same state since observer2 was never attached
 			expect(next).toBe(withObserver);
@@ -1236,7 +1237,7 @@ describe("State observers", () => {
 	describe("observer notification", () => {
 
 		it("should notify observer on state change", async () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 				increment(): this;
 			}
@@ -1249,7 +1250,7 @@ describe("State observers", () => {
 			let notified = false;
 			const observer = () => { notified = true; };
 
-			const withObserver = state(observer, true);
+			const withObserver = $(state).attach(observer);
 			withObserver.increment();
 
 			// Wait for microtasks
@@ -1259,7 +1260,7 @@ describe("State observers", () => {
 		});
 
 		it("should pass new state to observer", async () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 				increment(): this;
 			}
@@ -1272,11 +1273,11 @@ describe("State observers", () => {
 			const nextHolder: (typeof state)[] = [];
 
 			const receivedState = await new Promise<Counter>(resolve => {
-				const withObserver = state((s: Counter) => {
+				const withObserver = $(state).attach((s: Counter) => {
 					resolve(s);
-				}, true);
+				});
 				const next = withObserver.increment();
-				nextHolder.push(next as typeof state);
+				nextHolder.push(next);
 			});
 
 			expect(receivedState).toBe(nextHolder[0]);
@@ -1284,7 +1285,7 @@ describe("State observers", () => {
 		});
 
 		it("should notify all observers", async () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 				increment(): this;
 			}
@@ -1302,7 +1303,7 @@ describe("State observers", () => {
 			const observer2 = () => { observer2Called = true; };
 			const observer3 = () => { observer3Called = true; };
 
-			const withObservers = state(observer1, true)(observer2, true)(observer3, true);
+			const withObservers = $($($(state).attach(observer1)).attach(observer2)).attach(observer3);
 
 			withObservers.increment();
 
@@ -1314,7 +1315,7 @@ describe("State observers", () => {
 		});
 
 		it("should NOT notify when state doesn't change (same-state optimization)", async () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 				noop(): this;
 			}
@@ -1327,7 +1328,7 @@ describe("State observers", () => {
 			let notified = false;
 			const observer = () => { notified = true; };
 
-			const withObserver = state(observer, true);
+			const withObserver = $(state).attach(observer);
 			withObserver.noop();
 
 			await new Promise(resolve => setTimeout(resolve, 0));
@@ -1336,7 +1337,7 @@ describe("State observers", () => {
 		});
 
 		it("should notify asynchronously using microtasks", () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 				increment(): this;
 			}
@@ -1349,7 +1350,7 @@ describe("State observers", () => {
 			let notified = false;
 			const observer = () => { notified = true; };
 
-			const withObserver = state(observer, true);
+			const withObserver = $(state).attach(observer);
 			withObserver.increment();
 
 			// Should not be called yet (microtasks run after sync code)
@@ -1361,7 +1362,7 @@ describe("State observers", () => {
 	describe("observer inheritance", () => {
 
 		it("should inherit observers through state transitions", async () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 				increment(): this;
 			}
@@ -1374,7 +1375,7 @@ describe("State observers", () => {
 			let callCount = 0;
 			const observer = () => { callCount++; };
 
-			const withObserver = state(observer, true);
+			const withObserver = $(state).attach(observer);
 			withObserver.increment().increment().increment();
 
 			await new Promise(resolve => setTimeout(resolve, 0));
@@ -1383,7 +1384,7 @@ describe("State observers", () => {
 		});
 
 		it("should preserve observers through chained actions", async () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 				increment(): this;
 				reset(): this;
@@ -1398,7 +1399,7 @@ describe("State observers", () => {
 			const states: number[] = [];
 			const observer = (s: Counter) => { states.push(s.count); };
 
-			const withObserver = state(observer, true);
+			const withObserver = $(state).attach(observer);
 			withObserver
 				.increment()
 				.increment()
@@ -1411,7 +1412,7 @@ describe("State observers", () => {
 		});
 
 		it("should work with destructured methods", async () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 				increment(): this;
 			}
@@ -1424,7 +1425,7 @@ describe("State observers", () => {
 			let notified = false;
 			const observer = () => { notified = true; };
 
-			const withObserver = state(observer, true);
+			const withObserver = $(state).attach(observer);
 			const { increment } = withObserver;
 
 			increment();
@@ -1439,7 +1440,7 @@ describe("State observers", () => {
 	describe("error handling", () => {
 
 		it("should continue notifying other observers after error", async () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 				increment(): this;
 			}
@@ -1458,7 +1459,7 @@ describe("State observers", () => {
 			const observer2 = () => { observer2Called = true; };
 			const observer3 = () => { observer3Called = true; };
 
-			const withObservers = state(observer1, true)(observer2, true)(observer3, true);
+			const withObservers = $($($(state).attach(observer1)).attach(observer2)).attach(observer3);
 
 			withObservers.increment();
 
@@ -1471,7 +1472,7 @@ describe("State observers", () => {
 		});
 
 		it("should complete state transition even if observer throws", async () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 				increment(): this;
 			}
@@ -1482,7 +1483,7 @@ describe("State observers", () => {
 			});
 
 			const throwingObserver = () => { throw new Error("Error"); };
-			const withObserver = state(throwingObserver, true);
+			const withObserver = $(state).attach(throwingObserver);
 
 			const next = withObserver.increment();
 
@@ -1494,7 +1495,7 @@ describe("State observers", () => {
 	describe("edge cases", () => {
 
 		it("should handle empty observer list", () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 				increment(): this;
 			}
@@ -1511,24 +1512,24 @@ describe("State observers", () => {
 		});
 
 		it("should handle attaching and detaching same observer multiple times", () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 			}
 
 			const state = State<Counter>({ count: 0 });
-			const observer = (s: Counter) => {};
+			const observer = () => {};
 
-			const s1 = state(observer, true);
-			const s2 = s1(observer, true); // Should return same
-			const s3 = s2(observer, false);
-			const s4 = s3(observer, false); // Should return same
+			const s1 = $(state).attach(observer);
+			const s2 = $(s1).attach(observer); // Should return same
+			const s3 = $(s2).detach(observer);
+			const s4 = $(s3).detach(observer); // Should return same
 
 			expect(s2).toBe(s1);
 			expect(s4).toBe(s3);
 		});
 
 		it("should work with parameterized actions", async () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 				add(delta: number): this;
 			}
@@ -1541,7 +1542,7 @@ describe("State observers", () => {
 			let receivedCount = 0;
 			const observer = (s: Counter) => { receivedCount = s.count; };
 
-			const withObserver = state(observer, true);
+			const withObserver = $(state).attach(observer);
 			withObserver.add(5);
 
 			await new Promise(resolve => setTimeout(resolve, 0));
@@ -1550,7 +1551,7 @@ describe("State observers", () => {
 		});
 
 		it("should work with multiple data properties", async () => {
-			interface Point {
+			interface Point extends State {
 				readonly x: number;
 				readonly y: number;
 				move(dx: number, dy: number): this;
@@ -1563,9 +1564,9 @@ describe("State observers", () => {
 			});
 
 			const receivedPoint = await new Promise<Point>(resolve => {
-				const withObserver = state((s: Point) => {
+				const withObserver = $(state).attach((s: Point) => {
 					resolve(s);
-				}, true);
+				});
 				withObserver.move(3, 4);
 			});
 
@@ -1579,10 +1580,10 @@ describe("State observers", () => {
 
 describe("State snapshots", () => {
 
-	describe("snapshot creation", () => {
+	describe("snapshot creation via $(state).capture()", () => {
 
 		it("should create snapshot from current state", () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				increment(): this;
@@ -1593,43 +1594,28 @@ describe("State snapshots", () => {
 				increment() { return { count: this.count+1 }; }
 			});
 
-			const snapshot = state();
+			const snapshot = $(state).capture();
 
 			expect(snapshot).toBeDefined();
 			expect(typeof snapshot).toBe("object");
 		});
 
-		it("should create opaque snapshot (no direct data access)", () => {
-			interface Counter {
-				readonly count: number;
-			}
-
-			const state = State<Counter>({ count: 42 });
-			const snapshot = state();
-
-			// Snapshot should be opaque - cannot access count directly through type system
-			// @ts-expect-error
-			const _ = snapshot.count;
-
-			expect(true).toBe(true); // Type check test
-		});
-
 		it("should create different snapshots for different states", () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 			}
 
 			const state1 = State<Counter>({ count: 1 });
 			const state2 = State<Counter>({ count: 2 });
 
-			const snapshot1 = state1();
-			const snapshot2 = state2();
+			const snapshot1 = $(state1).capture();
+			const snapshot2 = $(state2).capture();
 
 			expect(snapshot1).not.toBe(snapshot2);
 		});
 
 		it("should create snapshot with current data values", () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				increment(): this;
@@ -1640,8 +1626,8 @@ describe("State snapshots", () => {
 				increment() { return { count: this.count+1 }; }
 			});
 
-			const next = state.increment().increment().increment() as typeof state;
-			const snapshot = next();
+			const next = state.increment().increment().increment();
+			const snapshot = $(next).capture();
 
 			// Snapshot should capture count=3 (verified through restoration test)
 			expect(snapshot).toBeDefined();
@@ -1652,7 +1638,7 @@ describe("State snapshots", () => {
 	describe("snapshot restoration", () => {
 
 		it("should restore state from snapshot", () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				increment(): this;
@@ -1663,29 +1649,29 @@ describe("State snapshots", () => {
 				increment() { return { count: this.count+1 }; }
 			});
 
-			const next = state.increment().increment().increment() as typeof state;
-			const snapshot = next();
+			const next = state.increment().increment().increment();
+			const snapshot = $(next).capture();
 
-			const restored = state(snapshot);
+			const restored = $(state).restore(snapshot);
 
 			expect(restored.count).toBe(3);
 		});
 
 		it("should return new state object after restoration", () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 			}
 
 			const state = State<Counter>({ count: 0 });
-			const snapshot = state();
+			const snapshot = $(state).capture();
 
-			const restored = state(snapshot);
+			const restored = $(state).restore(snapshot);
 
 			expect(restored).not.toBe(state);
 		});
 
 		it("should restore all data properties", () => {
-			interface Point {
+			interface Point extends State {
 				readonly x: number;
 				readonly y: number;
 
@@ -1698,17 +1684,17 @@ describe("State snapshots", () => {
 				move(dx, dy) { return { x: this.x+dx, y: this.y+dy }; }
 			});
 
-			const moved = state.move(10, 20) as typeof state;
-			const snapshot = moved();
+			const moved = state.move(10, 20);
+			const snapshot = $(moved).capture();
 
-			const restored = state(snapshot);
+			const restored = $(state).restore(snapshot);
 
 			expect(restored.x).toBe(10);
 			expect(restored.y).toBe(20);
 		});
 
 		it("should preserve action methods after restoration", () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				increment(): this;
@@ -1719,17 +1705,17 @@ describe("State snapshots", () => {
 				increment() { return { count: this.count+1 }; }
 			});
 
-			const next = state.increment() as typeof state;
-			const snapshot = next();
+			const next = state.increment();
+			const snapshot = $(next).capture();
 
-			const restored = state(snapshot);
+			const restored = $(state).restore(snapshot);
 
 			expect(typeof restored.increment).toBe("function");
 			expect(restored.increment().count).toBe(2);
 		});
 
 		it("should NOT restore observers from snapshot", async () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				increment(): this;
@@ -1743,10 +1729,10 @@ describe("State snapshots", () => {
 			let notified = false;
 			const observer = () => { notified = true; };
 
-			const withObserver = state(observer, true);
-			const snapshot = withObserver();
+			const withObserver = $(state).attach(observer);
+			const snapshot = $(withObserver).capture();
 
-			const restored = state(snapshot);
+			const restored = $(state).restore(snapshot);
 			restored.increment();
 
 			await new Promise(resolve => setTimeout(resolve, 0));
@@ -1756,7 +1742,7 @@ describe("State snapshots", () => {
 		});
 
 		it("should preserve current observers during restoration", async () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				increment(): this;
@@ -1767,14 +1753,14 @@ describe("State snapshots", () => {
 				increment() { return { count: this.count+1 }; }
 			});
 
-			const temp = state.increment().increment() as typeof state;
-			const snapshot = temp();
+			const temp = state.increment().increment();
+			const snapshot = $(temp).capture();
 
 			let notified = false;
 			const observer = () => { notified = true; };
 
-			const withObserver = state(observer, true);
-			const restored = withObserver(snapshot);
+			const withObserver = $(state).attach(observer);
+			const restored = $(withObserver).restore(snapshot);
 			restored.increment();
 
 			await new Promise(resolve => setTimeout(resolve, 0));
@@ -1785,87 +1771,10 @@ describe("State snapshots", () => {
 
 	});
 
-	describe("lineage validation", () => {
-
-		it("should throw TypeError when restoring snapshot from different state lineage", () => {
-			interface Counter {
-				readonly count: number;
-			}
-
-			const state1 = State<Counter>({ count: 0 });
-			const state2 = State<Counter>({ count: 0 });
-
-			const snapshot1 = state1();
-
-			expect(() => {
-				state2(snapshot1);
-			}).toThrow(TypeError);
-		});
-
-		it("should include lineage information in error message", () => {
-			interface Counter {
-				readonly count: number;
-			}
-
-			const state1 = State<Counter>({ count: 0 });
-			const state2 = State<Counter>({ count: 0 });
-
-			const snapshot = state1();
-
-			expect(() => {
-				state2(snapshot);
-			}).toThrow(/lineage/i);
-		});
-
-		it("should allow restoration within same lineage after transitions", () => {
-			interface Counter {
-				readonly count: number;
-
-				increment(): this;
-			}
-
-			const state = State<Counter>({
-				count: 0,
-				increment() { return { count: this.count+1 }; }
-			});
-
-			const next = state.increment().increment() as typeof state;
-			const snapshot = next();
-
-			// Restore to original state in same lineage
-			const restored = state(snapshot);
-
-			expect(restored.count).toBe(2);
-		});
-
-		it("should allow restoration to any state in same lineage", () => {
-			interface Counter {
-				readonly count: number;
-
-				increment(): this;
-			}
-
-			const state = State<Counter>({
-				count: 0,
-				increment() { return { count: this.count+1 }; }
-			});
-
-			const step1 = state.increment() as typeof state;
-			const step2 = step1.increment() as typeof state;
-			const snapshot = step2();
-
-			// Can restore to step1 (same lineage)
-			const restored = step1(snapshot);
-
-			expect(restored.count).toBe(2);
-		});
-
-	});
-
 	describe("snapshot inheritance through transitions", () => {
 
 		it("should create valid snapshot after state transitions", () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				increment(): this;
@@ -1876,15 +1785,15 @@ describe("State snapshots", () => {
 				increment() { return { count: this.count+1 }; }
 			});
 
-			const next = state.increment().increment() as typeof state;
-			const snapshot = next();
-			const restored = next(snapshot);
+			const next = state.increment().increment();
+			const snapshot = $(next).capture();
+			const restored = $(next).restore(snapshot);
 
 			expect(restored.count).toBe(2);
 		});
 
 		it("should maintain lineage compatibility through transitions", () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				increment(): this;
@@ -1898,21 +1807,21 @@ describe("State snapshots", () => {
 				reset() { return { count: 0 }; }
 			});
 
-			const step1 = state.increment() as typeof state;
-			const step2 = step1.increment() as typeof state;
-			const snapshot2 = step2();
+			const step1 = state.increment();
+			const step2 = step1.increment();
+			const snapshot2 = $(step2).capture();
 
-			const step3 = step2.reset() as typeof state;
-			const step4 = step3.increment() as typeof state;
+			const step3 = step2.reset();
+			const step4 = step3.increment();
 
 			// step4 is in same lineage, should accept snapshot from step2
-			const restored = step4(snapshot2);
+			const restored = $(step4).restore(snapshot2);
 
 			expect(restored.count).toBe(2);
 		});
 
 		it("should work with destructured methods", () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				increment(): this;
@@ -1924,10 +1833,10 @@ describe("State snapshots", () => {
 			});
 
 			const { increment } = state;
-			const next = increment() as typeof state;
-			const snapshot = next();
+			const next = increment();
+			const snapshot = $(next).capture();
 
-			const restored = state(snapshot);
+			const restored = $(state).restore(snapshot);
 
 			expect(restored.count).toBe(1);
 		});
@@ -1937,7 +1846,7 @@ describe("State snapshots", () => {
 	describe("complex snapshot scenarios", () => {
 
 		it("should handle multiple snapshots from same lineage", () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				increment(): this;
@@ -1948,23 +1857,23 @@ describe("State snapshots", () => {
 				increment() { return { count: this.count+1 }; }
 			});
 
-			const step1 = state.increment() as typeof state;
-			const snapshot1 = step1();
+			const step1 = state.increment();
+			const snapshot1 = $(step1).capture();
 
-			const step2 = step1.increment() as typeof state;
-			const snapshot2 = step2();
+			const step2 = step1.increment();
+			const snapshot2 = $(step2).capture();
 
-			const step3 = step2.increment() as typeof state;
-			const snapshot3 = step3();
+			const step3 = step2.increment();
+			const snapshot3 = $(step3).capture();
 
 			// All snapshots belong to same lineage
-			expect(state(snapshot1).count).toBe(1);
-			expect(state(snapshot2).count).toBe(2);
-			expect(state(snapshot3).count).toBe(3);
+			expect($(state).restore(snapshot1).count).toBe(1);
+			expect($(state).restore(snapshot2).count).toBe(2);
+			expect($(state).restore(snapshot3).count).toBe(3);
 		});
 
 		it("should support snapshot-based undo/redo pattern", () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				increment(): this;
@@ -1978,32 +1887,32 @@ describe("State snapshots", () => {
 				decrement() { return { count: this.count-1 }; }
 			});
 
-			const history: Snapshot<Counter>[] = [];
+			const history: Version<Counter>[] = [];
 
 			// Build history
 			let current = state;
-			history.push(current());
+			history.push($(current).capture());
 
-			current = current.increment() as typeof state;
-			history.push(current());
+			current = current.increment();
+			history.push($(current).capture());
 
-			current = current.increment() as typeof state;
-			history.push(current());
+			current = current.increment();
+			history.push($(current).capture());
 
-			current = current.decrement() as typeof state;
-			history.push(current());
+			current = current.decrement();
+			history.push($(current).capture());
 
 			// Undo to step 2 (count=2)
-			const undone = state(history[2]);
+			const undone = $(state).restore(history[2]);
 			expect(undone.count).toBe(2);
 
 			// Redo to step 3 (count=1)
-			const redone = state(history[3]);
+			const redone = $(state).restore(history[3]);
 			expect(redone.count).toBe(1);
 		});
 
 		it("should handle snapshots with nested data structures", () => {
-			interface AppState {
+			interface AppState extends State {
 				readonly user: { name: string; age: number };
 				readonly settings: { theme: string };
 
@@ -2018,10 +1927,10 @@ describe("State snapshots", () => {
 				}
 			});
 
-			const updated = state.updateUser("Bob", 25) as typeof state;
-			const snapshot = updated();
+			const updated = state.updateUser("Bob", 25);
+			const snapshot = $(updated).capture();
 
-			const restored = state(snapshot);
+			const restored = $(state).restore(snapshot);
 
 			expect(restored.user.name).toBe("Bob");
 			expect(restored.user.age).toBe(25);
@@ -2029,7 +1938,7 @@ describe("State snapshots", () => {
 		});
 
 		it("should work with observers and snapshots together", async () => {
-			interface Counter {
+			interface Counter extends State {
 				readonly count: number;
 
 				increment(): this;
@@ -2043,12 +1952,12 @@ describe("State snapshots", () => {
 			let observedCount = 0;
 			const observer = (s: Counter) => { observedCount = s.count; };
 
-			const withObserver = state(observer, true);
-			const step1 = withObserver.increment() as typeof state;
-			const snapshot = step1();
+			const withObserver = $(state).attach(observer);
+			const step1 = withObserver.increment();
+			const snapshot = $(step1).capture();
 
 			// Restore and verify observer notified
-			const restored = withObserver(snapshot);
+			const restored = $(withObserver).restore(snapshot);
 			restored.increment();
 
 			await new Promise(resolve => setTimeout(resolve, 0));

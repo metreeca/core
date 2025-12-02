@@ -20,7 +20,8 @@
       "Bash(npx vitest:*)",
       "Skill(typescript-developer)",
       "Bash(npm run build:*)",
-      "SlashCommand(/review:*)"
+      "SlashCommand(/review:*)",
+      "Skill(markdown-writer)"
     ],
     "deny": [],
     "ask": []
