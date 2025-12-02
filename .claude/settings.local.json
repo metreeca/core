@@ -18,7 +18,8 @@
       "SlashCommand(/review src/state.test.ts)",
       "Skill(typescript-tester)",
       "Bash(npx vitest:*)",
-      "Skill(typescript-developer)"
+      "Skill(typescript-developer)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

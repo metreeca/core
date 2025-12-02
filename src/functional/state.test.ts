@@ -15,8 +15,9 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
+import { Immutable } from "../basic/nested.js";
 
-import { State } from "./state.js";
+import { Snapshot, State } from "./state.js";
 
 /**
  * Type system validation tests.
@@ -1093,7 +1094,7 @@ describe("State()", () => {
 
 describe("State observers", () => {
 
-	describe("attach()", () => {
+	describe("attach (functional signature with attached=true)", () => {
 
 		it("should return new state with observer attached", () => {
 			interface Counter {
@@ -1107,7 +1108,7 @@ describe("State observers", () => {
 			});
 
 			const observer = (s: Counter) => {};
-			const next = state.attach(observer);
+			const next = state(observer, true);
 
 			expect(next).not.toBe(state);
 		});
@@ -1120,8 +1121,8 @@ describe("State observers", () => {
 			const state = State<Counter>({ count: 0 });
 			const observer = (s: Counter) => {};
 
-			const first = state.attach(observer);
-			const second = first.attach(observer);
+			const first = state(observer, true);
+			const second = first(observer, true);
 
 			expect(second).toBe(first);
 		});
@@ -1135,28 +1136,28 @@ describe("State observers", () => {
 			const observer1 = (s: Counter) => {};
 			const observer2 = (s: Counter) => {};
 
-			const next = state.attach(observer1).attach(observer2);
+			const next = state(observer1, true)(observer2, true);
 
 			expect(next).not.toBe(state);
 		});
 
-		it("should support method destructuring", () => {
+		it("should support function call destructuring", () => {
 			interface Counter {
 				readonly count: number;
 			}
 
 			const state = State<Counter>({ count: 0 });
-			const { attach } = state;
+			const stateFunc = state;
 			const observer = (s: Counter) => {};
 
-			const next = attach(observer);
+			const next = stateFunc(observer, true);
 
 			expect(next).not.toBe(state);
 		});
 
 	});
 
-	describe("detach()", () => {
+	describe("detach (functional signature with attached=false)", () => {
 
 		it("should return new state without observer", () => {
 			interface Counter {
@@ -1166,8 +1167,8 @@ describe("State observers", () => {
 			const state = State<Counter>({ count: 0 });
 			const observer = (s: Counter) => {};
 
-			const withObserver = state.attach(observer);
-			const withoutObserver = withObserver.detach(observer);
+			const withObserver = state(observer, true);
+			const withoutObserver = withObserver(observer, false);
 
 			expect(withoutObserver).not.toBe(withObserver);
 		});
@@ -1180,7 +1181,7 @@ describe("State observers", () => {
 			const state = State<Counter>({ count: 0 });
 			const observer = (s: Counter) => {};
 
-			const next = state.detach(observer);
+			const next = state(observer, false);
 
 			expect(next).toBe(state);
 		});
@@ -1202,8 +1203,8 @@ describe("State observers", () => {
 			const observer1 = () => { observer1Called = true; };
 			const observer2 = () => { observer2Called = true; };
 
-			const withBoth = state.attach(observer1).attach(observer2);
-			const withOne = withBoth.detach(observer1);
+			const withBoth = state(observer1, true)(observer2, true);
+			const withOne = withBoth(observer1, false);
 
 			withOne.increment();
 
@@ -1224,8 +1225,8 @@ describe("State observers", () => {
 			const observer1 = (s: Counter) => {};
 			const observer2 = (s: Counter) => {}; // Different reference
 
-			const withObserver = state.attach(observer1);
-			const next = withObserver.detach(observer2);
+			const withObserver = state(observer1, true);
+			const next = withObserver(observer2, false);
 
 			// Should return same state since observer2 was never attached
 			expect(next).toBe(withObserver);
@@ -1249,7 +1250,7 @@ describe("State observers", () => {
 			let notified = false;
 			const observer = () => { notified = true; };
 
-			const withObserver = state.attach(observer);
+			const withObserver = state(observer, true);
 			withObserver.increment();
 
 			// Wait for microtasks
@@ -1269,16 +1270,18 @@ describe("State observers", () => {
 				increment() { return { count: this.count + 1 }; }
 			});
 
-			let receivedState: Counter | null = null;
-			const observer = (s: Counter) => { receivedState = s; };
+			const nextHolder: (typeof state)[] = [];
 
-			const withObserver = state.attach(observer);
-			const next = withObserver.increment();
+			const receivedState = await new Promise<Immutable<Counter>>(resolve => {
+				const withObserver = state((s: Immutable<Counter>) => {
+					resolve(s);
+				}, true);
+				const next = withObserver.increment();
+				nextHolder.push(next as typeof state);
+			});
 
-			await new Promise(resolve => setTimeout(resolve, 0));
-
-			expect(receivedState).toBe(next);
-			expect(receivedState?.count).toBe(1);
+			expect(receivedState).toBe(nextHolder[0]);
+			expect(receivedState.count).toBe(1);
 		});
 
 		it("should notify all observers", async () => {
@@ -1300,10 +1303,7 @@ describe("State observers", () => {
 			const observer2 = () => { observer2Called = true; };
 			const observer3 = () => { observer3Called = true; };
 
-			const withObservers = state
-				.attach(observer1)
-				.attach(observer2)
-				.attach(observer3);
+			const withObservers = state(observer1, true)(observer2, true)(observer3, true);
 
 			withObservers.increment();
 
@@ -1328,7 +1328,7 @@ describe("State observers", () => {
 			let notified = false;
 			const observer = () => { notified = true; };
 
-			const withObserver = state.attach(observer);
+			const withObserver = state(observer, true);
 			withObserver.noop();
 
 			await new Promise(resolve => setTimeout(resolve, 0));
@@ -1350,7 +1350,7 @@ describe("State observers", () => {
 			let notified = false;
 			const observer = () => { notified = true; };
 
-			const withObserver = state.attach(observer);
+			const withObserver = state(observer, true);
 			withObserver.increment();
 
 			// Should not be called yet (microtasks run after sync code)
@@ -1375,7 +1375,7 @@ describe("State observers", () => {
 			let callCount = 0;
 			const observer = () => { callCount++; };
 
-			const withObserver = state.attach(observer);
+			const withObserver = state(observer, true);
 			withObserver.increment().increment().increment();
 
 			await new Promise(resolve => setTimeout(resolve, 0));
@@ -1399,7 +1399,7 @@ describe("State observers", () => {
 			const states: number[] = [];
 			const observer = (s: Counter) => { states.push(s.count); };
 
-			const withObserver = state.attach(observer);
+			const withObserver = state(observer, true);
 			withObserver
 				.increment()
 				.increment()
@@ -1425,7 +1425,7 @@ describe("State observers", () => {
 			let notified = false;
 			const observer = () => { notified = true; };
 
-			const withObserver = state.attach(observer);
+			const withObserver = state(observer, true);
 			const { increment } = withObserver;
 
 			increment();
@@ -1459,10 +1459,7 @@ describe("State observers", () => {
 			const observer2 = () => { observer2Called = true; };
 			const observer3 = () => { observer3Called = true; };
 
-			const withObservers = state
-				.attach(observer1)
-				.attach(observer2)
-				.attach(observer3);
+			const withObservers = state(observer1, true)(observer2, true)(observer3, true);
 
 			withObservers.increment();
 
@@ -1486,7 +1483,7 @@ describe("State observers", () => {
 			});
 
 			const throwingObserver = () => { throw new Error("Error"); };
-			const withObserver = state.attach(throwingObserver);
+			const withObserver = state(throwingObserver, true);
 
 			const next = withObserver.increment();
 
@@ -1522,10 +1519,10 @@ describe("State observers", () => {
 			const state = State<Counter>({ count: 0 });
 			const observer = (s: Counter) => {};
 
-			const s1 = state.attach(observer);
-			const s2 = s1.attach(observer); // Should return same
-			const s3 = s2.detach(observer);
-			const s4 = s3.detach(observer); // Should return same
+			const s1 = state(observer, true);
+			const s2 = s1(observer, true); // Should return same
+			const s3 = s2(observer, false);
+			const s4 = s3(observer, false); // Should return same
 
 			expect(s2).toBe(s1);
 			expect(s4).toBe(s3);
@@ -1545,7 +1542,7 @@ describe("State observers", () => {
 			let receivedCount = 0;
 			const observer = (s: Counter) => { receivedCount = s.count; };
 
-			const withObserver = state.attach(observer);
+			const withObserver = state(observer, true);
 			withObserver.add(5);
 
 			await new Promise(resolve => setTimeout(resolve, 0));
@@ -1566,16 +1563,498 @@ describe("State observers", () => {
 				move(dx, dy) { return { x: this.x + dx, y: this.y + dy }; }
 			});
 
-			let receivedPoint: Point | null = null;
-			const observer = (s: Point) => { receivedPoint = s; };
+			const receivedPoint = await new Promise<Immutable<Point>>(resolve => {
+				const withObserver = state((s: Immutable<Point>) => {
+					resolve(s);
+				}, true);
+				withObserver.move(3, 4);
+			});
 
-			const withObserver = state.attach(observer);
-			withObserver.move(3, 4);
+			expect(receivedPoint.x).toBe(3);
+			expect(receivedPoint.y).toBe(4);
+		});
+
+	});
+
+});
+
+describe("State snapshots", () => {
+
+	describe("snapshot creation", () => {
+
+		it("should create snapshot from current state", () => {
+			interface Counter {
+				readonly count: number;
+
+				increment(): this;
+			}
+
+			const state = State<Counter>({
+				count: 5,
+				increment() { return { count: this.count+1 }; }
+			});
+
+			const snapshot = state();
+
+			expect(snapshot).toBeDefined();
+			expect(typeof snapshot).toBe("object");
+		});
+
+		it("should create opaque snapshot (no direct data access)", () => {
+			interface Counter {
+				readonly count: number;
+			}
+
+			const state = State<Counter>({ count: 42 });
+			const snapshot = state();
+
+			// Snapshot should be opaque - cannot access count directly through type system
+			// @ts-expect-error
+			const _ = snapshot.count;
+
+			expect(true).toBe(true); // Type check test
+		});
+
+		it("should create different snapshots for different states", () => {
+			interface Counter {
+				readonly count: number;
+			}
+
+			const state1 = State<Counter>({ count: 1 });
+			const state2 = State<Counter>({ count: 2 });
+
+			const snapshot1 = state1();
+			const snapshot2 = state2();
+
+			expect(snapshot1).not.toBe(snapshot2);
+		});
+
+		it("should create snapshot with current data values", () => {
+			interface Counter {
+				readonly count: number;
+
+				increment(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count+1 }; }
+			});
+
+			const next = state.increment().increment().increment() as typeof state;
+			const snapshot = next();
+
+			// Snapshot should capture count=3 (verified through restoration test)
+			expect(snapshot).toBeDefined();
+		});
+
+	});
+
+	describe("snapshot restoration", () => {
+
+		it("should restore state from snapshot", () => {
+			interface Counter {
+				readonly count: number;
+
+				increment(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count+1 }; }
+			});
+
+			const next = state.increment().increment().increment() as typeof state;
+			const snapshot = next();
+
+			const restored = state(snapshot);
+
+			expect(restored.count).toBe(3);
+		});
+
+		it("should return new state object after restoration", () => {
+			interface Counter {
+				readonly count: number;
+			}
+
+			const state = State<Counter>({ count: 0 });
+			const snapshot = state();
+
+			const restored = state(snapshot);
+
+			expect(restored).not.toBe(state);
+		});
+
+		it("should restore all data properties", () => {
+			interface Point {
+				readonly x: number;
+				readonly y: number;
+
+				move(dx: number, dy: number): this;
+			}
+
+			const state = State<Point>({
+				x: 0,
+				y: 0,
+				move(dx, dy) { return { x: this.x+dx, y: this.y+dy }; }
+			});
+
+			const moved = state.move(10, 20) as typeof state;
+			const snapshot = moved();
+
+			const restored = state(snapshot);
+
+			expect(restored.x).toBe(10);
+			expect(restored.y).toBe(20);
+		});
+
+		it("should preserve action methods after restoration", () => {
+			interface Counter {
+				readonly count: number;
+
+				increment(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count+1 }; }
+			});
+
+			const next = state.increment() as typeof state;
+			const snapshot = next();
+
+			const restored = state(snapshot);
+
+			expect(typeof restored.increment).toBe("function");
+			expect(restored.increment().count).toBe(2);
+		});
+
+		it("should NOT restore observers from snapshot", async () => {
+			interface Counter {
+				readonly count: number;
+
+				increment(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count+1 }; }
+			});
+
+			let notified = false;
+			const observer = () => { notified = true; };
+
+			const withObserver = state(observer, true);
+			const snapshot = withObserver();
+
+			const restored = state(snapshot);
+			restored.increment();
 
 			await new Promise(resolve => setTimeout(resolve, 0));
 
-			expect(receivedPoint?.x).toBe(3);
-			expect(receivedPoint?.y).toBe(4);
+			// Observer should NOT be notified (not restored from snapshot)
+			expect(notified).toBe(false);
+		});
+
+		it("should preserve current observers during restoration", async () => {
+			interface Counter {
+				readonly count: number;
+
+				increment(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count+1 }; }
+			});
+
+			const temp = state.increment().increment() as typeof state;
+			const snapshot = temp();
+
+			let notified = false;
+			const observer = () => { notified = true; };
+
+			const withObserver = state(observer, true);
+			const restored = withObserver(snapshot);
+			restored.increment();
+
+			await new Promise(resolve => setTimeout(resolve, 0));
+
+			// Current observer should be notified
+			expect(notified).toBe(true);
+		});
+
+	});
+
+	describe("lineage validation", () => {
+
+		it("should throw TypeError when restoring snapshot from different state lineage", () => {
+			interface Counter {
+				readonly count: number;
+			}
+
+			const state1 = State<Counter>({ count: 0 });
+			const state2 = State<Counter>({ count: 0 });
+
+			const snapshot1 = state1();
+
+			expect(() => {
+				state2(snapshot1);
+			}).toThrow(TypeError);
+		});
+
+		it("should include lineage information in error message", () => {
+			interface Counter {
+				readonly count: number;
+			}
+
+			const state1 = State<Counter>({ count: 0 });
+			const state2 = State<Counter>({ count: 0 });
+
+			const snapshot = state1();
+
+			expect(() => {
+				state2(snapshot);
+			}).toThrow(/lineage/i);
+		});
+
+		it("should allow restoration within same lineage after transitions", () => {
+			interface Counter {
+				readonly count: number;
+
+				increment(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count+1 }; }
+			});
+
+			const next = state.increment().increment() as typeof state;
+			const snapshot = next();
+
+			// Restore to original state in same lineage
+			const restored = state(snapshot);
+
+			expect(restored.count).toBe(2);
+		});
+
+		it("should allow restoration to any state in same lineage", () => {
+			interface Counter {
+				readonly count: number;
+
+				increment(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count+1 }; }
+			});
+
+			const step1 = state.increment() as typeof state;
+			const step2 = step1.increment() as typeof state;
+			const snapshot = step2();
+
+			// Can restore to step1 (same lineage)
+			const restored = step1(snapshot);
+
+			expect(restored.count).toBe(2);
+		});
+
+	});
+
+	describe("snapshot inheritance through transitions", () => {
+
+		it("should create valid snapshot after state transitions", () => {
+			interface Counter {
+				readonly count: number;
+
+				increment(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count+1 }; }
+			});
+
+			const next = state.increment().increment() as typeof state;
+			const snapshot = next();
+			const restored = next(snapshot);
+
+			expect(restored.count).toBe(2);
+		});
+
+		it("should maintain lineage compatibility through transitions", () => {
+			interface Counter {
+				readonly count: number;
+
+				increment(): this;
+
+				reset(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count+1 }; },
+				reset() { return { count: 0 }; }
+			});
+
+			const step1 = state.increment() as typeof state;
+			const step2 = step1.increment() as typeof state;
+			const snapshot2 = step2();
+
+			const step3 = step2.reset() as typeof state;
+			const step4 = step3.increment() as typeof state;
+
+			// step4 is in same lineage, should accept snapshot from step2
+			const restored = step4(snapshot2);
+
+			expect(restored.count).toBe(2);
+		});
+
+		it("should work with destructured methods", () => {
+			interface Counter {
+				readonly count: number;
+
+				increment(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count+1 }; }
+			});
+
+			const { increment } = state;
+			const next = increment() as typeof state;
+			const snapshot = next();
+
+			const restored = state(snapshot);
+
+			expect(restored.count).toBe(1);
+		});
+
+	});
+
+	describe("complex snapshot scenarios", () => {
+
+		it("should handle multiple snapshots from same lineage", () => {
+			interface Counter {
+				readonly count: number;
+
+				increment(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count+1 }; }
+			});
+
+			const step1 = state.increment() as typeof state;
+			const snapshot1 = step1();
+
+			const step2 = step1.increment() as typeof state;
+			const snapshot2 = step2();
+
+			const step3 = step2.increment() as typeof state;
+			const snapshot3 = step3();
+
+			// All snapshots belong to same lineage
+			expect(state(snapshot1).count).toBe(1);
+			expect(state(snapshot2).count).toBe(2);
+			expect(state(snapshot3).count).toBe(3);
+		});
+
+		it("should support snapshot-based undo/redo pattern", () => {
+			interface Counter {
+				readonly count: number;
+
+				increment(): this;
+
+				decrement(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count+1 }; },
+				decrement() { return { count: this.count-1 }; }
+			});
+
+			const history: Snapshot<Counter>[] = [];
+
+			// Build history
+			let current = state;
+			history.push(current());
+
+			current = current.increment() as typeof state;
+			history.push(current());
+
+			current = current.increment() as typeof state;
+			history.push(current());
+
+			current = current.decrement() as typeof state;
+			history.push(current());
+
+			// Undo to step 2 (count=2)
+			const undone = state(history[2]);
+			expect(undone.count).toBe(2);
+
+			// Redo to step 3 (count=1)
+			const redone = state(history[3]);
+			expect(redone.count).toBe(1);
+		});
+
+		it("should handle snapshots with nested data structures", () => {
+			interface AppState {
+				readonly user: { name: string; age: number };
+				readonly settings: { theme: string };
+
+				updateUser(name: string, age: number): this;
+			}
+
+			const state = State<AppState>({
+				user: { name: "Alice", age: 30 },
+				settings: { theme: "dark" },
+				updateUser(name, age) {
+					return { user: { name, age } };
+				}
+			});
+
+			const updated = state.updateUser("Bob", 25) as typeof state;
+			const snapshot = updated();
+
+			const restored = state(snapshot);
+
+			expect(restored.user.name).toBe("Bob");
+			expect(restored.user.age).toBe(25);
+			expect(restored.settings.theme).toBe("dark");
+		});
+
+		it("should work with observers and snapshots together", async () => {
+			interface Counter {
+				readonly count: number;
+
+				increment(): this;
+			}
+
+			const state = State<Counter>({
+				count: 0,
+				increment() { return { count: this.count+1 }; }
+			});
+
+			let observedCount = 0;
+			const observer = (s: Counter) => { observedCount = s.count; };
+
+			const withObserver = state(observer, true);
+			const step1 = withObserver.increment() as typeof state;
+			const snapshot = step1();
+
+			// Restore and verify observer notified
+			const restored = withObserver(snapshot);
+			restored.increment();
+
+			await new Promise(resolve => setTimeout(resolve, 0));
+
+			expect(observedCount).toBe(2);
 		});
 
 	});

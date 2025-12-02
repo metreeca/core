@@ -7,6 +7,7 @@ description: Development guidelines and conventions for the @metreeca/core packa
 >
 > - **ONLY** modify code when explicitly requested or clearly required.
 > - **NEVER** make unsolicited changes or revert **unrelated** user edits.
+> - **ALWAYS** monitor IDE diagnostics when working on a file
 
 # NPM Scripts
 

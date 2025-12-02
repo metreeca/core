@@ -111,9 +111,10 @@
  *
  * **Observers**
  *
- * State managers support the observer pattern through `attach()` and `detach()` methods.
- * Both methods create and return a **new** state manager, preserving immutability.
- * Observers are called asynchronously when state changes occur:
+ * State managers support the observer pattern through a functional call signature.
+ * Calling the state as a function with an observer and boolean parameter creates
+ * and returns a **new** state manager with the observer attached or detached,
+ * preserving immutability. Observers are called asynchronously when state changes occur:
  *
  * ```typescript
  * const counter = State<Counter>({
@@ -128,9 +129,9 @@
  *   console.log("Count changed:", state.count);
  * };
  *
- * // attach() returns a NEW state manager with the observer attached
+ * // Calling state(observer, true) returns a NEW state manager with the observer attached
  *
- * const withObserver = counter.attach(observer);
+ * const withObserver = counter(observer, true);
  *
  * withObserver.increment(); // Logs asynchronously: "Count changed: 1"
  *
@@ -138,19 +139,86 @@
  *
  * withObserver.increment().increment(); // Each transition notifies observers
  *
- * // detach() returns a NEW state manager without the observer
+ * // Calling state(observer, false) returns a NEW state manager without the observer
  *
- * const withoutObserver = withObserver.detach(observer);
+ * const withoutObserver = withObserver(observer, false);
  * ```
  *
  * Observers are compared by **reference** equality (`===`), which means the same function
  * reference can only be attached once and must be used to detach.
+ *
+ * **Snapshots**
+ *
+ * State managers support creating and restoring opaque snapshots for implementing features
+ * like undo/redo, checkpointing, or time-travel debugging. Snapshots capture the current
+ * state data but not observers.
+ *
+ * Call the state as a function with no arguments to create a snapshot:
+ *
+ * ```typescript
+ * const counter = State<Counter>({
+ *   count: 0,
+ *   increment() { return { count: this.count + 1 }; }
+ * });
+ *
+ * const step1 = counter.increment();
+ * const step2 = step1.increment();
+ *
+ * // Create snapshot at step2 (count is 2)
+ * const snapshot = step2();
+ * ```
+ *
+ * Restore state from a snapshot by calling the state as a function with the snapshot:
+ *
+ * ```typescript
+ * const step3 = step2.increment(); // count is 3
+ *
+ * // Restore to step2 (count is 2)
+ * const restored = step3(snapshot);
+ *
+ * console.log(restored.count); // 2
+ * ```
+ *
+ * Snapshots are lineage-specific and can only be restored to state managers from the same
+ * lineage (created from the same original {@link State} call or derived through transitions).
+ * Attempting to restore a snapshot to an unrelated state manager throws a `TypeError`:
+ *
+ * ```typescript
+ * const counter1 = State<Counter>({ count: 0, increment() { return { count: this.count + 1 }; } });
+ * const counter2 = State<Counter>({ count: 0, increment() { return { count: this.count + 1 }; } });
+ *
+ * const snapshot1 = counter1();
+ *
+ * counter2(snapshot1); // TypeError: Snapshot does not belong to this state lineage
+ * ```
+ *
+ * Snapshots enable, for instance, undo/redo patterns by storing state history:
+ *
+ * ```typescript
+ * const history: Snapshot<Counter>[] = [];
+ * let current = counter;
+ *
+ * history.push(current());           // Save initial state
+ * current = current.increment();
+ * history.push(current());           // Save after increment
+ * current = current.increment();
+ * history.push(current());           // Save after second increment
+ *
+ * // Undo to previous state
+ * current = current(history[history.length - 2]);
+ * ```
  *
  * @module
  */
 
 import { immutable, Immutable } from "../basic/nested.js";
 
+
+/**
+ * Symbol used to store state lineage identity on state objects.
+ * Non-enumerable to prevent enumeration and maintain clean state interface.
+ */
+const Lineage = Symbol("lineage");
 
 /**
  * Symbol used to store observers on state objects.
@@ -162,11 +230,18 @@ const Observers = Symbol("observers");
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * Symbol used in the {@link Snapshot} type definition to ensure snapshots
+ * can only be created through the {@link State} API.
+ */
+declare const Snapshot: unique symbol;
+
+
+/**
  * State manager interface.
  *
- * Provides methods to attach and detach observers that are notified asynchronously
- * when state changes occur. Both methods preserve immutability by creating new state
- * managers rather than modifying existing ones.
+ * Provides a functional call signature to attach and detach observers that are notified
+ * asynchronously when state changes occur. The call preserves immutability by creating
+ * new state managers rather than modifying existing ones.
  *
  * Observers are inherited through state transitions: when an action creates a new state
  * manager, all attached observers are automatically transferred to the new state manager
@@ -176,7 +251,7 @@ const Observers = Symbol("observers");
  *
  * @remarks
  *
- * Observer notifications are asynchronous and executed via queueMicrotask(), ensuring
+ * Observer notifications are asynchronous and executed via `queueMicrotask()`, ensuring
  * that state transitions complete synchronously while observers run after the current
  * execution context. Observer errors are caught and logged without affecting the state
  * transition or other observers.
@@ -184,40 +259,78 @@ const Observers = Symbol("observers");
 export interface State<T> {
 
 	/**
-	 * Attaches an observer to receive state change notifications.
+	 * Creates an opaque snapshot of the current state.
 	 *
-	 * Creates and returns a **new** state manager with the observer attached. The original
-	 * state manager is not modified. Observers are called asynchronously after each state
-	 * transition using `queueMicrotask()`. If the observer is already attached, returns
-	 * the same state manager reference (idempotent operation).
+	 * Snapshots capture the current state data in an opaque format that prevents direct
+	 * access to the captured data. Observers are not included in snapshots - only the
+	 * data properties are captured.
 	 *
-	 * Observer identity is determined by reference equality (`===`). The same function
-	 * reference cannot be attached multiple times.
+	 * Snapshots can only be restored to state managers from the same lineage (created from
+	 * the same original {@link State} call or derived through state transitions). Attempting
+	 * to restore a snapshot to an unrelated state manager will throw an error.
 	 *
-	 * @param observer Function called with the new state after each transition
-	 * @returns New state manager with observer attached, or same reference if already attached
+	 * Lineage compatibility is preserved through all state transitions, ensuring snapshots
+	 * remain valid throughout the state's lifecycle.
+	 *
+	 * @returns Opaque snapshot of current state data
+	 *
+	 * @remarks
+	 *
+	 * Snapshots are useful for implementing undo/redo functionality, checkpointing,
+	 * or time-travel debugging. The opaque type ensures snapshots can only be used
+	 * with the restoration API.
 	 */
-	attach(observer: Observer<T>): this;
+	(): Snapshot<T>;
 
 	/**
-	 * Detaches an observer from state change notifications.
+	 * Restores state from a snapshot.
 	 *
-	 * Creates and returns a **new** state manager without the observer. The original
-	 * state manager is not modified. If the observer is not currently attached, returns
-	 * the same state manager reference (idempotent operation).
+	 * Creates and returns a **new** state manager with data restored from the snapshot.
+	 * Validates that the snapshot belongs to this state lineage.
 	 *
-	 * Observer identity is determined by reference equality (`===`). You must pass
-	 * the exact same function reference that was attached.
+	 * The restoration preserves the current state manager's observers - they are not
+	 * stored in or restored from snapshots. Only the data properties are restored.
 	 *
-	 * @param observer Function to stop notifying
-	 * @returns New state manager without observer, or same reference if not attached
+	 * @param snapshot Snapshot created by calling this state (or a state from the same lineage) with no arguments
+	 *
+	 * @returns New state manager with data restored from snapshot
+	 *
+	 * @throws {TypeError} If snapshot does not belong to this state lineage
+	 *
+	 * @remarks
+	 *
+	 * Lineage validation occurs at runtime. TypeScript's type system ensures snapshots
+	 * are type-safe (matching `T`), while runtime checks ensure lineage compatibility.
 	 */
-	detach(observer: Observer<T>): this;
+	(snapshot: Snapshot<T>): this;
+
+
+	/**
+	 * Attaches or detaches an observer for state change notifications.
+	 *
+	 * Creates and returns a **new** state manager with the observer attached or detached.
+	 * The original state manager is not modified.
+	 *
+	 * The operation is idempotent:
+	 *
+	 * - Attaching an already-attached observer returns the same state manager reference
+	 * - Detaching a non-attached observer returns the same state manager reference
+	 *
+	 * Observer identity is determined by reference equality (`===`). The same function
+	 * reference cannot be attached multiple times, and you must pass the exact same
+	 * reference to detach.
+	 *
+	 * @param observer Function called with the new state after each transition
+	 * @param attached `true` to attach the observer, `false` to detach it
+	 *
+	 * @returns New state manager with observer attached/detached, or same reference if no change
+	 */
+	(observer: Observer<T>, attached: boolean): this;
 
 }
 
 /**
- * Observer function type.
+ * State observer.
  *
  * Receives the new state data after a transition and performs side effects.
  * Observers are called asynchronously via `queueMicrotask()` and should not throw errors.
@@ -229,7 +342,26 @@ export interface State<T> {
  * Observer errors are caught and silently ignored, preventing them from affecting other
  * observers or the state transition itself.
  */
-export type Observer<T> = (data: Immutable<T>) => void;
+export type Observer<T> = {
+
+	(data: Immutable<T>): void
+
+}
+
+/**
+ * Opaque state snapshot.
+ *
+ * Snapshots can only be created and restored through the {@link State} interface's
+ * functional call signatures. The opaque type prevents direct construction or
+ * manipulation of snapshots outside the state management API.
+ *
+ * @typeParam T The state interface type
+ */
+export type Snapshot<T> = {
+
+	readonly [Snapshot]: T;
+
+}
 
 
 /**
@@ -268,7 +400,7 @@ export type Spec<T> = {
  * @typeParam T The state interface type
  * @typeParam I The action input parameters as a readonly tuple
  */
-export type Action<T, I extends readonly unknown[]> = (...args: I) => T;
+export type Action<T, I extends readonly unknown[]> = (...args: I) => T
 
 /**
  * State transition.
@@ -317,7 +449,8 @@ export type Transition<T, I extends readonly unknown[]> = (...args: I) => Partia
  *
  * **Observer System**
  *
- * - Observers are attached via `attach()` and inherited through state transitions
+ * - Observers are attached by calling the state as a function: `state(observer, true)`
+ * - Observers are inherited through state transitions
  * - Observers are notified asynchronously after state changes using `queueMicrotask()`
  * - Observer identity is based on reference equality; the same function can only be attached once
  *
@@ -328,58 +461,54 @@ export type Transition<T, I extends readonly unknown[]> = (...args: I) => Partia
  */
 export function State<T>(spec: Spec<T>): State<T> & Immutable<T> {
 
+	// Generate unique identity for this state lineage
+
+	const lineage = Symbol("lineage");
+
+
 	/**
 	 * Internal type representing a state object with observer storage.
 	 * Extends the immutable state with non-enumerable observer set.
 	 */
 	type StateWithObservers<T> = State<T> & Immutable<T> & {
+
 		[Observers]?: Set<Observer<T>>;
+
 	};
 
 
-	const actions = Object.fromEntries([
+	const actions = Object.fromEntries(Object.entries(spec)
+		.filter(([, value]) => typeof value === "function")
+		.map(([key, value]) => [
+			key,
+			function (this: StateWithObservers<T>, ...inputs: readonly unknown[]): State<T> {
 
-		// system methods
+				const partial = (value as Transition<T, readonly unknown[]>).call(this, ...inputs);
 
-		["attach", attach],
-		["detach", detach],
+				const changed = Object.entries(partial).some(([key, value]) =>
+					!Object.is(value, this[key as keyof Immutable<T>])
+				);
 
-		// spec-based actions
+				if ( changed ) { // create new state and explicitly preserve observers
 
-		...Object.entries(spec)
-			.filter(([, value]) => typeof value === "function")
-			.map(([key, value]) => [
-				key,
-				function (this: StateWithObservers<T>, ...inputs: readonly unknown[]): State<T> {
+					const data = Object.assign({}, this, immutable(partial));
+					const observers = this[Observers];
 
-					const partial = (value as Transition<T, readonly unknown[]>).call(this, ...inputs);
+					const next = bind(data, observers);
 
-					const changed = Object.entries(partial).some(([key, value]) =>
-						!Object.is(value, this[key as keyof Immutable<T>])
-					);
-
-					if ( changed ) { // create new state and explicitly preserve observers
-
-						const data = Object.assign({}, this, immutable(partial));
-						const observers = this[Observers];
-
-						const next = bind(data, observers);
-
-						if ( observers ) {
-							notify(observers, next as Immutable<T>);
-						}
-
-						return next;
-
-					} else {
-
-						return this;
-
+					if ( observers ) {
+						notify(observers, next as Immutable<T>);
 					}
 
-				}]),
+					return next;
 
-	]);
+				} else {
+
+					return this;
+
+				}
+
+			}]));
 
 
 	// actions overwrite transition methods in spec; the final object conforms to the expected interface
@@ -389,19 +518,99 @@ export function State<T>(spec: Spec<T>): State<T> & Immutable<T> {
 
 	function bind(data: any, observers?: Set<Observer<T>>): State<T> & Immutable<T> {
 
-		// bind actions to enable method destructuring: const { increment } = state; increment();
-		// use Object.freeze() instead of immutable() to avoid cloning, which would break method bindings
+		// create the callable function that handles snapshot operations and observer attach/detach
 
-		const bound = Object.assign(data, Object.fromEntries(Object.entries(actions)
-			.map(([key, value]) => [key, (value as Function).bind(data)])
-		));
+		const callable: any = function (...args: any[]): any {
+			if ( args.length === 0 ) { // state() - snapshot creation
 
-		return Object.freeze(observers === undefined ? bound : Object.defineProperty(bound, Observers, {
-			value: observers,
-			enumerable: false,
-			writable: false,
-			configurable: false
-		}));
+				return snapshot.call(callable);
+
+			} else if ( args.length === 1  // state(snapshot) - snapshot restoration
+
+				&& args[0] !== null && Lineage in args[0]
+
+			) {
+
+				return restore.call(callable, args[0]);
+
+			} else if ( args.length === 2 // state(observer, attached) - observer attach/detach
+
+				&& typeof args[0] === "function"
+				&& typeof args[1] === "boolean"
+
+			) {
+
+				return args[1]
+					? attach.call(callable, args[0])
+					: detach.call(callable, args[0]);
+
+			} else {
+
+				throw new TypeError(`invalid state call <(${JSON.stringify(args)})>`);
+
+			}
+		};
+
+		// assign all data properties to the callable function
+
+		for (const [key, value] of Object.entries(data)) {
+			Object.defineProperty(callable, key, {
+				value: value,
+				enumerable: true,
+				writable: true,
+				configurable: true
+			});
+		}
+
+		// assign all action methods to the callable function
+
+		for (const [key, value] of Object.entries(actions)) {
+			Object.defineProperty(callable, key, {
+				value: (value as Function).bind(callable),
+				enumerable: true,
+				writable: true,
+				configurable: true
+			});
+		}
+
+		// add observers if provided
+
+		if ( observers !== undefined ) {
+			Object.defineProperty(callable, Observers, {
+				value: observers,
+				enumerable: false,
+				writable: false,
+				configurable: false
+			});
+		}
+
+		return Object.freeze(callable) as State<T> & Immutable<T>;
+	}
+
+
+	function snapshot(this: StateWithObservers<T>): Snapshot<T> {
+
+		// copy data properties (exclude functions) and add lineage brand
+
+		return Object.assign(
+			{ [Lineage]: lineage } as unknown as Snapshot<T>,
+			Object.fromEntries(
+				Object.entries(this).filter(([, value]) => typeof value !== "function")
+			)
+		);
+	}
+
+	function restore(this: StateWithObservers<T>, snapshot: Snapshot<T>): State<T> {
+
+		// validate snapshot lineage
+
+		if ( (snapshot as any)[Lineage] !== lineage ) {
+			throw new TypeError("unrelated snapshot lineage");
+		}
+
+		// restore data from snapshot, preserving current observers
+
+		return bind(Object.assign({}, this, immutable(snapshot)), this[Observers]);
 	}
 
 
