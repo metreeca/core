@@ -19,7 +19,8 @@
       "Skill(typescript-tester)",
       "Bash(npx vitest:*)",
       "Skill(typescript-developer)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "SlashCommand(/review:*)"
     ],
     "deny": [],
     "ask": []

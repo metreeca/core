@@ -4,7 +4,8 @@
 
 Essential TypeScript abstractions.
 
-**@metreeca/core** is a foundational TypeScript toolkit providing clean and composable abstractions for common patterns.
+**@metreeca/core** is a foundational TypeScript toolkit with clean, minimalist APIs for common operations and functional
+patterns.
 
 # Installation
 
@@ -22,9 +23,12 @@ npm install @metreeca/core
 | Module                                                                       | Description                                        |
 |------------------------------------------------------------------------------|----------------------------------------------------|
 | [@metreeca/core](https://metreeca.github.io/core/modules.html)               | Type guards and safe casts                         |
+| **Common Operations**                                                        |                                                    |
 | [@metreeca/core/nested](https://metreeca.github.io/core/modules/nested.html) | Deep operations on nested objects and arrays       |
 | [@metreeca/core/report](https://metreeca.github.io/core/modules/report.html) | Error handling and execution reporting             |
 | [@metreeca/core/async](https://metreeca.github.io/core/modules/async.html)   | Primitives for asynchronous operations             |
+| [@metreeca/core/meta](https://metreeca.github.io/core/modules/met.html)      | Metadata annotations                               |
+| **Functional Patterns**                                                      |                                                    |
 | [@metreeca/core/order](https://metreeca.github.io/core/modules/order.html)   | Composable comparison functions for sorting        |
 | [@metreeca/core/switch](https://metreeca.github.io/core/modules/switch.html) | Type-safe pattern matcher for discriminated unions |
 | [@metreeca/core/state](https://metreeca.github.io/core/modules/state.html)   | Type-safe immutable state manager                  |

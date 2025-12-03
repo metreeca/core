@@ -28,6 +28,7 @@
     "./nested": "./dist/basic/nested.js",
     "./report": "./dist/basic/report.js",
     "./async": "./dist/async/index.js",
+    "./meta": "./dist/basic/meta.js",
     "./order": "./dist/functional/order.js",
     "./switch": "./dist/functional/switch.js",
     "./state": "./dist/functional/state.js"
