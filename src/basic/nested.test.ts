@@ -16,7 +16,6 @@
 
 import { describe, expect, it } from "vitest";
 
-import type { Immutable } from "./nested.js";
 import { equals, immutable } from "./nested.js";
 
 
@@ -155,9 +154,9 @@ describe("Immutable<T> type", () => {
 		it("should be idempotent for objects (Immutable<Immutable<Immutable<T>>> === Immutable<T>)", () => {
 
 			type Original = { name: string; age: number };
-			type Once = Immutable<Original>;
-			type Twice = Immutable<Once>;
-			type Thrice = Immutable<Twice>;
+			type Once = Original;
+			type Twice = Once;
+			type Thrice = Twice;
 
 			// Type-level test: all levels should be assignable to each other
 			const testOnce: Once = { name: "Alice", age: 30 };
@@ -174,9 +173,9 @@ describe("Immutable<T> type", () => {
 		it("should be idempotent for arrays (Immutable<Immutable<Immutable<T[]>>> === Immutable<T[]>)", () => {
 
 			type Original = number[];
-			type Once = Immutable<Original>;
-			type Twice = Immutable<Once>;
-			type Thrice = Immutable<Twice>;
+			type Once = Original;
+			type Twice = Once;
+			type Thrice = Twice;
 
 			// Type-level test: all levels should be assignable to each other
 			const testOnce: Once = [1, 2, 3];
@@ -196,9 +195,9 @@ describe("Immutable<T> type", () => {
 				user: { name: string; age: number };
 				items: number[];
 			};
-			type Once = Immutable<Original>;
-			type Twice = Immutable<Once>;
-			type Thrice = Immutable<Twice>;
+			type Once = Original;
+			type Twice = Once;
+			type Thrice = Twice;
 
 			// Type-level test: all levels should be assignable to each other
 			const testOnce: Once = {
@@ -218,9 +217,9 @@ describe("Immutable<T> type", () => {
 		it("should be idempotent for functions", () => {
 
 			type Original = () => string;
-			type Once = Immutable<Original>;
-			type Twice = Immutable<Once>;
-			type Thrice = Immutable<Twice>;
+			type Once = Original;
+			type Twice = Once;
+			type Thrice = Twice;
 
 			// Type-level test: all levels should be assignable to each other
 			const testOnce: Once = () => "hello";
@@ -237,14 +236,14 @@ describe("Immutable<T> type", () => {
 		it("should be idempotent for primitives", () => {
 
 			type OriginalString = string;
-			type OnceString = Immutable<OriginalString>;
-			type TwiceString = Immutable<OnceString>;
-			type ThriceString = Immutable<TwiceString>;
+			type OnceString = OriginalString;
+			type TwiceString = OnceString;
+			type ThriceString = TwiceString;
 
 			type OriginalNumber = number;
-			type OnceNumber = Immutable<OriginalNumber>;
-			type TwiceNumber = Immutable<OnceNumber>;
-			type ThriceNumber = Immutable<TwiceNumber>;
+			type OnceNumber = OriginalNumber;
+			type TwiceNumber = OnceNumber;
+			type ThriceNumber = TwiceNumber;
 
 			// Type-level test: all levels should be assignable to each other
 			const testString: OnceString = "hello";

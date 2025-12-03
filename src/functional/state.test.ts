@@ -15,7 +15,6 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import { Immutable } from "../basic/nested.js";
 
 import { Snapshot, State } from "./state.js";
 
@@ -1272,8 +1271,8 @@ describe("State observers", () => {
 
 			const nextHolder: (typeof state)[] = [];
 
-			const receivedState = await new Promise<Immutable<Counter>>(resolve => {
-				const withObserver = state((s: Immutable<Counter>) => {
+			const receivedState = await new Promise<Counter>(resolve => {
+				const withObserver = state((s: Counter) => {
 					resolve(s);
 				}, true);
 				const next = withObserver.increment();
@@ -1563,8 +1562,8 @@ describe("State observers", () => {
 				move(dx, dy) { return { x: this.x + dx, y: this.y + dy }; }
 			});
 
-			const receivedPoint = await new Promise<Immutable<Point>>(resolve => {
-				const withObserver = state((s: Immutable<Point>) => {
+			const receivedPoint = await new Promise<Point>(resolve => {
+				const withObserver = state((s: Point) => {
 					resolve(s);
 				}, true);
 				withObserver.move(3, 4);

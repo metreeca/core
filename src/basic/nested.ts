@@ -81,39 +81,6 @@ const Immutable = Symbol("immutable");
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Deep readonly type.
- *
- * Recursively makes all properties readonly while preserving type structure:
- *
- * - Functions are preserved unchanged
- * - Arrays become `ReadonlyArray` with deep readonly elements
- * - Objects have readonly properties with deep readonly values
- * - Primitives are preserved unchanged
- *
- * @typeParam T The type to make deeply readonly
- *
- * @remarks
- *
- * This type is idempotent: `Immutable<Immutable<T>>` is the same as `Immutable<T>`.
- */
-export type Immutable<T> =
-	T extends Function ? T :
-		T extends ReadonlyArray<any> ? T :
-			T extends object ? {
-
-				readonly [K in keyof T]:
-
-				T[K] extends Function ? T[K] :
-					T[K] extends (infer U)[] ? ReadonlyArray<Immutable<U>> :
-						T[K] extends object ? Immutable<T[K]> :
-							T[K];
-
-			} : T;
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
  * Checks deep object equality.
  *
  * Object pairs are deeply equal if they contain:
@@ -164,7 +131,7 @@ export function equals(x: unknown, y: unknown): boolean {
  *
  * @param value The value to make immutable
  *
- * @returns A deeply immutable clone of `value` with type {@link Immutable}
+ * @returns A deeply immutable clone of `value`
  *
  * @throws {RangeError} Stack overflow when `value` contains circular references
  *
@@ -182,12 +149,12 @@ export function equals(x: unknown, y: unknown): boolean {
  * - Accessor properties (getters/setters) are preserved as-is without freezing the accessor
  *   functions themselves. Getters may still return mutable values.
  */
-export function immutable<T>(value: T): Immutable<T> {
+export function immutable<T>(value: T): T {
 
 	return isFunction(value) ? freeze(value, value)
 		: isArray(value) ? freeze(value, [])
 			: isObject(value) ? freeze(value, {})
-				: value as Immutable<T>;
+				: value;
 
 
 	/**
@@ -196,18 +163,18 @@ export function immutable<T>(value: T): Immutable<T> {
 	 * @param value The source value to freeze (object, array, or function)
 	 * @param accumulator The target object to receive frozen properties
 	 *
-	 * @returns The frozen accumulator with type {@link Immutable}
+	 * @returns The frozen accumulator
 	 *
 	 * @remarks
 	 *
 	 * Property descriptors omit `writable` and `configurable` attributes since
 	 * `Object.freeze()` will make all properties non-writable and non-configurable.
 	 */
-	function freeze(value: T & object, accumulator: {}): Immutable<T> {
+	function freeze(value: T & object, accumulator: {}): T {
 
 		if ( Immutable in value ) {
 
-			return value as Immutable<T>;
+			return value as T;
 
 		} else {
 
@@ -255,7 +222,7 @@ export function immutable<T>(value: T): Immutable<T> {
 				enumerable: false
 			});
 
-			return Object.freeze(accumulator) as Immutable<T>;
+			return Object.freeze(accumulator) as T;
 
 		}
 

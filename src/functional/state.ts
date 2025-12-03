@@ -211,7 +211,7 @@
  * @module
  */
 
-import { immutable, Immutable } from "../basic/nested.js";
+import { immutable } from "../basic/nested.js";
 
 
 /**
@@ -344,7 +344,7 @@ export interface State<T> {
  */
 export type Observer<T> = {
 
-	(data: Immutable<T>): void
+	(data: T): void
 
 }
 
@@ -459,7 +459,7 @@ export type Transition<T, I extends readonly unknown[]> = (...args: I) => Partia
  * - Returns same state manager reference when transition returns empty partial update
  * - Returns same state manager reference when all partial values are shallowly equal (`Object.is`) to current values
  */
-export function State<T>(spec: Spec<T>): State<T> & Immutable<T> {
+export function State<T>(spec: Spec<T>): State<T> & T {
 
 	// Generate unique identity for this state lineage
 
@@ -470,7 +470,7 @@ export function State<T>(spec: Spec<T>): State<T> & Immutable<T> {
 	 * Internal type representing a state object with observer storage.
 	 * Extends the immutable state with non-enumerable observer set.
 	 */
-	type StateWithObservers<T> = State<T> & Immutable<T> & {
+	type StateWithObservers<T> = State<T> & T & {
 
 		[Observers]?: Set<Observer<T>>;
 
@@ -486,7 +486,7 @@ export function State<T>(spec: Spec<T>): State<T> & Immutable<T> {
 				const partial = (value as Transition<T, readonly unknown[]>).call(this, ...inputs);
 
 				const changed = Object.entries(partial).some(([key, value]) =>
-					!Object.is(value, this[key as keyof Immutable<T>])
+					!Object.is(value, this[key as keyof T])
 				);
 
 				if ( changed ) { // create new state and explicitly preserve observers
@@ -497,7 +497,7 @@ export function State<T>(spec: Spec<T>): State<T> & Immutable<T> {
 					const next = bind(data, observers);
 
 					if ( observers ) {
-						notify(observers, next as Immutable<T>);
+						notify(observers, next as T);
 					}
 
 					return next;
@@ -516,7 +516,7 @@ export function State<T>(spec: Spec<T>): State<T> & Immutable<T> {
 	return bind(Object.assign({}, immutable(spec)));
 
 
-	function bind(data: any, observers?: Set<Observer<T>>): State<T> & Immutable<T> {
+	function bind(data: any, observers?: Set<Observer<T>>): State<T> & T {
 
 		// create the callable function that handles snapshot operations and observer attach/detach
 
@@ -584,7 +584,7 @@ export function State<T>(spec: Spec<T>): State<T> & Immutable<T> {
 			});
 		}
 
-		return Object.freeze(callable) as State<T> & Immutable<T>;
+		return Object.freeze(callable) as State<T> & T;
 	}
 
 
@@ -653,7 +653,7 @@ export function State<T>(spec: Spec<T>): State<T> & Immutable<T> {
 		return updated;
 	}
 
-	function notify<T>(observers: Set<Observer<T>>, state: Immutable<T>): void {
+	function notify<T>(observers: Set<Observer<T>>, state: T): void {
 		observers.forEach(observer => queueMicrotask(() => {
 
 			try { observer(state); } catch ( ignore ) {/**/} // !!! reconsider
