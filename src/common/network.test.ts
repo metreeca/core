@@ -15,8 +15,40 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { iri, isIRI, isURI, namespace, uri } from "./network.js";
+import { iri, isIRI, isTag, isURI, namespace, tag, uri } from "./network.js";
 
+
+const tags = {
+	valid: [
+		"en",
+		"fr",
+		"de",
+		"eng",
+		"fra",
+		"zh-Hans",
+		"zh-Hant",
+		"en-US",
+		"en-GB",
+		"fr-CA",
+		"es-419",
+		"sr-Latn-RS",
+		"zh-Hans-CN",
+		"en-US-x-private"
+	],
+	invalid: [
+		{ value: "", reason: "empty string" },
+		{ value: "e", reason: "single character" },
+		{ value: "toolongprimary", reason: "primary subtag > 8 chars" },
+		{ value: "en_US", reason: "underscore separator" },
+		{ value: "en US", reason: "space separator" },
+		{ value: "en-", reason: "trailing hyphen" },
+		{ value: "-en", reason: "leading hyphen" },
+		{ value: "en--US", reason: "double hyphen" },
+		{ value: "123", reason: "numeric only primary" },
+		{ value: "en-123456789", reason: "variant > 8 chars" },
+		{ value: "http://example.com", reason: "contains invalid chars" }
+	]
+};
 
 const iris = {
 	absolute: {
@@ -107,6 +139,56 @@ const uris = {
 		]
 	}
 };
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+describe("isTag()", () => {
+
+	it("should return true for valid language tags", () => {
+		tags.valid.forEach(value => {
+			expect(isTag(value)).toBe(true);
+		});
+	});
+
+	it("should return false for invalid language tags", () => {
+		tags.invalid.forEach(({ value }) => {
+			expect(isTag(value)).toBe(false);
+		});
+	});
+
+	it("should return false for non-string values", () => {
+		expect(isTag(null)).toBe(false);
+		expect(isTag(undefined)).toBe(false);
+		expect(isTag(123)).toBe(false);
+		expect(isTag({})).toBe(false);
+		expect(isTag([])).toBe(false);
+	});
+
+});
+
+describe("tag()", () => {
+
+	it("should create branded laguage tags from valid strings", () => {
+		tags.valid.forEach(value => {
+			expect(() => tag(value)).not.toThrow();
+			const result = tag(value);
+			expect(typeof result).toBe("string");
+			expect(result).toBe(value);
+		});
+	});
+
+	it("should throw RangeError for invalid language tags", () => {
+		tags.invalid.forEach(({ value }) => {
+			expect(() => tag(value)).toThrow(RangeError);
+		});
+	});
+
+	it("should throw RangeError with descriptive message", () => {
+		expect(() => tag("invalid tag")).toThrow("invalid language tag <invalid tag>");
+	});
+
+});
 
 
 describe("isURI", () => {
@@ -202,6 +284,7 @@ describe("uri", () => {
 
 });
 
+
 describe("isIRI", () => {
 
 	it("should return true for valid absolute IRIs", () => {
@@ -275,6 +358,7 @@ describe("iri", () => {
 	});
 
 });
+
 
 describe("namespace", () => {
 

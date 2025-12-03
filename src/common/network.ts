@@ -15,9 +15,33 @@
  */
 
 /**
- * Resource identifiers and HTTP utilities.
+ * Language tags, resource identifiers and HTTP utilities.
  *
- * Provides types and functions for resource identifiers, HTTP error handling, and fetch operations.
+ * Provides types and functions for language tags, resource identifiers, HTTP error handling, and fetch operations.
+ *
+ * **Language Tags**
+ *
+ * Type guards:
+ *
+ * ```typescript
+ * import { isTag } from "@metreeca/core";
+ *
+ * const value = "en-US";
+ *
+ * if (isTag(value)) {
+ *   // value is typed as Tag (BCP47)
+ * }
+ * ```
+ *
+ * Creating language tags:
+ *
+ * ```typescript
+ * import { tag } from "@metreeca/core";
+ *
+ * const languageTag = tag("en-US");      // US English
+ * const simpleTag = tag("fr");           // French
+ * const complexTag = tag("zh-Hans-CN");  // Simplified Chinese (China)
+ * ```
  *
  * **Resource Identifiers**
  *
@@ -82,12 +106,11 @@
  *
  * **HTTP Error Handling**
  *
- * Problem Details:
+ * Structured error responses:
  *
  * ```typescript
  * import { Problem } from "@metreeca/core";
  *
- * // Structured error responses
  * const problem: Problem = {
  *   status: 404,
  *   title: "Not Found",
@@ -99,7 +122,7 @@
  *
  * **Fetch Utilities**
  *
- * Automatic response validation:
+ * Wrapping fetch functions:
  *
  * ```typescript
  * import { fetcher } from "@metreeca/core";
@@ -117,6 +140,7 @@
  *
  * @module
  *
+ * @see {@link https://www.rfc-editor.org/rfc/rfc5646.html | RFC 5646 - Tags for Identifying Languages}
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986.html | RFC 3986 - Uniform Resource Identifiers (URIs)}
  * @see {@link https://www.rfc-editor.org/rfc/rfc3987.html | RFC 3987 - Internationalized Resource Identifiers (IRIs)}
  * @see {@link https://datatracker.ietf.org/doc/html/rfc7807 | RFC 7807 - Problem Details for HTTP APIs}
@@ -126,6 +150,31 @@ import { isString, JSONValue } from "../index.js";
 import { immutable } from "./nested.js";
 import { error } from "./report.js";
 
+
+/**
+ * Matches BCP47 language tag pattern per RFC 5646 § 2.1
+ *
+ * Language-Tag = langtag / privateuse / grandfathered
+ * langtag = language ["-" script] ["-" region] *("-" variant) *("-" extension) ["-" privateuse]
+ *
+ * @remarks
+ *
+ * Grandfathered tags are omitted from this regex for simplicity.
+ */
+const BCP47Pattern = (() => {
+
+	const language = "(?:[a-z]{2,3}(?:-[a-z]{3}){0,3}|[a-z]{4}|[a-z]{5,8})"; // 2-3 + extlang / 4 / 5-8 letters
+	const script = "(?:-[a-z]{4})?"; // optional 4-letter script
+	const region = "(?:-(?:[a-z]{2}|[0-9]{3}))?"; // optional 2-letter or 3-digit region
+	const variant = "(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*"; // zero or more variants
+	const extension = "(?:-[0-9a-wy-z](?:-[a-z0-9]{2,8})+)*"; // zero or more extensions
+	const privateUse = "(?:-x(?:-[a-z0-9]{1,8})+)?"; // optional private use
+	const privateOnly = "x(?:-[a-z0-9]{1,8})+"; // standalone private use tag
+	const langtag = `${language}${script}${region}${variant}${extension}${privateUse}`;
+
+	return new RegExp(`^(?:${langtag}|${privateOnly})$`, "i");
+
+})();
 
 /**
  * Matches scheme: ALPHA *( ALPHA / DIGIT / "+" / "-" / "." ) ":"
@@ -147,6 +196,41 @@ const ASCIIPattern = /^[\x00-\x7F]*$/;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * Language tag as defined by BCP47/RFC 5646.
+ *
+ * A language tag identifies a natural language (e.g., "en" for English, "fr-CA" for Canadian French)
+ * and consists of subtags for language, script, region, variant, and extension components.
+ *
+ * **Grammar**
+ *
+ * Matches BCP47 language tag pattern per RFC 5646 § 2.1:
+ *
+ * ```
+ * Language-Tag = langtag / privateuse / grandfathered
+ * langtag = language ["-" script] ["-" region] *("-" variant) *("-" extension) ["-" privateuse]
+ * ```
+ *
+ * Grandfathered tags are omitted from validation for simplicity.
+ *
+ * @remarks
+ *
+ * This opaque type ensures that only validated BCP47 language tags can be used where a language tag is expected,
+ * preventing raw strings from being passed directly without validation.
+ *
+ * The brand is a compile-time construct with no runtime overhead.
+ *
+ * Use {@link tag} to construct validated language tags or {@link isTag} as a type guard.
+ *
+ * @see {@link https://www.rfc-editor.org/rfc/rfc5646.html | RFC 5646 - Tags for Identifying Languages}
+ * @see {@link https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes | ISO 639-2 Language Codes}
+ */
+export type Tag = string & {
+
+	readonly __brand: unique symbol
+
+}
+
+/**
  * Uniform Resource Identifier (URI) as defined by RFC 3986.
  *
  * A URI is a sequence of characters that identifies an abstract or physical resource using
@@ -160,8 +244,6 @@ const ASCIIPattern = /^[\x00-\x7F]*$/;
  * The brand is a compile-time construct with no runtime overhead.
  *
  * Use {@link uri} to construct validated URIs or {@link isURI} as a type guard.
- *
- * @group Type Aliases
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986.html | RFC 3986 - URI Generic Syntax}
  */
@@ -186,8 +268,6 @@ export type URI = string & {
  *
  * Use {@link iri} to construct validated IRIs or {@link isIRI} as a type guard.
  *
- * @group Type Aliases
- *
  * @see {@link https://www.rfc-editor.org/rfc/rfc3987.html#section-2.2 | RFC 3987 § 2.2 - IRI Syntax}
  */
 export type IRI = string & {
@@ -201,8 +281,6 @@ export type IRI = string & {
  * Identifier variant.
  *
  * Specify a {@link URI} or {@link IRI} variant.
- *
- * @group Type Aliases
  */
 export type Variant = {
 
@@ -223,8 +301,6 @@ export type Variant = {
  *
  * The function signature accepts a name parameter and returns the constructed {@link IRI}.
  *
- * @group Type Aliases
- *
  * @see {@link namespace} for creating namespace factories with typed term properties
  */
 export type Namespace = ((name: string) => IRI)
@@ -235,8 +311,6 @@ export type Namespace = ((name: string) => IRI)
  * Creates an object type with IRI-valued properties for each term in the array.
  *
  * @typeParam T The readonly array type of term names
- *
- * @group Type Aliases
  */
 export type Terms<T extends readonly string[]> = {
 
@@ -251,8 +325,6 @@ export type Terms<T extends readonly string[]> = {
  * Standardized format for machine-readable error information in HTTP responses, as defined by RFC 7807.
  * All fields are optional, allowing flexibility in error reporting. Use {@link detail} for human-readable
  * occurrence-specific information, and {@link report} for machine-readable data.
- *
- * @group Interfaces
  *
  * @see https://datatracker.ietf.org/doc/html/rfc7807 RFC 7807: Problem Details for HTTP APIs
  */
@@ -298,6 +370,45 @@ export interface Problem {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * Checks if a value is a valid language tag.
+ *
+ * Validates language tags according to BCP47/RFC 5646.
+ *
+ * @param value Value to validate as a language tag
+ *
+ * @returns `true` if the value is a non-empty string matching the BCP47 pattern
+ *
+ * @see {@link Tag}
+ */
+export function isTag(value: unknown): value is Tag {
+	return isString(value) && value.length > 0 && BCP47Pattern.test(value);
+}
+
+/**
+ * Creates a validated language tag from a string.
+ *
+ * Validates language tags according to BCP47/RFC 5646.
+ *
+ * @param value String to convert to a language tag
+ *
+ * @returns The validated language tag
+ *
+ * @throws RangeError If the value is not a valid BCP47 language tag
+ *
+ * @see {@link isTag} for validation rules
+ * @see {@link Tag}
+ */
+export function tag(value: string): Tag {
+
+	if ( !isTag(value) ) {
+		throw new RangeError(`invalid language tag <${value}>`);
+	}
+
+	return value;
+}
+
+
+/**
  * Checks if a value is a valid URI.
  *
  * Validates URIs according to RFC 3986, restricting identifiers to ASCII characters only.
@@ -308,13 +419,37 @@ export interface Problem {
  *
  * @returns `true` if the value is a valid ASCII-only URI
  *
- * @group Runtime Guards
- *
  * @see {@link URI}
  */
 export function isURI(value: unknown, opts: Variant = {}): value is URI {
 	return isIRI(value, opts) && ASCIIPattern.test(value as string);
 }
+
+/**
+ * Creates a validated URI from a string.
+ *
+ * Validates URIs according to RFC 3986, restricting identifiers to ASCII characters only.
+ *
+ * @param value String to convert to a URI
+ * @param opts Variant options
+ * @param opts.relative If `true`, validate as relative URI reference; otherwise require absolute URI (default: `false`)
+ *
+ * @returns The validated URI
+ *
+ * @throws RangeError If the value is not a valid ASCII-only URI
+ *
+ * @see {@link isURI} for validation rules
+ * @see {@link URI}
+ */
+export function uri(value: string, opts: Variant = {}): URI {
+
+	if ( !isURI(value, opts) ) {
+		throw new RangeError(`invalid ${opts.relative ? "relative" : "absolute"} URI <${value}>`);
+	}
+
+	return value;
+}
+
 
 /**
  * Checks if a value is a valid IRI.
@@ -344,8 +479,6 @@ export function isURI(value: unknown, opts: Variant = {}): value is URI {
  * The validation is stricter than simple character exclusion but does not enforce complete RFC 3987
  * grammar (e.g., authority, path structure). This provides a balance between correctness and simplicity.
  *
- * @group Runtime Guards
- *
  * @see {@link IRI}
  */
 export function isIRI(value: unknown, opts: Variant = {}): value is IRI {
@@ -367,34 +500,6 @@ export function isIRI(value: unknown, opts: Variant = {}): value is IRI {
 
 }
 
-
-/**
- * Creates a validated URI from a string.
- *
- * Validates URIs according to RFC 3986, restricting identifiers to ASCII characters only.
- *
- * @param value String to convert to a URI
- * @param opts Variant options
- * @param opts.relative If `true`, validate as relative URI reference; otherwise require absolute URI (default: `false`)
- *
- * @returns The validated URI
- *
- * @throws RangeError If the value is not a valid ASCII-only URI
- *
- * @group Value Casts
- *
- * @see {@link isURI} for validation rules
- * @see {@link URI}
- */
-export function uri(value: string, opts: Variant = {}): URI {
-
-	if ( !isURI(value, opts) ) {
-		throw new RangeError(`invalid ${opts.relative ? "relative" : "absolute"} URI <${value}>`);
-	}
-
-	return value;
-}
-
 /**
  * Creates a validated IRI from a string.
  *
@@ -405,8 +510,6 @@ export function uri(value: string, opts: Variant = {}): URI {
  * @returns The validated IRI
  *
  * @throws RangeError If the value is not a valid IRI according to the validation rules
- *
- * @group Value Casts
  *
  * @see {@link isIRI} for validation rules
  */
@@ -446,8 +549,6 @@ export function iri(value: string, opts: Variant = {}): IRI {
  *
  * **Closed namespaces** (terms provided): Restrict access to predefined terms only, throwing errors
  * for undefined term names.
- *
- * @group Factories
  */
 export function namespace<const T extends readonly string[]>(base: IRI, terms?: T): Namespace & Terms<T> {
 
@@ -489,8 +590,6 @@ export function namespace<const T extends readonly string[]>(base: IRI, terms?: 
  *
  * @param base The fetch function to wrap
  * @returns Fetch function whose promises reject with {@link Problem} for all error conditions
- *
- * @group Factories
  */
 export function fetcher(base: typeof fetch): typeof fetch {
 	return (input: RequestInfo | URL, init?: RequestInit) => base(input, init)
