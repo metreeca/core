@@ -211,7 +211,7 @@
  * @module
  */
 
-import { immutable } from "../basic/nested.js";
+import { immutable } from "../common/nested.js";
 
 
 /**
