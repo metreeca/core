@@ -15,7 +15,7 @@
  */
 
 /**
- * Type guards and safe casts.
+ * Type guards.
  *
  * @groupDescription Runtime Guards
  *
@@ -57,20 +57,6 @@
  *
  * isObject({ a: 1 }); // true
  * isObject(new Date()); // false
- * ```
- *
- * @groupDescription JSON Casts
- *
- * Safe casts for JSON primitive values and data structures, returning `undefined` instead of throwing.
- *
- * ```typescript
- * import { asNumber, asString, asObject, asArray, asJSON } from '@metreeca/core';
- *
- * asJSON({ a: 1 }); // { a: 1 }
- * asJSON({ a: new Date() }); // undefined
- *
- * asNumber(42); // 42
- * asNumber('42'); // undefined
  * ```
  */
 
@@ -294,94 +280,4 @@ export function isObject<K extends PropertyKey = PropertyKey, V = unknown>(value
 		return Object.getPrototypeOf(value) === Object.prototype;
 
 	}
-}
-
-
-
-//// Value Casts ///////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * Retrieves a value as a JSON value if it is one, otherwise returns `undefined`.
- *
- * Uses {@link isJSON} to validate the value and all nested structures.
- *
- * @group JSON Casts
- *
- * @param value The value to check
- *
- * @returns The value if it is a valid JSON structure, `undefined` otherwise
- */
-export function asJSON(value: unknown): undefined | JSONValue {
-	return isJSON(value) ? value : undefined;
-}
-
-/**
- * Retrieves a value as a boolean if it is one, otherwise returns `undefined`.
- *
- * @group JSON Casts
- *
- * @param value The value to check
- *
- * @returns The value if it is a boolean, `undefined` otherwise
- */
-export function asBoolean(value: unknown): undefined | boolean {
-	return isBoolean(value) ? value : undefined;
-}
-
-/**
- * Retrieves a value as a number if it is one, otherwise returns `undefined`.
- *
- * @group JSON Casts
- *
- * @param value The value to check
- *
- * @returns The value if it is a finite number, `undefined` otherwise
- */
-export function asNumber(value: unknown): undefined | number {
-	return isNumber(value) ? value : undefined;
-}
-
-/**
- * Retrieves a value as a string if it is one, otherwise returns `undefined`.
- *
- * @group JSON Casts
- *
- * @param value The value to check
- *
- * @returns The value if it is a string, `undefined` otherwise
- */
-export function asString(value: unknown): undefined | string {
-	return isString(value) ? value : undefined;
-}
-
-/**
- * Retrieves a value as an array if it is one, otherwise returns `undefined`.
- *
- * @group JSON Casts
- *
- * @typeParam T The type of array elements
- *
- * @param value The value to check
- * @param is Optional type guard to validate array elements
- *
- * @returns The value if it is an array (with validated elements if `is` provided), `undefined` otherwise
- */
-export function asArray<T = unknown>(value: unknown, is?: (value: unknown) => value is T): undefined | T[] {
-	return isArray<T>(value, is) ? value : undefined;
-}
-
-/**
- * Retrieves a value as a plain object if it is one, otherwise returns `undefined`.
- *
- * @group JSON Casts
- *
- * @typeParam K The type of property keys
- * @typeParam V The type of property values
- *
- * @param value The value to check
- *
- * @returns The value if it is a plain object, `undefined` otherwise
- */
-export function asObject<K extends PropertyKey = PropertyKey, V = unknown>(value: unknown): undefined | Record<K, V> {
-	return isObject<K, V>(value) ? value : undefined;
 }
