@@ -575,18 +575,18 @@ export function namespace<const T extends readonly string[]>(base: IRI, terms?: 
  * Wraps a fetch function to provide consistent, sensible promise semantics where successful responses resolve
  * and all errors reject with structured {@link Problem} exceptions:
  *
- * - **Response is ok** (2xx status): Promise resolves with the response unchanged
- * - **Response is not ok** (non-2xx status): Response body is read according to `Content-Type`, converted to
+ * - **Response is `ok`** (2xx `status`): Promise resolves with the response unchanged
+ * - **Response is not `ok`** (non-2xx `status`): Response body is read according to `Content-Type`, converted to
  *   {@link Problem}, and promise rejects:
  *   - `text/plain`: Response body as text in `report` field
  *   - JSON-based MIME types (e.g., `application/json`, `application/ld+json`, `application/problem+json`):
  *     Parsed JSON payload in `report` field
- *   - Other content types: Status code and status text only
+ *   - Other content types: `status` code and `statusText` only
  * - **Fetch exception occurs** (network errors, timeouts, CORS failures): Exception is converted to {@link Problem}
- *   with status 0 and promise rejects
+ *   with `status` 0 and promise rejects
  *
- * If response body parsing fails, promise rejects with {@link Problem} containing the original response status
- * and statusText, and parsing error details in `report`.
+ * If response body parsing fails, promise rejects with {@link Problem} containing the original response `status`
+ * and `statusText`.
  *
  * @param base The fetch function to wrap
  * @returns Fetch function whose promises reject with {@link Problem} for all error conditions
@@ -619,7 +619,7 @@ export function fetcher(base: typeof fetch): typeof fetch {
 
 					return response.text()
 
-						.catch(error => {
+						.catch(_ => {
 
 							throw immutable<Problem>({
 
@@ -647,7 +647,7 @@ export function fetcher(base: typeof fetch): typeof fetch {
 
 					return response.json()
 
-						.catch(error => {
+						.catch(_ => {
 
 							throw immutable<Problem>({
 
