@@ -5,9 +5,14 @@ description: Development guidelines and conventions for the @metreeca/core packa
 
 > [!CAUTION]
 >
-> - **ONLY** modify code when explicitly requested or clearly required.
+> - **UNDER NO CIRCUMSTANCES** rearchitect or refactor unrelated code beyond the requested scope.
 > - **NEVER** make unsolicited changes or revert **unrelated** user edits.
-> - **ALWAYS** monitor IDE diagnostics when working on a file
+> - **ONLY** modify code when explicitly requested or clearly required.
+
+> [!IMPORTANT]
+>
+> - **ALL** relevant skills **MUST** be used when applicable without requiring continuous prompting.
+> - **SKILL** guidance **ALWAYS** supersedes internal general-purpose knowledge.
 
 # NPM Scripts
 
