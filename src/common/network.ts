@@ -146,7 +146,7 @@
  * @see {@link https://datatracker.ietf.org/doc/html/rfc7807 | RFC 7807 - Problem Details for HTTP APIs}
  */
 
-import { isString, JSONValue } from "../index.js";
+import { isString, JSON } from "../index.js";
 import { immutable } from "./nested.js";
 import { error } from "./report.js";
 
@@ -362,7 +362,7 @@ export interface Problem {
 	/**
 	 * Machine-readable error report (extension field).
 	 */
-	readonly report?: JSONValue;
+	readonly report?: JSON;
 
 }
 

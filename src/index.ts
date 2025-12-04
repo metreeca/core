@@ -66,15 +66,16 @@
  *
  * Represents deeply immutable JSON-compatible structures.
  *
- * @see https://datatracker.ietf.org/doc/html/rfc8259
+ * @see [RFC 8259 - The JavaScript Object Notation (JSON) Data Interchange Format]
+ * (https://datatracker.ietf.org/doc/html/rfc8259)
  */
-export type JSONValue =
+export type JSON =
 	| null
 	| boolean
 	| number
 	| string
-	| readonly JSONValue[]
-	| { readonly [name: string]: JSONValue }
+	| readonly JSON[]
+	| { readonly [name: string]: JSON }
 
 
 //// Runtime Guards ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -183,7 +184,7 @@ export function isAsyncIterable<T = unknown>(value: unknown): value is AsyncIter
 /**
  * Checks if a value is a valid JSON value.
  *
- * Recursively validates that the value and all nested structures conform to the {@link JSONValue} type,
+ * Recursively validates that the value and all nested structures conform to the {@link JSON} type,
  * which includes `null`, booleans, finite numbers, strings, arrays of JSON values, and plain objects
  * with string keys and JSON values.
  *
@@ -193,13 +194,27 @@ export function isAsyncIterable<T = unknown>(value: unknown): value is AsyncIter
  *
  * @returns `true` if the value is a valid JSON structure
  */
-export function isJSON(value: unknown): value is JSONValue {
+export function isJSON(value: unknown): value is JSON {
 	return value === null ? true
 		: isBoolean(value) || isNumber(value) || isString(value) ? true
 			: Array.isArray(value) ? value.every(isJSON)
 				: isObject(value) ? Object.values(value).every(isJSON)
 					: false;
 }
+
+/**
+ * Checks if a value is a scalar.
+ *
+ * @group JSON Guards
+ *
+ * @param value The value to check
+ *
+ * @returns `true` if the value is a boolean, number, or string
+ */
+export function isScalar(value: unknown): value is boolean | number | string {
+	return isBoolean(value) || isNumber(value) || isString(value);
+}
+
 
 /**
  * Checks if a value is a boolean.
