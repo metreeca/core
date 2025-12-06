@@ -66,8 +66,8 @@
  *
  * Represents deeply immutable JSON-compatible structures.
  *
- * @see [RFC 8259 - The JavaScript Object Notation (JSON) Data Interchange Format]
- * (https://datatracker.ietf.org/doc/html/rfc8259)
+ * @see [RFC 8259 - The JavaScript Object Notation (JSON) Data Interchange
+ *     Format](https://datatracker.ietf.org/doc/html/rfc8259)
  */
 export type JSON =
 	| null
@@ -76,6 +76,20 @@ export type JSON =
 	| string
 	| readonly JSON[]
 	| { readonly [name: string]: JSON }
+
+/**
+ * ECMAScript Identifier.
+ *
+ * A branded string matching ECMAScript IdentifierName syntax:
+ *
+ * ```js
+ * /^[$_\p{ID_Start}][$\u200C\u200D\p{ID_Continue}]*$/u
+ * ```
+ *
+ * @see [ECMAScript® 2024 - §12.7 Names and Keywords](https://262.ecma-international.org/15.0/#sec-names-and-keywords)
+ */
+export type Identifier =
+	string & { readonly __brand: unique symbol }
 
 
 //// Runtime Guards ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -105,6 +119,22 @@ export function isEmpty(value: unknown): value is Record<PropertyKey, never> | [
 		: isObject(value) ? Object.keys(value).length === 0
 			: false;
 }
+
+
+/**
+ * Checks if a value is a valid {@link Identifier}.
+ *
+ * @group Runtime Guards
+ *
+ * @param value The value to check
+ *
+ * @returns `true` if the value is a valid ECMAScript IdentifierName
+ */
+export function isIdentifier(value: unknown): value is Identifier {
+	return typeof value === "string" && value.length > 0
+		&& /^[$_\p{ID_Start}][$\u200C\u200D\p{ID_Continue}]*$/u.test(value);
+}
+
 
 /**
  * Checks if a value is a symbol.

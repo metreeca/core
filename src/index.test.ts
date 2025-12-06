@@ -24,6 +24,7 @@ import {
 	isEmpty,
 	isError,
 	isFunction,
+	isIdentifier,
 	isIterable,
 	isJSON,
 	isNumber,
@@ -186,6 +187,90 @@ describe("Runtime Guards", () => {
 			expect(isAsyncIterable([])).toBeFalsy();
 			expect(isAsyncIterable({})).toBeFalsy();
 			expect(isAsyncIterable(null)).toBeFalsy();
+		});
+
+	});
+
+	describe("isIdentifier()", () => {
+
+		it("should return true for simple ASCII identifiers", () => {
+			expect(isIdentifier("foo")).toBeTruthy();
+			expect(isIdentifier("bar123")).toBeTruthy();
+			expect(isIdentifier("camelCase")).toBeTruthy();
+			expect(isIdentifier("PascalCase")).toBeTruthy();
+			expect(isIdentifier("snake_case")).toBeTruthy();
+		});
+
+		it("should return true for identifiers starting with $ or _", () => {
+			expect(isIdentifier("$")).toBeTruthy();
+			expect(isIdentifier("_")).toBeTruthy();
+			expect(isIdentifier("$dollar")).toBeTruthy();
+			expect(isIdentifier("_private")).toBeTruthy();
+			expect(isIdentifier("__proto")).toBeTruthy();
+			expect(isIdentifier("$$")).toBeTruthy();
+		});
+
+		it("should return true for single character identifiers", () => {
+			expect(isIdentifier("a")).toBeTruthy();
+			expect(isIdentifier("Z")).toBeTruthy();
+			expect(isIdentifier("_")).toBeTruthy();
+			expect(isIdentifier("$")).toBeTruthy();
+		});
+
+		it("should return true for Unicode identifiers", () => {
+			expect(isIdentifier("café")).toBeTruthy();
+			expect(isIdentifier("日本語")).toBeTruthy();
+			expect(isIdentifier("переменная")).toBeTruthy();
+			expect(isIdentifier("αβγ")).toBeTruthy();
+			expect(isIdentifier("π")).toBeTruthy();
+		});
+
+		it("should return true for reserved words (valid IdentifierNames)", () => {
+			expect(isIdentifier("if")).toBeTruthy();
+			expect(isIdentifier("else")).toBeTruthy();
+			expect(isIdentifier("class")).toBeTruthy();
+			expect(isIdentifier("function")).toBeTruthy();
+			expect(isIdentifier("return")).toBeTruthy();
+		});
+
+		it("should return true for identifiers with ZWNJ/ZWJ in continuation", () => {
+			expect(isIdentifier("a\u200Cb")).toBeTruthy(); // ZWNJ
+			expect(isIdentifier("a\u200Db")).toBeTruthy(); // ZWJ
+		});
+
+		it("should return false for empty string", () => {
+			expect(isIdentifier("")).toBeFalsy();
+		});
+
+		it("should return false for identifiers starting with digits", () => {
+			expect(isIdentifier("0")).toBeFalsy();
+			expect(isIdentifier("123")).toBeFalsy();
+			expect(isIdentifier("1abc")).toBeFalsy();
+			expect(isIdentifier("9test")).toBeFalsy();
+		});
+
+		it("should return false for strings with invalid characters", () => {
+			expect(isIdentifier("foo bar")).toBeFalsy();
+			expect(isIdentifier("foo-bar")).toBeFalsy();
+			expect(isIdentifier("foo.bar")).toBeFalsy();
+			expect(isIdentifier("foo+bar")).toBeFalsy();
+			expect(isIdentifier("foo@bar")).toBeFalsy();
+		});
+
+		it("should return false for ZWNJ/ZWJ at start", () => {
+			expect(isIdentifier("\u200C")).toBeFalsy(); // ZWNJ alone
+			expect(isIdentifier("\u200D")).toBeFalsy(); // ZWJ alone
+			expect(isIdentifier("\u200Cabc")).toBeFalsy(); // ZWNJ at start
+			expect(isIdentifier("\u200Dabc")).toBeFalsy(); // ZWJ at start
+		});
+
+		it("should return false for non-strings", () => {
+			expect(isIdentifier(123)).toBeFalsy();
+			expect(isIdentifier(null)).toBeFalsy();
+			expect(isIdentifier(undefined)).toBeFalsy();
+			expect(isIdentifier({})).toBeFalsy();
+			expect(isIdentifier([])).toBeFalsy();
+			expect(isIdentifier(Symbol("foo"))).toBeFalsy();
 		});
 
 	});
