@@ -19,7 +19,7 @@
       "Skill(typescript-tester)",
       "Bash(npx vitest:*)",
       "Skill(typescript-developer)",
-      "WebFetch(domain:datatracker.ietf.org)"
+      "WebFetch(domain:datatracker.ietf.org)",
       "Skill(typescript-developer)",
       "Bash(npm run build:*)",
       "SlashCommand(/review:*)",

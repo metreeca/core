@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { iri, isIRI, isTag, isURI, namespace, tag, uri } from "./network.js";
+import { iri, isIRI, isRange, isTag, isURI, namespace, range, tag, uri } from "./network.js";
 
 
 const tags = {
@@ -47,6 +47,34 @@ const tags = {
 		{ value: "123", reason: "numeric only primary" },
 		{ value: "en-123456789", reason: "variant > 8 chars" },
 		{ value: "http://example.com", reason: "contains invalid chars" }
+	]
+};
+
+const ranges = {
+	valid: [
+		"*",
+		"en",
+		"en-US",
+		"en-*",
+		"*-CH",
+		"de-*-DE",
+		"zh-Hans-CN",
+		"*-*",
+		"*-*-*",
+		"a",
+		"abcdefgh",
+		"en-12345678"
+	],
+	invalid: [
+		{ value: "", reason: "empty string" },
+		{ value: "-", reason: "hyphen only" },
+		{ value: "-en", reason: "leading hyphen" },
+		{ value: "en-", reason: "trailing hyphen" },
+		{ value: "en--US", reason: "double hyphen" },
+		{ value: "toolongsub", reason: "subtag > 8 chars" },
+		{ value: "en-123456789", reason: "subtag > 8 chars" },
+		{ value: "en_US", reason: "underscore separator" },
+		{ value: "en US", reason: "space separator" }
 	]
 };
 
@@ -186,6 +214,54 @@ describe("tag()", () => {
 
 	it("should throw RangeError with descriptive message", () => {
 		expect(() => tag("invalid tag")).toThrow("invalid language tag <invalid tag>");
+	});
+
+});
+
+
+describe("isRange()", () => {
+
+	it("should return true for valid language ranges", () => {
+		ranges.valid.forEach(value => {
+			expect(isRange(value)).toBe(true);
+		});
+	});
+
+	it("should return false for invalid language ranges", () => {
+		ranges.invalid.forEach(({ value }) => {
+			expect(isRange(value)).toBe(false);
+		});
+	});
+
+	it("should return false for non-string values", () => {
+		expect(isRange(null)).toBe(false);
+		expect(isRange(undefined)).toBe(false);
+		expect(isRange(123)).toBe(false);
+		expect(isRange({})).toBe(false);
+		expect(isRange([])).toBe(false);
+	});
+
+});
+
+describe("range()", () => {
+
+	it("should create branded language ranges from valid strings", () => {
+		ranges.valid.forEach(value => {
+			expect(() => range(value)).not.toThrow();
+			const result = range(value);
+			expect(typeof result).toBe("string");
+			expect(result).toBe(value);
+		});
+	});
+
+	it("should throw RangeError for invalid language ranges", () => {
+		ranges.invalid.forEach(({ value }) => {
+			expect(() => range(value)).toThrow(RangeError);
+		});
+	});
+
+	it("should throw RangeError with descriptive message", () => {
+		expect(() => range("invalid range")).toThrow("invalid language range <invalid range>");
 	});
 
 });

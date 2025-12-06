@@ -83,7 +83,7 @@ export type JSON =
  * A branded string matching ECMAScript IdentifierName syntax:
  *
  * ```js
- * /^[$_\p{ID_Start}][$\u200C\u200D\p{ID_Continue}]*$/u
+ * /^[_$\p{ID_Start}][$\u200C\u200D\p{ID_Continue}]*$/u
  * ```
  *
  * @see [ECMAScript® 2024 - §12.7 Names and Keywords](https://262.ecma-international.org/15.0/#sec-names-and-keywords)
@@ -132,7 +132,7 @@ export function isEmpty(value: unknown): value is Record<PropertyKey, never> | [
  */
 export function isIdentifier(value: unknown): value is Identifier {
 	return typeof value === "string" && value.length > 0
-		&& /^[$_\p{ID_Start}][$\u200C\u200D\p{ID_Continue}]*$/u.test(value);
+		&& /^[_$\p{ID_Start}][$\u200C\u200D\p{ID_Continue}]*$/u.test(value);
 }
 
 
