@@ -32,7 +32,7 @@ npm install @metreeca/core
 | [@metreeca/core/meta](https://metreeca.github.io/core/modules/met.html)        | Metadata annotations                               |
 | **Functional Patterns**                                                        |                                                    |
 | [@metreeca/core/order](https://metreeca.github.io/core/modules/order.html)     | Composable comparison functions for sorting        |
-| [@metreeca/core/switch](https://metreeca.github.io/core/modules/switch.html)   | Type-safe pattern matcher for discriminated unions |
+| [@metreeca/core/switch](https://metreeca.github.io/core/modules/matcher.html)  | Type-safe pattern matcher for discriminated unions |
 | [@metreeca/core/state](https://metreeca.github.io/core/modules/state.html)     | Type-safe immutable state manager                  |
 
 # Support

@@ -21,7 +21,7 @@
  * that are either successful or failed, UI states that are loading, ready, or error, or any domain
  * model where alternatives are mutually exclusive.
  *
- * The {@link Switch} function lets you handle each case with a dedicated handler, while TypeScript
+ * The {@link matcher} function lets you handle each case with a dedicated handler, while TypeScript
  * ensures all cases are covered and values are accessed safely. Eliminates verbose conditional
  * logic and prevents bugs from unhandled cases.
  *
@@ -30,7 +30,7 @@
  * Define cases and match with function handlers:
  *
  * ```typescript
- * import { Switch } from '@metreeca/core/switch';
+ * import { matcher } from '@metreeca/core/switch';
  *
  * type FieldState = {
  *   unset: void;
@@ -38,11 +38,11 @@
  *   error: Error;
  * };
  *
- * const matcher = Switch<FieldState>({
+ * const m = matcher<FieldState>({
  *   value: "user@example.com"
  * });
  *
- * const message = matcher({
+ * const message = m({
  *   unset: () => "Enter email",
  *   value: (email) => `Email: ${email}`,
  *   error: (err) => `Error: ${err.message}`
@@ -54,7 +54,7 @@
  * Use constant values instead of functions when handlers don't need case data:
  *
  * ```typescript
- * const isValid = matcher({
+ * const isValid = m({
  *   unset: false,
  *   value: true,
  *   error: false
@@ -66,7 +66,7 @@
  * Handle specific cases and provide a fallback for others:
  *
  * ```typescript
- * const display = matcher({
+ * const display = m({
  *   value: (email) => email
  * }, (
  *   "‹blank›"
@@ -91,7 +91,7 @@ import { isDefined, isFunction } from "../index.js";
  *
  * @typeParam C The cases type defining all possible case variants
  */
-export interface Switch<C extends Cases> {
+export interface Matcher<C extends Cases> {
 
 	/**
 	 * Handles all cases with complete handlers.
@@ -191,9 +191,9 @@ export type Handler<V = unknown, R = unknown> =
  *
  * @param variant A case variant
  *
- * @returns A {@link Switch} function that accepts handlers for each case and an optional fallback
+ * @returns A {@link Matcher} function that accepts handlers for each case and an optional fallback
  */
-export function Switch<C extends Cases>(variant: Case<C>): Switch<C> {
+export function matcher<C extends Cases>(variant: Case<C>): Matcher<C> {
 
 	const [label, value] = Object.entries(variant)[0] ?? []; // find the active case
 

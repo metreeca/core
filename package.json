@@ -32,7 +32,7 @@
     "./meta": "./dist/common/meta.js",
     "./async": "./dist/async/index.js",
     "./order": "./dist/functional/order.js",
-    "./switch": "./dist/functional/switch.js",
+    "./matcher": "./dist/functional/matcher.js",
     "./state": "./dist/functional/state.js"
   },
   "files": [

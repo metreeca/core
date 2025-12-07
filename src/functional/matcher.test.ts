@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { Case, Switch } from "./switch.js";
+import { Case, matcher } from "./matcher.js";
 
 
 /**
@@ -26,7 +26,7 @@ import { Case, Switch } from "./switch.js";
  * that the type system prevents invalid usage. Runtime assertions are secondary
  * and only ensure the test file remains valid JavaScript.
  */
-describe("Switch", () => {
+describe("Matcher", () => {
 
 	type TestCases = {
 		boolean: boolean
@@ -88,7 +88,7 @@ describe("Switch", () => {
 
 			// ✅ valid: fallback as handler
 
-			const singleProp = Switch<TestCases>({ string: "test" })({
+			const singleProp = matcher<TestCases>({ string: "test" })({
 				string: "ok"
 			}, "default");
 
@@ -105,7 +105,7 @@ describe("Switch", () => {
 
 			// @ts-expect-error - handler should accept string, not number
 
-			const result = Switch<TestCases>({ string: "test" })({
+			const result = matcher<TestCases>({ string: "test" })({
 				string: (v: number) => v*2,
 				boolean: (b) => b ? "true" : "false",
 				number: (n) => n.toString()
@@ -120,7 +120,7 @@ describe("Switch", () => {
 			// this test verifies that all handlers should return the same type
 			// when implemented, TypeScript should enforce consistent return types
 
-			const result = Switch<TestCases>({ string: "test" })({
+			const result = matcher<TestCases>({ string: "test" })({
 				boolean: 42,
 				number: 10,
 				// @ts-expect-error - Type 'string' is not assignable to type 'Handler<string, number>'
@@ -135,7 +135,7 @@ describe("Switch", () => {
 
 		it("should infer handler parameter types correctly", async () => {
 
-			const result = Switch<TestCases>({ string: "test" })({
+			const result = matcher<TestCases>({ string: "test" })({
 				boolean: (b) => b ? 1 : 0, // b is inferred as boolean
 				number: (n) => n*2, // n is inferred as number
 				string: (v) => v.length // v is inferred as string
@@ -151,7 +151,7 @@ describe("Switch", () => {
 
 			// missing 'number' handler, so result is string | undefined
 
-			const result: string | undefined = Switch<TestCases>({ string: "test" })({
+			const result: string | undefined = matcher<TestCases>({ string: "test" })({
 				string: "ok",
 				boolean: "error"
 			});
@@ -162,7 +162,7 @@ describe("Switch", () => {
 
 		it("type check: should reject extra handler keys", async () => {
 
-			const result = Switch<TestCases>({ string: "test" })({
+			const result = matcher<TestCases>({ string: "test" })({
 				string: "ok",
 				boolean: "error",
 				number: "other",
@@ -180,7 +180,7 @@ describe("Switch", () => {
 
 		it("should support fallback handler", async () => {
 
-			const result: string = Switch<TestCases>({ string: "test" })({
+			const result: string = matcher<TestCases>({ string: "test" })({
 				string: "matched string",
 				boolean: "matched boolean",
 				number: "matched number"
@@ -192,7 +192,7 @@ describe("Switch", () => {
 
 		it("should pass union of all case types to fallback handler", async () => {
 
-			const result: string = Switch<TestCases>({ number: 42 })({
+			const result: string = matcher<TestCases>({ number: 42 })({
 				string: (v) => `string: ${v}`,
 				number: (n) => `number: ${n}`,
 				boolean: (b) => `boolean: ${b}`
@@ -213,7 +213,7 @@ describe("Switch", () => {
 
 		it("should support constant fallback value", async () => {
 
-			const result: number = Switch<TestCases>({ boolean: true })({
+			const result: number = matcher<TestCases>({ boolean: true })({
 				boolean: 1,
 				string: 2,
 				number: 3
@@ -225,7 +225,7 @@ describe("Switch", () => {
 
 		it("should return R (not R | undefined) with fallback", async () => {
 
-			const result: string = Switch<TestCases>({ string: "test" })({
+			const result: string = matcher<TestCases>({ string: "test" })({
 				boolean: "matched boolean"
 				// 'string' and 'number' handlers missing, but fallback guarantees a result
 			}, "default case");
@@ -237,7 +237,7 @@ describe("Switch", () => {
 
 		it("type check: should reject wrong type for fallback handler", async () => {
 
-			const result = Switch<TestCases>({ string: "test" })({
+			const result = matcher<TestCases>({ string: "test" })({
 					string: (v) => v.length,
 					number: (n) => n*2,
 					boolean: (b) => b ? 1 : 0
@@ -258,7 +258,7 @@ describe("Switch", () => {
 
 			// ✅ valid: Fallback parameter specified
 
-			const a = Switch<{ value: string; error: Error }>({ value: "done" })({
+			const a = matcher<{ value: string; error: Error }>({ value: "done" })({
 				value: (v) => `value: ${v}`
 			}, () => "unhandled");
 
@@ -270,7 +270,7 @@ describe("Switch", () => {
 
 });
 
-describe("Switch()", () => {
+describe("matcher()", () => {
 
 	/**
 	 * Test type used throughout the runtime behavior tests.
@@ -287,7 +287,7 @@ describe("Switch()", () => {
 
 		it("should handle all cases with function handlers", async () => {
 
-			const result = Switch<TestCases>({ value: "success" })({
+			const result = matcher<TestCases>({ value: "success" })({
 				value: (v) => `Value: ${v}`,
 				error: (e) => `Error: ${e.message}`,
 				loading: (l) => `Loading: ${l}`
@@ -299,7 +299,7 @@ describe("Switch()", () => {
 
 		it("should handle all cases with constant handlers", async () => {
 
-			const result = Switch<TestCases>({ error: new Error("failed") })({
+			const result = matcher<TestCases>({ error: new Error("failed") })({
 				value: 1,
 				error: 2,
 				loading: 3
@@ -311,7 +311,7 @@ describe("Switch()", () => {
 
 		it("should handle mixed function and constant handlers", async () => {
 
-			const result = Switch<TestCases>({ loading: true })({
+			const result = matcher<TestCases>({ loading: true })({
 				value: (v) => v.length,
 				error: 0,
 				loading: (l) => l ? 100 : 0
@@ -324,7 +324,7 @@ describe("Switch()", () => {
 		it("should correctly pass the active case value to handler", async () => {
 
 			const testError = new Error("test error");
-			const result = Switch<TestCases>({ error: testError })({
+			const result = matcher<TestCases>({ error: testError })({
 				value: (v) => `value: ${v}`,
 				error: (e) => e.message,
 				loading: (l) => `loading: ${l}`
@@ -340,7 +340,7 @@ describe("Switch()", () => {
 
 		it("should return handler result when case matches", async () => {
 
-			const result = Switch<TestCases>({ value: "done" })({
+			const result = matcher<TestCases>({ value: "done" })({
 				value: "matched",
 				error: "error matched"
 			});
@@ -351,7 +351,7 @@ describe("Switch()", () => {
 
 		it("should return undefined when case does not match any handler", async () => {
 
-			const result = Switch<TestCases>({ loading: true })({
+			const result = matcher<TestCases>({ loading: true })({
 				value: "value matched",
 				error: "error matched"
 			});
@@ -362,7 +362,7 @@ describe("Switch()", () => {
 
 		it("should return undefined with empty handlers object", async () => {
 
-			const result = Switch<TestCases>({ value: "test" })({});
+			const result = matcher<TestCases>({ value: "test" })({});
 
 			expect(result).toBeUndefined();
 
@@ -370,7 +370,7 @@ describe("Switch()", () => {
 
 		it("should handle function handlers in partial mode", async () => {
 
-			const result = Switch<TestCases>({ error: new Error("oops") })({
+			const result = matcher<TestCases>({ error: new Error("oops") })({
 				error: (e) => `Error occurred: ${e.message}`
 			});
 
@@ -384,7 +384,7 @@ describe("Switch()", () => {
 
 		it("should use specific handler when case matches", async () => {
 
-			const result = Switch<TestCases>({ value: "hello" })({
+			const result = matcher<TestCases>({ value: "hello" })({
 				value: "specific handler"
 			}, "fallback handler");
 
@@ -394,7 +394,7 @@ describe("Switch()", () => {
 
 		it("should use fallback when case does not match any specific handler", async () => {
 
-			const result = Switch<TestCases>({ loading: false })({
+			const result = matcher<TestCases>({ loading: false })({
 				value: "value handler"
 			}, "fallback handler");
 
@@ -404,7 +404,7 @@ describe("Switch()", () => {
 
 		it("should pass value to fallback function handler", async () => {
 
-			const result = Switch<TestCases>({ error: new Error("fail") })({
+			const result = matcher<TestCases>({ error: new Error("fail") })({
 				value: (v) => `value: ${v}`
 			}, (v) => {
 				if ( v instanceof Error ) {
@@ -419,7 +419,7 @@ describe("Switch()", () => {
 
 		it("should use constant fallback handler", async () => {
 
-			const result = Switch<TestCases>({ loading: true })({}, 999);
+			const result = matcher<TestCases>({ loading: true })({}, 999);
 
 			expect(result).toBe(999);
 
@@ -427,7 +427,7 @@ describe("Switch()", () => {
 
 		it("should prefer specific handler over fallback", async () => {
 
-			const result = Switch<TestCases>({ value: "test" })({
+			const result = matcher<TestCases>({ value: "test" })({
 				value: "specific",
 				error: "error",
 				loading: "loading"
@@ -451,7 +451,7 @@ describe("Switch()", () => {
 
 		it("should handle string values", async () => {
 
-			const result = Switch<MixedCases>({ string: "hello" })({
+			const result = matcher<MixedCases>({ string: "hello" })({
 				string: (v) => v.toUpperCase(),
 				number: (n) => n.toString(),
 				boolean: (b) => b.toString(),
@@ -465,7 +465,7 @@ describe("Switch()", () => {
 
 		it("should handle number values", async () => {
 
-			const result = Switch<MixedCases>({ number: 42 })({
+			const result = matcher<MixedCases>({ number: 42 })({
 				string: (v) => v.length,
 				number: (n) => n*2,
 				boolean: (b) => b ? 1 : 0,
@@ -479,7 +479,7 @@ describe("Switch()", () => {
 
 		it("should handle boolean values", async () => {
 
-			const result = Switch<MixedCases>({ boolean: true })({
+			const result = matcher<MixedCases>({ boolean: true })({
 				string: "string",
 				number: "number",
 				boolean: (b) => b ? "yes" : "no",
@@ -494,7 +494,7 @@ describe("Switch()", () => {
 		it("should handle object values", async () => {
 
 			const obj = { id: 123, name: "test" };
-			const result = Switch<MixedCases>({ object: obj })({
+			const result = matcher<MixedCases>({ object: obj })({
 				string: (v) => `string: ${v}`,
 				number: (n) => `number: ${n}`,
 				boolean: (b) => `boolean: ${b}`,
@@ -509,7 +509,7 @@ describe("Switch()", () => {
 		it("should handle array values", async () => {
 
 			const arr = ["a", "b", "c"];
-			const result = Switch<MixedCases>({ array: arr })({
+			const result = matcher<MixedCases>({ array: arr })({
 				string: (v) => [v],
 				number: (n) => [n.toString()],
 				boolean: (b) => [b.toString()],
@@ -533,19 +533,19 @@ describe("Switch()", () => {
 
 		it("should handle async operation states", async () => {
 
-			const pending = Switch<AsyncResult<string>>({ pending: undefined })({
+			const pending = matcher<AsyncResult<string>>({ pending: undefined })({
 				pending: "Loading...",
 				success: (data) => `Success: ${data}`,
 				failure: (err) => `Error: ${err.message}`
 			});
 
-			const success = Switch<AsyncResult<string>>({ success: "data loaded" })({
+			const success = matcher<AsyncResult<string>>({ success: "data loaded" })({
 				pending: "Loading...",
 				success: (data) => `Success: ${data}`,
 				failure: (err) => `Error: ${err.message}`
 			});
 
-			const failure = Switch<AsyncResult<string>>({ failure: new Error("network error") })({
+			const failure = matcher<AsyncResult<string>>({ failure: new Error("network error") })({
 				pending: "Loading...",
 				success: (data) => `Success: ${data}`,
 				failure: (err) => `Error: ${err.message}`
@@ -565,13 +565,13 @@ describe("Switch()", () => {
 
 		it("should handle HTTP response status patterns", async () => {
 
-			const ok = Switch<HttpStatus>({ ok: { data: "response" } })({
+			const ok = matcher<HttpStatus>({ ok: { data: "response" } })({
 				ok: (res) => res.data,
 				notFound: (err) => `Not found: ${err.path}`,
 				serverError: (err) => `Server error: ${err.code}`
 			});
 
-			const notFound = Switch<HttpStatus>({ notFound: { path: "/api/users" } })({
+			const notFound = matcher<HttpStatus>({ notFound: { path: "/api/users" } })({
 				ok: (res) => res.data,
 				notFound: (err) => `Not found: ${err.path}`,
 				serverError: (err) => `Server error: ${err.code}`
@@ -591,7 +591,7 @@ describe("Switch()", () => {
 
 		it("should handle form state transitions with fallback", async () => {
 
-			const result = Switch<FormState>({ editing: { value: "text" } })({
+			const result = matcher<FormState>({ editing: { value: "text" } })({
 				submitted: (s) => `Submitted with id: ${s.id}`
 			}, "Form is not submitted");
 
@@ -610,7 +610,7 @@ describe("Switch()", () => {
 
 		it("should handle undefined as a valid case value", async () => {
 
-			const result = Switch<OptionCases>({ none: undefined })({
+			const result = matcher<OptionCases>({ none: undefined })({
 				some: (v) => `Value: ${v}`,
 				none: "No value"
 			});
@@ -621,7 +621,7 @@ describe("Switch()", () => {
 
 		it("should distinguish undefined from missing property", async () => {
 
-			const result = Switch<OptionCases>({ none: undefined })({
+			const result = matcher<OptionCases>({ none: undefined })({
 				none: (v) => `none: ${v}`,
 				some: (v) => `some: ${v}`
 			});
@@ -643,7 +643,7 @@ describe("Switch()", () => {
 
 		it("should handle zero as a value", async () => {
 
-			const result = Switch<EdgeCases>({ zero: 0 })({
+			const result = matcher<EdgeCases>({ zero: 0 })({
 				zero: (n) => `zero: ${n}`,
 				emptyString: "empty",
 				falseBool: "false",
@@ -656,7 +656,7 @@ describe("Switch()", () => {
 
 		it("should handle empty string as a value", async () => {
 
-			const result = Switch<EdgeCases>({ emptyString: "" })({
+			const result = matcher<EdgeCases>({ emptyString: "" })({
 				zero: "zero",
 				emptyString: (s) => `empty: ${s}`,
 				falseBool: "false",
@@ -669,7 +669,7 @@ describe("Switch()", () => {
 
 		it("should handle false as a value", async () => {
 
-			const result = Switch<EdgeCases>({ falseBool: false })({
+			const result = matcher<EdgeCases>({ falseBool: false })({
 				zero: "zero",
 				emptyString: "empty",
 				falseBool: (b) => `false: ${b}`,
@@ -682,7 +682,7 @@ describe("Switch()", () => {
 
 		it("should handle null as a value", async () => {
 
-			const result = Switch<EdgeCases>({ nullValue: null })({
+			const result = matcher<EdgeCases>({ nullValue: null })({
 				zero: "zero",
 				emptyString: "empty",
 				falseBool: "false",
