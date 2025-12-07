@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { Case, matcher } from "./matcher.js";
+import { Option, relay } from "./relay.js";
 
 
 /**
@@ -26,9 +26,9 @@ import { Case, matcher } from "./matcher.js";
  * that the type system prevents invalid usage. Runtime assertions are secondary
  * and only ensure the test file remains valid JavaScript.
  */
-describe("Matcher", () => {
+describe("Relay", () => {
 
-	type TestCases = {
+	type TestOptions = {
 		boolean: boolean
 		string: string
 		number: number
@@ -40,9 +40,9 @@ describe("Matcher", () => {
 
 			// these assignments verify Condition<C> accepts single properties
 
-			const singleString: Case<TestCases> = { string: "test" };
-			const singleBoolean: Case<TestCases> = { boolean: true };
-			const singleNumber: Case<TestCases> = { number: 42 };
+			const singleString: Option<TestOptions> = { string: "test" };
+			const singleBoolean: Option<TestOptions> = { boolean: true };
+			const singleNumber: Option<TestOptions> = { number: 42 };
 
 			// runtime verification
 
@@ -59,7 +59,7 @@ describe("Matcher", () => {
 			// the runtime assertion just ensures the test file remains valid
 
 			// @ts-expect-error - cannot have two properties
-			const multipleProps: Case<TestCases> = { string: "test", boolean: true };
+			const multipleProps: Option<TestOptions> = { string: "test", boolean: true };
 
 			// runtime check is secondary
 
@@ -72,7 +72,7 @@ describe("Matcher", () => {
 			// ⚠️ this test verifies COMPILE-TIME behavior only
 
 			// @ts-expect-error - must have exactly one property
-			const emptyObj: Case<TestCases> = {};
+			const emptyObj: Option<TestOptions> = {};
 
 			// runtime check is secondary
 
@@ -88,7 +88,7 @@ describe("Matcher", () => {
 
 			// ✅ valid: fallback as handler
 
-			const singleProp = matcher<TestCases>({ string: "test" })({
+			const singleProp = relay<TestOptions>({ string: "test" })({
 				string: "ok"
 			}, "default");
 
@@ -105,7 +105,7 @@ describe("Matcher", () => {
 
 			// @ts-expect-error - handler should accept string, not number
 
-			const result = matcher<TestCases>({ string: "test" })({
+			const result = relay<TestOptions>({ string: "test" })({
 				string: (v: number) => v*2,
 				boolean: (b) => b ? "true" : "false",
 				number: (n) => n.toString()
@@ -120,7 +120,7 @@ describe("Matcher", () => {
 			// this test verifies that all handlers should return the same type
 			// when implemented, TypeScript should enforce consistent return types
 
-			const result = matcher<TestCases>({ string: "test" })({
+			const result = relay<TestOptions>({ string: "test" })({
 				boolean: 42,
 				number: 10,
 				// @ts-expect-error - Type 'string' is not assignable to type 'Handler<string, number>'
@@ -135,7 +135,7 @@ describe("Matcher", () => {
 
 		it("should infer handler parameter types correctly", async () => {
 
-			const result = matcher<TestCases>({ string: "test" })({
+			const result = relay<TestOptions>({ string: "test" })({
 				boolean: (b) => b ? 1 : 0, // b is inferred as boolean
 				number: (n) => n*2, // n is inferred as number
 				string: (v) => v.length // v is inferred as string
@@ -151,7 +151,7 @@ describe("Matcher", () => {
 
 			// missing 'number' handler, so result is string | undefined
 
-			const result: string | undefined = matcher<TestCases>({ string: "test" })({
+			const result: string | undefined = relay<TestOptions>({ string: "test" })({
 				string: "ok",
 				boolean: "error"
 			});
@@ -162,7 +162,7 @@ describe("Matcher", () => {
 
 		it("type check: should reject extra handler keys", async () => {
 
-			const result = matcher<TestCases>({ string: "test" })({
+			const result = relay<TestOptions>({ string: "test" })({
 				string: "ok",
 				boolean: "error",
 				number: "other",
@@ -180,7 +180,7 @@ describe("Matcher", () => {
 
 		it("should support fallback handler", async () => {
 
-			const result: string = matcher<TestCases>({ string: "test" })({
+			const result: string = relay<TestOptions>({ string: "test" })({
 				string: "matched string",
 				boolean: "matched boolean",
 				number: "matched number"
@@ -190,9 +190,9 @@ describe("Matcher", () => {
 
 		});
 
-		it("should pass union of all case types to fallback handler", async () => {
+		it("should pass union of all option types to fallback handler", async () => {
 
-			const result: string = matcher<TestCases>({ number: 42 })({
+			const result: string = relay<TestOptions>({ number: 42 })({
 				string: (v) => `string: ${v}`,
 				number: (n) => `number: ${n}`,
 				boolean: (b) => `boolean: ${b}`
@@ -213,7 +213,7 @@ describe("Matcher", () => {
 
 		it("should support constant fallback value", async () => {
 
-			const result: number = matcher<TestCases>({ boolean: true })({
+			const result: number = relay<TestOptions>({ boolean: true })({
 				boolean: 1,
 				string: 2,
 				number: 3
@@ -225,19 +225,19 @@ describe("Matcher", () => {
 
 		it("should return R (not R | undefined) with fallback", async () => {
 
-			const result: string = matcher<TestCases>({ string: "test" })({
+			const result: string = relay<TestOptions>({ string: "test" })({
 				boolean: "matched boolean"
 				// 'string' and 'number' handlers missing, but fallback guarantees a result
-			}, "default case");
+			}, "default option");
 
-			expect(result).toBe("default case");
+			expect(result).toBe("default option");
 
 		});
 
 
 		it("type check: should reject wrong type for fallback handler", async () => {
 
-			const result = matcher<TestCases>({ string: "test" })({
+			const result = relay<TestOptions>({ string: "test" })({
 					string: (v) => v.length,
 					number: (n) => n*2,
 					boolean: (b) => b ? 1 : 0
@@ -258,7 +258,7 @@ describe("Matcher", () => {
 
 			// ✅ valid: Fallback parameter specified
 
-			const a = matcher<{ value: string; error: Error }>({ value: "done" })({
+			const a = relay<{ value: string; error: Error }>({ value: "done" })({
 				value: (v) => `value: ${v}`
 			}, () => "unhandled");
 
@@ -270,13 +270,13 @@ describe("Matcher", () => {
 
 });
 
-describe("matcher()", () => {
+describe("relay()", () => {
 
 	/**
 	 * Test type used throughout the runtime behavior tests.
-	 * Represents a common pattern of operation states: value, error, or loading.
+	 * Represents a common set of operation states: value, error, or loading.
 	 */
-	type TestCases = {
+	type TestOptions = {
 		value: string
 		error: Error
 		loading: boolean
@@ -285,9 +285,9 @@ describe("matcher()", () => {
 
 	describe("complete handlers", () => {
 
-		it("should handle all cases with function handlers", async () => {
+		it("should handle all options with function handlers", async () => {
 
-			const result = matcher<TestCases>({ value: "success" })({
+			const result = relay<TestOptions>({ value: "success" })({
 				value: (v) => `Value: ${v}`,
 				error: (e) => `Error: ${e.message}`,
 				loading: (l) => `Loading: ${l}`
@@ -297,9 +297,9 @@ describe("matcher()", () => {
 
 		});
 
-		it("should handle all cases with constant handlers", async () => {
+		it("should handle all options with constant handlers", async () => {
 
-			const result = matcher<TestCases>({ error: new Error("failed") })({
+			const result = relay<TestOptions>({ error: new Error("failed") })({
 				value: 1,
 				error: 2,
 				loading: 3
@@ -311,7 +311,7 @@ describe("matcher()", () => {
 
 		it("should handle mixed function and constant handlers", async () => {
 
-			const result = matcher<TestCases>({ loading: true })({
+			const result = relay<TestOptions>({ loading: true })({
 				value: (v) => v.length,
 				error: 0,
 				loading: (l) => l ? 100 : 0
@@ -321,10 +321,10 @@ describe("matcher()", () => {
 
 		});
 
-		it("should correctly pass the active case value to handler", async () => {
+		it("should correctly pass the active option value to handler", async () => {
 
 			const testError = new Error("test error");
-			const result = matcher<TestCases>({ error: testError })({
+			const result = relay<TestOptions>({ error: testError })({
 				value: (v) => `value: ${v}`,
 				error: (e) => e.message,
 				loading: (l) => `loading: ${l}`
@@ -338,9 +338,9 @@ describe("matcher()", () => {
 
 	describe("partial handlers without fallback", () => {
 
-		it("should return handler result when case matches", async () => {
+		it("should return handler result when option matches", async () => {
 
-			const result = matcher<TestCases>({ value: "done" })({
+			const result = relay<TestOptions>({ value: "done" })({
 				value: "matched",
 				error: "error matched"
 			});
@@ -349,9 +349,9 @@ describe("matcher()", () => {
 
 		});
 
-		it("should return undefined when case does not match any handler", async () => {
+		it("should return undefined when option does not match any handler", async () => {
 
-			const result = matcher<TestCases>({ loading: true })({
+			const result = relay<TestOptions>({ loading: true })({
 				value: "value matched",
 				error: "error matched"
 			});
@@ -362,7 +362,7 @@ describe("matcher()", () => {
 
 		it("should return undefined with empty handlers object", async () => {
 
-			const result = matcher<TestCases>({ value: "test" })({});
+			const result = relay<TestOptions>({ value: "test" })({});
 
 			expect(result).toBeUndefined();
 
@@ -370,7 +370,7 @@ describe("matcher()", () => {
 
 		it("should handle function handlers in partial mode", async () => {
 
-			const result = matcher<TestCases>({ error: new Error("oops") })({
+			const result = relay<TestOptions>({ error: new Error("oops") })({
 				error: (e) => `Error occurred: ${e.message}`
 			});
 
@@ -382,9 +382,9 @@ describe("matcher()", () => {
 
 	describe("partial handlers with fallback", () => {
 
-		it("should use specific handler when case matches", async () => {
+		it("should use specific handler when option matches", async () => {
 
-			const result = matcher<TestCases>({ value: "hello" })({
+			const result = relay<TestOptions>({ value: "hello" })({
 				value: "specific handler"
 			}, "fallback handler");
 
@@ -392,9 +392,9 @@ describe("matcher()", () => {
 
 		});
 
-		it("should use fallback when case does not match any specific handler", async () => {
+		it("should use fallback when option does not match any specific handler", async () => {
 
-			const result = matcher<TestCases>({ loading: false })({
+			const result = relay<TestOptions>({ loading: false })({
 				value: "value handler"
 			}, "fallback handler");
 
@@ -404,7 +404,7 @@ describe("matcher()", () => {
 
 		it("should pass value to fallback function handler", async () => {
 
-			const result = matcher<TestCases>({ error: new Error("fail") })({
+			const result = relay<TestOptions>({ error: new Error("fail") })({
 				value: (v) => `value: ${v}`
 			}, (v) => {
 				if ( v instanceof Error ) {
@@ -419,7 +419,7 @@ describe("matcher()", () => {
 
 		it("should use constant fallback handler", async () => {
 
-			const result = matcher<TestCases>({ loading: true })({}, 999);
+			const result = relay<TestOptions>({ loading: true })({}, 999);
 
 			expect(result).toBe(999);
 
@@ -427,7 +427,7 @@ describe("matcher()", () => {
 
 		it("should prefer specific handler over fallback", async () => {
 
-			const result = matcher<TestCases>({ value: "test" })({
+			const result = relay<TestOptions>({ value: "test" })({
 				value: "specific",
 				error: "error",
 				loading: "loading"
@@ -439,9 +439,9 @@ describe("matcher()", () => {
 
 	});
 
-	describe("different case value types", () => {
+	describe("different option value types", () => {
 
-		type MixedCases = {
+		type MixedOptions = {
 			string: string
 			number: number
 			boolean: boolean
@@ -451,7 +451,7 @@ describe("matcher()", () => {
 
 		it("should handle string values", async () => {
 
-			const result = matcher<MixedCases>({ string: "hello" })({
+			const result = relay<MixedOptions>({ string: "hello" })({
 				string: (v) => v.toUpperCase(),
 				number: (n) => n.toString(),
 				boolean: (b) => b.toString(),
@@ -465,7 +465,7 @@ describe("matcher()", () => {
 
 		it("should handle number values", async () => {
 
-			const result = matcher<MixedCases>({ number: 42 })({
+			const result = relay<MixedOptions>({ number: 42 })({
 				string: (v) => v.length,
 				number: (n) => n*2,
 				boolean: (b) => b ? 1 : 0,
@@ -479,7 +479,7 @@ describe("matcher()", () => {
 
 		it("should handle boolean values", async () => {
 
-			const result = matcher<MixedCases>({ boolean: true })({
+			const result = relay<MixedOptions>({ boolean: true })({
 				string: "string",
 				number: "number",
 				boolean: (b) => b ? "yes" : "no",
@@ -494,7 +494,7 @@ describe("matcher()", () => {
 		it("should handle object values", async () => {
 
 			const obj = { id: 123, name: "test" };
-			const result = matcher<MixedCases>({ object: obj })({
+			const result = relay<MixedOptions>({ object: obj })({
 				string: (v) => `string: ${v}`,
 				number: (n) => `number: ${n}`,
 				boolean: (b) => `boolean: ${b}`,
@@ -509,7 +509,7 @@ describe("matcher()", () => {
 		it("should handle array values", async () => {
 
 			const arr = ["a", "b", "c"];
-			const result = matcher<MixedCases>({ array: arr })({
+			const result = relay<MixedOptions>({ array: arr })({
 				string: (v) => [v],
 				number: (n) => [n.toString()],
 				boolean: (b) => [b.toString()],
@@ -533,19 +533,19 @@ describe("matcher()", () => {
 
 		it("should handle async operation states", async () => {
 
-			const pending = matcher<AsyncResult<string>>({ pending: undefined })({
+			const pending = relay<AsyncResult<string>>({ pending: undefined })({
 				pending: "Loading...",
 				success: (data) => `Success: ${data}`,
 				failure: (err) => `Error: ${err.message}`
 			});
 
-			const success = matcher<AsyncResult<string>>({ success: "data loaded" })({
+			const success = relay<AsyncResult<string>>({ success: "data loaded" })({
 				pending: "Loading...",
 				success: (data) => `Success: ${data}`,
 				failure: (err) => `Error: ${err.message}`
 			});
 
-			const failure = matcher<AsyncResult<string>>({ failure: new Error("network error") })({
+			const failure = relay<AsyncResult<string>>({ failure: new Error("network error") })({
 				pending: "Loading...",
 				success: (data) => `Success: ${data}`,
 				failure: (err) => `Error: ${err.message}`
@@ -565,13 +565,13 @@ describe("matcher()", () => {
 
 		it("should handle HTTP response status patterns", async () => {
 
-			const ok = matcher<HttpStatus>({ ok: { data: "response" } })({
+			const ok = relay<HttpStatus>({ ok: { data: "response" } })({
 				ok: (res) => res.data,
 				notFound: (err) => `Not found: ${err.path}`,
 				serverError: (err) => `Server error: ${err.code}`
 			});
 
-			const notFound = matcher<HttpStatus>({ notFound: { path: "/api/users" } })({
+			const notFound = relay<HttpStatus>({ notFound: { path: "/api/users" } })({
 				ok: (res) => res.data,
 				notFound: (err) => `Not found: ${err.path}`,
 				serverError: (err) => `Server error: ${err.code}`
@@ -591,7 +591,7 @@ describe("matcher()", () => {
 
 		it("should handle form state transitions with fallback", async () => {
 
-			const result = matcher<FormState>({ editing: { value: "text" } })({
+			const result = relay<FormState>({ editing: { value: "text" } })({
 				submitted: (s) => `Submitted with id: ${s.id}`
 			}, "Form is not submitted");
 
@@ -603,14 +603,14 @@ describe("matcher()", () => {
 
 	describe("undefined values", () => {
 
-		type OptionCases = {
+		type SomeNoneOptions = {
 			some: string
 			none: undefined
 		}
 
-		it("should handle undefined as a valid case value", async () => {
+		it("should handle undefined as a valid option value", async () => {
 
-			const result = matcher<OptionCases>({ none: undefined })({
+			const result = relay<SomeNoneOptions>({ none: undefined })({
 				some: (v) => `Value: ${v}`,
 				none: "No value"
 			});
@@ -621,7 +621,7 @@ describe("matcher()", () => {
 
 		it("should distinguish undefined from missing property", async () => {
 
-			const result = matcher<OptionCases>({ none: undefined })({
+			const result = relay<SomeNoneOptions>({ none: undefined })({
 				none: (v) => `none: ${v}`,
 				some: (v) => `some: ${v}`
 			});
@@ -632,9 +632,9 @@ describe("matcher()", () => {
 
 	});
 
-	describe("edge cases", () => {
+	describe("edge options", () => {
 
-		type EdgeCases = {
+		type EdgeOptions = {
 			zero: number
 			emptyString: string
 			falseBool: boolean
@@ -643,7 +643,7 @@ describe("matcher()", () => {
 
 		it("should handle zero as a value", async () => {
 
-			const result = matcher<EdgeCases>({ zero: 0 })({
+			const result = relay<EdgeOptions>({ zero: 0 })({
 				zero: (n) => `zero: ${n}`,
 				emptyString: "empty",
 				falseBool: "false",
@@ -656,7 +656,7 @@ describe("matcher()", () => {
 
 		it("should handle empty string as a value", async () => {
 
-			const result = matcher<EdgeCases>({ emptyString: "" })({
+			const result = relay<EdgeOptions>({ emptyString: "" })({
 				zero: "zero",
 				emptyString: (s) => `empty: ${s}`,
 				falseBool: "false",
@@ -669,7 +669,7 @@ describe("matcher()", () => {
 
 		it("should handle false as a value", async () => {
 
-			const result = matcher<EdgeCases>({ falseBool: false })({
+			const result = relay<EdgeOptions>({ falseBool: false })({
 				zero: "zero",
 				emptyString: "empty",
 				falseBool: (b) => `false: ${b}`,
@@ -682,7 +682,7 @@ describe("matcher()", () => {
 
 		it("should handle null as a value", async () => {
 
-			const result = matcher<EdgeCases>({ nullValue: null })({
+			const result = relay<EdgeOptions>({ nullValue: null })({
 				zero: "zero",
 				emptyString: "empty",
 				falseBool: "false",
