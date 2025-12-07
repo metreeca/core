@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import { describe, expect, it } from "vitest";
-import { iri, isIRI, isRange, isTag, isURI, namespace, range, tag, uri } from "./network.js";
+import { describe, expect, it, vi } from "vitest";
+import { fetcher, iri, isIRI, isRange, isTag, isURI, namespace, type Problem, range, tag, uri } from "./network.js";
 
 
 const tags = {
@@ -506,6 +506,341 @@ describe("namespace", () => {
 			const ns = namespace(base, ["label"] as const);
 			expect(ns.label).toBe(`${base}label`);
 			expect(() => ns("comment")).toThrow(RangeError);
+		});
+
+	});
+
+});
+
+describe("fetcher()", () => {
+
+	describe("successful responses", () => {
+
+		it("should resolve with response when response.ok is true", async () => {
+			const mockResponse = {
+				ok: true,
+				status: 200,
+				statusText: "OK"
+			} as Response;
+
+			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
+			const guard = fetcher(mockFetch);
+
+			const result = await guard("https://api.example.com/data");
+
+			expect(result).toBe(mockResponse);
+			expect(mockFetch).toHaveBeenCalledWith("https://api.example.com/data", undefined);
+		});
+
+		it("should pass through init parameter to base fetch", async () => {
+			const mockResponse = { ok: true, status: 200 } as Response;
+			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
+			const guard = fetcher(mockFetch);
+
+			const init: RequestInit = { method: "POST", headers: { "Content-Type": "application/json" } };
+			await guard("https://api.example.com/data", init);
+
+			expect(mockFetch).toHaveBeenCalledWith("https://api.example.com/data", init);
+		});
+
+	});
+
+	describe("fetch exceptions", () => {
+
+		it("should reject with Problem status 0 when fetch throws", async () => {
+			const mockFetch = vi.fn<typeof fetch>().mockRejectedValue(new Error("Network error"));
+			const guard = fetcher(mockFetch);
+
+			await expect(guard("https://api.example.com/data"))
+				.rejects
+				.toMatchObject({
+					status: 0,
+					detail: "fetch error <Error: Network error>"
+				});
+		});
+
+		it("should handle TypeError from fetch (e.g., CORS)", async () => {
+			const mockFetch = vi.fn<typeof fetch>().mockRejectedValue(new TypeError("Failed to fetch"));
+			const guard = fetcher(mockFetch);
+
+			await expect(guard("https://api.example.com/data"))
+				.rejects
+				.toMatchObject({
+					status: 0,
+					detail: "fetch error <TypeError: Failed to fetch>"
+				});
+		});
+
+	});
+
+	describe("non-ok responses with text/plain", () => {
+
+		it("should reject with Problem containing text report", async () => {
+			const mockResponse = {
+				ok: false,
+				status: 404,
+				statusText: "Not Found",
+				headers: {
+					get: vi.fn().mockReturnValue("text/plain")
+				},
+				text: vi.fn().mockResolvedValue("Resource not found")
+			} as unknown as Response;
+
+			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
+			const guard = fetcher(mockFetch);
+
+			await expect(guard("https://api.example.com/missing"))
+				.rejects
+				.toMatchObject({
+					status: 404,
+					detail: "Not Found",
+					report: "Resource not found"
+				});
+		});
+
+		it("should handle text/plain with charset", async () => {
+			const mockResponse = {
+				ok: false,
+				status: 400,
+				statusText: "Bad Request",
+				headers: {
+					get: vi.fn().mockReturnValue("text/plain; charset=utf-8")
+				},
+				text: vi.fn().mockResolvedValue("Invalid request parameters")
+			} as unknown as Response;
+
+			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
+			const guard = fetcher(mockFetch);
+
+			await expect(guard("https://api.example.com/data"))
+				.rejects
+				.toMatchObject({
+					status: 400,
+					report: "Invalid request parameters"
+				});
+		});
+
+		it("should reject without report if text parsing fails", async () => {
+			const mockResponse = {
+				ok: false,
+				status: 500,
+				statusText: "Internal Server Error",
+				headers: {
+					get: vi.fn().mockReturnValue("text/plain")
+				},
+				text: vi.fn().mockRejectedValue(new Error("Parse error"))
+			} as unknown as Response;
+
+			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
+			const guard = fetcher(mockFetch);
+
+			await expect(guard("https://api.example.com/data"))
+				.rejects
+				.toMatchObject({
+					status: 500,
+					detail: "Internal Server Error"
+				});
+
+			const error: Problem = await guard("https://api.example.com/data").catch((e: unknown) => e as Problem);
+			expect(error.report).toBeUndefined();
+		});
+
+	});
+
+	describe("non-ok responses with JSON content types", () => {
+
+		it("should reject with Problem containing JSON report for application/json", async () => {
+			const reportData = { timestamp: "2025-12-07T10:00:00Z", errors: ["field1", "field2"] };
+			const mockResponse = {
+				ok: false,
+				status: 422,
+				statusText: "Unprocessable Entity",
+				headers: {
+					get: vi.fn().mockReturnValue("application/json")
+				},
+				json: vi.fn().mockResolvedValue(reportData)
+			} as unknown as Response;
+
+			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
+			const guard = fetcher(mockFetch);
+
+			await expect(guard("https://api.example.com/data"))
+				.rejects
+				.toMatchObject({
+					status: 422,
+					detail: "Unprocessable Entity",
+					report: reportData
+				});
+		});
+
+		it("should handle application/problem+json", async () => {
+			const reportData = { type: "validation-error", fields: ["email"] };
+			const mockResponse = {
+				ok: false,
+				status: 400,
+				statusText: "Bad Request",
+				headers: {
+					get: vi.fn().mockReturnValue("application/problem+json")
+				},
+				json: vi.fn().mockResolvedValue(reportData)
+			} as unknown as Response;
+
+			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
+			const guard = fetcher(mockFetch);
+
+			await expect(guard("https://api.example.com/data"))
+				.rejects
+				.toMatchObject({
+					status: 400,
+					report: reportData
+				});
+		});
+
+		it("should handle application/ld+json", async () => {
+			const reportData = { "@context": "http://schema.org", "@type": "Error" };
+			const mockResponse = {
+				ok: false,
+				status: 500,
+				statusText: "Internal Server Error",
+				headers: {
+					get: vi.fn().mockReturnValue("application/ld+json")
+				},
+				json: vi.fn().mockResolvedValue(reportData)
+			} as unknown as Response;
+
+			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
+			const guard = fetcher(mockFetch);
+
+			await expect(guard("https://api.example.com/data"))
+				.rejects
+				.toMatchObject({
+					status: 500,
+					report: reportData
+				});
+		});
+
+		it("should handle JSON with charset", async () => {
+			const reportData = { error: "unauthorized" };
+			const mockResponse = {
+				ok: false,
+				status: 401,
+				statusText: "Unauthorized",
+				headers: {
+					get: vi.fn().mockReturnValue("application/json; charset=utf-8")
+				},
+				json: vi.fn().mockResolvedValue(reportData)
+			} as unknown as Response;
+
+			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
+			const guard = fetcher(mockFetch);
+
+			await expect(guard("https://api.example.com/data"))
+				.rejects
+				.toMatchObject({
+					status: 401,
+					report: reportData
+				});
+		});
+
+		it("should reject without report if JSON parsing fails", async () => {
+			const mockResponse = {
+				ok: false,
+				status: 500,
+				statusText: "Internal Server Error",
+				headers: {
+					get: vi.fn().mockReturnValue("application/json")
+				},
+				json: vi.fn().mockRejectedValue(new Error("Invalid JSON"))
+			} as unknown as Response;
+
+			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
+			const guard = fetcher(mockFetch);
+
+			await expect(guard("https://api.example.com/data"))
+				.rejects
+				.toMatchObject({
+					status: 500,
+					detail: "Internal Server Error"
+				});
+
+			const error: Problem = await guard("https://api.example.com/data").catch((e: unknown) => e as Problem);
+			expect(error.report).toBeUndefined();
+		});
+
+	});
+
+	describe("non-ok responses with other content types", () => {
+
+		it("should reject with Problem without report for text/html", async () => {
+			const mockResponse = {
+				ok: false,
+				status: 404,
+				statusText: "Not Found",
+				headers: {
+					get: vi.fn().mockReturnValue("text/html")
+				}
+			} as unknown as Response;
+
+			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
+			const guard = fetcher(mockFetch);
+
+			await expect(guard("https://api.example.com/data"))
+				.rejects
+				.toMatchObject({
+					status: 404,
+					detail: "Not Found"
+				});
+
+			const error: Problem = await guard("https://api.example.com/data").catch((e: unknown) => e as Problem);
+			expect(error.report).toBeUndefined();
+		});
+
+		it("should reject with Problem without report for application/xml", async () => {
+			const mockResponse = {
+				ok: false,
+				status: 503,
+				statusText: "Service Unavailable",
+				headers: {
+					get: vi.fn().mockReturnValue("application/xml")
+				}
+			} as unknown as Response;
+
+			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
+			const guard = fetcher(mockFetch);
+
+			await expect(guard("https://api.example.com/data"))
+				.rejects
+				.toMatchObject({
+					status: 503,
+					detail: "Service Unavailable"
+				});
+
+			const error: Problem = await guard("https://api.example.com/data").catch((e: unknown) => e as Problem);
+			expect(error.report).toBeUndefined();
+		});
+
+		it("should reject with Problem without report when Content-Type is null", async () => {
+			const mockResponse = {
+				ok: false,
+				status: 500,
+				statusText: "Internal Server Error",
+				headers: {
+					get: vi.fn().mockReturnValue(null)
+				}
+			} as unknown as Response;
+
+			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
+			const guard = fetcher(mockFetch);
+
+			await expect(guard("https://api.example.com/data"))
+				.rejects
+				.toMatchObject({
+					status: 500,
+					detail: "Internal Server Error"
+				});
+
+			const error: Problem = await guard("https://api.example.com/data").catch((e: unknown) => e as Problem);
+			expect(error.report).toBeUndefined();
 		});
 
 	});
