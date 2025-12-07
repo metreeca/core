@@ -15,67 +15,52 @@
  */
 
 /**
- * Type guards.
+ * Type guards for JavaScript types and protocols.
  *
- * @groupDescription Runtime Guards
- *
- * Type guards for runtime JavaScript types and protocols.
+ * Provides predicates to safely narrow unknown values to specific types at runtime,
+ * enabling type-safe operations on dynamically-typed data.
  *
  * ```typescript
- * import { isDefined, isEmpty, isFunction, isPromise, isIterable } from '@metreeca/core';
+ * import {
+ *   isDefined,
+ *   isFunction,
+ *   isError,
+ *   isPromise,
+ *   isIterable,
+ *   isAsyncIterable
+ * } from '@metreeca/core';
  *
- * if (isDefined<T>(value)) {
- *   // value is T
+ * if (isDefined(value)) {
+ *   return value.property; // value is narrowed to exclude undefined and null
  * }
- * and define T
  *
- * isEmpty({}); // true
- * isEmpty([]); // true
+ * if (isFunction(value)) {
+ *   value(); // value is narrowed to Function type
+ * }
  *
- * isFunction(() => {}); // true
- * isPromise(Promise.resolve(42)); // true
- * isIterable([1, 2, 3]); // true
+ * if (isError(value)) {
+ *   console.error(value.message); // value is narrowed to Error
+ * }
+ *
+ * if (isPromise(value)) {
+ *   await value; // value is narrowed to Promise type
+ * }
+ *
+ * if (isIterable(value)) {
+ *   for (const item of value) { // value implements iterable protocol
+ *     process(item);
+ *   }
+ * }
+ *
+ * if (isAsyncIterable(value)) {
+ *   for await (const item of value) { // value implements async iterable protocol
+ *     await process(item);
+ *   }
+ * }
  * ```
+ *
  * @module index
- *
- * @groupDescription JSON Guards
- *
- * Type guards for JSON values and data structures.
- *
- * ```typescript
- * import { isBoolean, isNumber, isString, isObject, isArray, isJSON } from '@metreeca/core';
- *
- * isJSON({ a: [1, 2], b: "test" }); // true
- * isJSON({ a: new Date() }); // false
- *
- * isBoolean(true); // true
- * isNumber(42); // true (excludes NaN, Infinity)
- * isString('hello'); // true
- *
- * isArray([1, 2, 3], isNumber); // true
- * isArray([1, 'two'], isNumber); // false
- *
- * isObject({ a: 1 }); // true
- * isObject(new Date()); // false
- * ```
  */
-
-
-/**
- * Immutable JSON value.
- *
- * Represents deeply immutable JSON-compatible structures.
- *
- * @see [RFC 8259 - The JavaScript Object Notation (JSON) Data Interchange
- *     Format](https://datatracker.ietf.org/doc/html/rfc8259)
- */
-export type JSON =
-	| null
-	| boolean
-	| number
-	| string
-	| readonly JSON[]
-	| { readonly [name: string]: JSON }
 
 /**
  * ECMAScript Identifier.
@@ -92,39 +77,10 @@ export type Identifier =
 	string & { readonly __brand: unique symbol }
 
 
-//// Runtime Guards ////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * Checks if a value is not `undefined` or `null`.
- *
- * @group Runtime Guards
- *
- * @typeParam T The type when the value is defined
- *
- * @returns `true` if the value is neither `undefined` nor `null`
- */
-export function isDefined<T>(value: undefined | null | T): value is T {
-	return value !== undefined && value !== null;
-}
-
-/**
- * Checks if a value is an empty plain object or an empty array.
- *
- * @group Runtime Guards
- *
- * @returns `true` if the value is an empty array or an empty plain object
- */
-export function isEmpty(value: unknown): value is Record<PropertyKey, never> | [] {
-	return isArray(value) ? value.length === 0
-		: isObject(value) ? Object.keys(value).length === 0
-			: false;
-}
-
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Checks if a value is a valid {@link Identifier}.
- *
- * @group Runtime Guards
  *
  * @param value The value to check
  *
@@ -135,11 +91,23 @@ export function isIdentifier(value: unknown): value is Identifier {
 		&& /^[_$\p{ID_Start}][$\u200C\u200D\p{ID_Continue}]*$/u.test(value);
 }
 
+/**
+ * Checks if a value is not `undefined` or `null`.
+ *
+ * @typeParam T The type when the value is defined
+ *
+ * @param value The value to check
+ *
+ * @returns `true` if the value is neither `undefined` nor `null`
+ */
+export function isDefined<T>(value: undefined | null | T): value is T {
+	return value !== undefined && value !== null;
+}
 
 /**
  * Checks if a value is a symbol.
  *
- * @group Runtime Guards
+ * @param value The value to check
  *
  * @returns `true` if the value is a symbol
  */
@@ -150,7 +118,7 @@ export function isSymbol(value: unknown): value is Symbol {
 /**
  * Checks if a value is a function.
  *
- * @group Runtime Guards
+ * @param value The value to check
  *
  * @returns `true` if the value is a function
  */
@@ -161,7 +129,7 @@ export function isFunction(value: unknown): value is Function {
 /**
  * Checks if a value is an Error instance.
  *
- * @group Runtime Guards
+ * @param value The value to check
  *
  * @returns `true` if the value is an Error instance
  */
@@ -172,9 +140,9 @@ export function isError(value: unknown): value is Error {
 /**
  * Checks if a value is a promise.
  *
- * @group Runtime Guards
- *
  * @typeParam T The type of the promised value
+ *
+ * @param value The value to check
  *
  * @returns `true` if the value is a thenable object (has a `then` method)
  */
@@ -185,9 +153,9 @@ export function isPromise<T = unknown>(value: unknown): value is Promise<T> {
 /**
  * Checks if a value is iterable.
  *
- * @group Runtime Guards
- *
  * @typeParam T The type of iterated values
+ *
+ * @param value The value to check
  *
  * @returns `true` if the value implements the iterable protocol (has a `[Symbol.iterator]` method)
  */
@@ -198,131 +166,12 @@ export function isIterable<T = unknown>(value: unknown): value is Iterable<T> {
 /**
  * Checks if a value is async iterable.
  *
- * @group Runtime Guards
- *
  * @typeParam T The type of iterated values
+ *
+ * @param value The value to check
  *
  * @returns `true` if the value implements the async iterable protocol (has a `[Symbol.asyncIterator]` method)
  */
 export function isAsyncIterable<T = unknown>(value: unknown): value is AsyncIterable<T> {
 	return value != null && isFunction((value as { [Symbol.asyncIterator]?: unknown })[Symbol.asyncIterator]);
-}
-
-
-//// Value Guards //////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * Checks if a value is a valid JSON value.
- *
- * Recursively validates that the value and all nested structures conform to the {@link JSON} type,
- * which includes `null`, booleans, finite numbers, strings, arrays of JSON values, and plain objects
- * with string keys and JSON values.
- *
- * @group JSON Guards
- *
- * @param value The value to check
- *
- * @returns `true` if the value is a valid JSON structure
- */
-export function isJSON(value: unknown): value is JSON {
-	return value === null ? true
-		: isBoolean(value) || isNumber(value) || isString(value) ? true
-			: Array.isArray(value) ? value.every(isJSON)
-				: isObject(value) ? Object.values(value).every(isJSON)
-					: false;
-}
-
-/**
- * Checks if a value is a scalar.
- *
- * @group JSON Guards
- *
- * @param value The value to check
- *
- * @returns `true` if the value is a boolean, number, or string
- */
-export function isScalar(value: unknown): value is boolean | number | string {
-	return isBoolean(value) || isNumber(value) || isString(value);
-}
-
-
-/**
- * Checks if a value is a boolean.
- *
- * @group JSON Guards
- *
- * @returns `true` if the value is a boolean
- */
-export function isBoolean(value: unknown): value is boolean {
-	return typeof value === "boolean";
-}
-
-/**
- * Checks if a value is a finite number.
- *
- * @group JSON Guards
- *
- * @returns `true` if the value is a finite number
- */
-export function isNumber(value: unknown): value is number {
-	return Number.isFinite(value);
-}
-
-/**
- * Checks if a value is a string.
- *
- * @group JSON Guards
- *
- * @returns `true` if the value is a string
- */
-export function isString(value: unknown): value is string {
-	return typeof value === "string";
-}
-
-/**
- * Checks if a value is an array.
- *
- * @group JSON Guards
- *
- * @typeParam T The type of array elements
- *
- * @param value The value to check
- * @param is Optional type guard to validate array elements
- *
- * @returns `true` if the value is an array. Empty arrays return `true` even when an element type guard is provided.
- */
-export function isArray<T = unknown>(value: unknown, is?: (value: unknown) => value is T): value is T[] {
-	return Array.isArray(value) && (is === undefined || value.every(is));
-}
-
-/**
- * Checks if a value is a plain object.
- *
- * A plain object is one created by the Object constructor (or object literal syntax),
- * with `Object.prototype` as its direct prototype. This excludes built-in objects like
- * Date, RegExp, Array, Buffer, DOM elements, and objects created with custom constructors.
- *
- * This strict definition ensures safe operations like deep cloning, serialization,
- * and property enumeration that assume simple key-value structure without special
- * behavior or internal state.
- *
- * @group JSON Guards
- *
- * @typeParam K The type of property keys
- * @typeParam V The type of property values
- *
- * @returns `true` if the value is a plain object
- *
- * @see https://stackoverflow.com/a/52694022/739773
- */
-export function isObject<K extends PropertyKey = PropertyKey, V = unknown>(value: unknown): value is Record<K, V> {
-	if ( value === undefined || value === null || typeof value !== "object" ) {
-
-		return false;
-
-	} else {
-
-		return Object.getPrototypeOf(value) === Object.prototype;
-
-	}
 }

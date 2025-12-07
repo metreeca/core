@@ -69,7 +69,8 @@
  * @module
  */
 
-import { isError, isNumber, isString } from "../index.js";
+import { isError } from "../index.js";
+import { isNumber, isString } from "./json.js";
 
 
 /**
