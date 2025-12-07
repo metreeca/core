@@ -54,7 +54,7 @@
  *
  * }
  *
- * const counter = State<Counter>({
+ * const counter = state<Counter>({
  *
  *   count: 0,
  *
@@ -93,7 +93,7 @@
  *
  * }
  *
- * const toggle = State<Toggle>({
+ * const toggle = state<Toggle>({
  *
  *   items: [],
  *
@@ -121,7 +121,7 @@
  * Observers are called asynchronously when transitions occur:
  *
  * ```typescript
- * const counter = State<Counter>({
+ * const counter = state<Counter>({
  *
  *   count: 0,
  *
@@ -160,7 +160,7 @@
  * Call the manager's `capture()` method to create a snapshot:
  *
  * ```typescript
- * const counter = State<Counter>({
+ * const counter = state<Counter>({
  *   count: 0,
  *   increment() { return { count: this.count + 1 }; }
  * });
@@ -428,7 +428,7 @@ export type Update<T, I extends readonly unknown[]> = {
  * - Returns same state reference when all partial values are shallowly equal (`Object.is`) to
  *   current values
  */
-export function State<T extends State>(seed: Seed<T>): Instance<T> {
+export function state<T extends State>(seed: Seed<T>): Instance<T> {
 
 	/**
 	 * Internal type representing a state object with observer storage.
