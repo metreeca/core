@@ -16,7 +16,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { $ } from "../common/meta.js";
+import { $ } from "../basic/meta.js";
 import { State, state, Version } from "./state.js";
 
 /**

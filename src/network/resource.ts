@@ -122,9 +122,9 @@
  * @see [RFC 7807 - Problem Details for HTTP APIs](https://datatracker.ietf.org/doc/html/rfc7807)
  */
 
-import { isString, type Value } from "../common/json.js";
-import { immutable } from "../common/nested.js";
-import { error } from "../common/report.js";
+import { isString, type Value } from "../basic/json.js";
+import { immutable } from "../basic/nested.js";
+import { error } from "../basic/report.js";
 
 
 /**

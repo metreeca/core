@@ -23,7 +23,7 @@ npm install @metreeca/core
 | Module                                                                           | Description                                    |
 |----------------------------------------------------------------------------------|------------------------------------------------|
 | [@metreeca/core](https://metreeca.github.io/core/modules.html)                   | Type guards for JavaScript types and protocols |
-| **Common Operations**                                                            |                                                |
+| **Basic Operations**                                                             |                                                |
 | [@metreeca/core/json](https://metreeca.github.io/core/modules/json.html)         | Type guards for JSON values                    |
 | [@metreeca/core/nested](https://metreeca.github.io/core/modules/nested.html)     | Deep operations on nested objects and arrays   |
 | [@metreeca/core/report](https://metreeca.github.io/core/modules/report.html)     | Error handling and execution reporting         |

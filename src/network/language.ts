@@ -73,7 +73,7 @@
  * @see [RFC 4647 - Matching of Language Tags](https://www.rfc-editor.org/rfc/rfc4647.html)
  */
 
-import { isString } from "../common/json.js";
+import { isString } from "../basic/json.js";
 
 
 /**

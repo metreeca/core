@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { isBoolean } from "../common/json.js";
+import { isBoolean } from "../basic/json.js";
 import { Mutex } from "./mutex.js";
 import { sleep } from "./sleep.js";
 

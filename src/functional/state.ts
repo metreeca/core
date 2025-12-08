@@ -204,8 +204,8 @@
  * @module
  */
 
-import { $, type Meta } from "../common/meta.js";
-import { immutable } from "../common/nested.js";
+import { $, type Meta } from "../basic/meta.js";
+import { immutable } from "../basic/nested.js";
 
 
 /**
