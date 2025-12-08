@@ -15,7 +15,18 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import { fetcher, iri, isIRI, isURI, namespace, type Problem, uri } from "./resource.js";
+import {
+	fetcher,
+	internalize,
+	iri,
+	isIRI,
+	isURI,
+	namespace,
+	type Problem,
+	relativize,
+	resolve,
+	uri
+} from "./resource.js";
 
 
 const iris = {
@@ -279,6 +290,154 @@ describe("iri", () => {
 
 });
 
+
+describe("resolve()", () => {
+
+	describe("hierarchical URIs", () => {
+
+		// RFC 3986 § 5.4 reference resolution examples
+
+		const base = uri("http://example.com/a/b/c");
+
+		it("should resolve relative path against base", () => {
+			expect(resolve(base, uri("d", { relative: true }))).toBe("http://example.com/a/b/d");
+			expect(resolve(base, uri("d/e", { relative: true }))).toBe("http://example.com/a/b/d/e");
+		});
+
+		it("should resolve root-relative path against base", () => {
+			expect(resolve(base, uri("/d", { relative: true }))).toBe("http://example.com/d");
+			expect(resolve(base, uri("/d/e", { relative: true }))).toBe("http://example.com/d/e");
+		});
+
+		it("should resolve empty reference to base", () => {
+			expect(resolve(base, uri("", { relative: true }))).toBe("http://example.com/a/b/c");
+		});
+
+		it("should resolve fragment-only reference", () => {
+			expect(resolve(base, uri("#frag", { relative: true }))).toBe("http://example.com/a/b/c#frag");
+		});
+
+		it("should resolve query-only reference", () => {
+			expect(resolve(base, uri("?query", { relative: true }))).toBe("http://example.com/a/b/c?query");
+		});
+
+		it("should handle dot segments (. and ..)", () => {
+			expect(resolve(base, uri("./d", { relative: true }))).toBe("http://example.com/a/b/d");
+			expect(resolve(base, uri("../d", { relative: true }))).toBe("http://example.com/a/d");
+			expect(resolve(base, uri("../../d", { relative: true }))).toBe("http://example.com/d");
+		});
+
+		it("should preserve absolute reference with scheme", () => {
+			expect(resolve(base, uri("https://other.com/path"))).toBe("https://other.com/path");
+		});
+
+	});
+
+	describe("opaque URIs", () => {
+
+		// URL API has limited support for opaque URIs - absolute references with schemes work
+
+		it("should preserve absolute reference with scheme", () => {
+			expect(resolve(uri("urn:example:base"), uri("urn:example:other"))).toBe("urn:example:other");
+		});
+
+	});
+
+});
+
+describe("internalize()", () => {
+
+	describe("hierarchical URIs", () => {
+
+		const base = uri("http://example.com/a/b/c");
+
+		it("should extract root-relative path", () => {
+			expect(internalize(base, uri("http://example.com/x/y"))).toBe("/x/y");
+			expect(internalize(base, uri("http://example.com/"))).toBe("/");
+		});
+
+		it("should preserve query component", () => {
+			expect(internalize(base, uri("http://example.com/path?query=value"))).toBe("/path?query=value");
+		});
+
+		it("should preserve fragment component", () => {
+			expect(internalize(base, uri("http://example.com/path#frag"))).toBe("/path#frag");
+			expect(internalize(base, uri("http://example.com/path?query#frag"))).toBe("/path?query#frag");
+		});
+
+		it("should return reference unchanged if different authority", () => {
+			expect(internalize(base, uri("http://other.com/path"))).toBe("http://other.com/path");
+			expect(internalize(base, uri("https://example.com/path"))).toBe("https://example.com/path");
+		});
+
+	});
+
+	describe("opaque URIs", () => {
+
+		it("should extract scheme-specific part for same scheme", () => {
+			const base = uri("urn:example:base");
+			expect(internalize(base, uri("urn:example:other"))).toBe("example:other");
+		});
+
+		it("should return reference unchanged if different scheme", () => {
+			const base = uri("urn:example:base");
+			expect(internalize(base, uri("mailto:user@example.com"))).toBe("mailto:user@example.com");
+		});
+
+	});
+
+});
+
+describe("relativize()", () => {
+
+	describe("hierarchical URIs", () => {
+
+		const base = uri("http://example.com/a/b/c");
+
+		it("should return relative path for same-directory reference", () => {
+			expect(relativize(base, uri("http://example.com/a/b/d"))).toBe("d");
+			expect(relativize(base, uri("http://example.com/a/b/d/e"))).toBe("d/e");
+		});
+
+		it("should return parent-relative path (..) for ancestor", () => {
+			expect(relativize(base, uri("http://example.com/a/d"))).toBe("../d");
+			expect(relativize(base, uri("http://example.com/d"))).toBe("../../d");
+		});
+
+		it("should return reference unchanged if different scheme", () => {
+			expect(relativize(base, uri("https://example.com/a/b/d"))).toBe("https://example.com/a/b/d");
+		});
+
+		it("should return reference unchanged if different authority", () => {
+			expect(relativize(base, uri("http://other.com/a/b/d"))).toBe("http://other.com/a/b/d");
+		});
+
+		it("should handle query and fragment components", () => {
+			expect(relativize(base, uri("http://example.com/a/b/d?query"))).toBe("d?query");
+			expect(relativize(base, uri("http://example.com/a/b/d#frag"))).toBe("d#frag");
+			expect(relativize(base, uri("http://example.com/a/b/d?query#frag"))).toBe("d?query#frag");
+		});
+
+	});
+
+	describe("opaque URIs", () => {
+
+		it("should return scheme-specific part if same scheme", () => {
+			const base = uri("urn:example:base");
+			expect(relativize(base, uri("urn:example:other"))).toBe("example:other");
+		});
+
+		it("should return reference unchanged if different scheme", () => {
+			const base = uri("urn:example:base");
+			expect(relativize(base, uri("mailto:user@example.com"))).toBe("mailto:user@example.com");
+		});
+
+	});
+
+});
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 describe("namespace", () => {
 

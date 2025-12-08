@@ -195,7 +195,12 @@ export type IRI = string & {
 /**
  * Identifier variant.
  *
- * Specify a {@link URI} or {@link IRI} variant.
+ * Specify a {@link URI} or {@link IRI} variant per RFC 3986 § 4.2:
+ *
+ * - **Absolute**: Contains scheme (e.g., `http://example.org/path`)
+ * - **Relative**: No scheme, resolved against a base
+ *   - **Root-relative**: Starts with `/`, resolved against scheme+authority (e.g., `/path`)
+ *   - **Path-relative**: No leading `/`, resolved against base path (e.g., `../path`)
  */
 export type Variant = {
 
@@ -397,6 +402,113 @@ export function iri(value: string, opts: Variant = {}): IRI {
 
 	return value;
 }
+
+
+/**
+ * Resolves a reference against a base identifier.
+ *
+ * For hierarchical identifiers, implements RFC 3986 § 5 reference resolution, combining `base` and `reference`
+ * to produce an absolute identifier. For opaque identifiers, appends `reference` to the scheme-specific part.
+ *
+ * @typeParam T The identifier type ({@link URI} or {@link IRI})
+ *
+ * @param base The base identifier to resolve against
+ * @param reference The reference to resolve
+ *
+ * @returns The resolved absolute identifier
+ *
+ * @see [RFC 3986 § 5 - Reference Resolution](https://www.rfc-editor.org/rfc/rfc3986.html#section-5)
+ */
+export function resolve<T extends URI | IRI>(base: T, reference: T): T {
+
+	// delegate to standard URL API (available in both Node.js and browsers)
+
+	return new URL(reference, base).href as T;
+
+}
+
+/**
+ * Extracts a root-relative reference.
+ *
+ * For hierarchical identifiers with matching scheme and authority, returns the root-relative path (starting with `/`).
+ * For opaque identifiers with the same scheme, returns the scheme-specific part.
+ *
+ * @typeParam T The identifier type ({@link URI} or {@link IRI})
+ *
+ * @param base The base identifier providing the scheme and authority context
+ * @param reference The identifier to internalize
+ *
+ * @returns A root-relative reference, or `reference` unchanged if scheme/authority differ
+ */
+export function internalize<T extends URI | IRI>(base: T, reference: T): T {
+
+	const baseURL = new URL(base);
+	const refURL = new URL(reference);
+
+	// different origin: return reference unchanged
+	// for opaque URIs (origin === "null"), compare protocols instead
+
+	const sameOrigin = baseURL.origin !== "null"
+		? baseURL.origin === refURL.origin
+		: baseURL.protocol === refURL.protocol;
+
+	return sameOrigin
+		? (refURL.pathname+refURL.search+refURL.hash) as T
+		: reference;
+
+}
+
+/**
+ * Creates a relative reference from base to reference.
+ *
+ * For hierarchical identifiers, computes the shortest path-relative reference that, when resolved against `base`,
+ * yields `reference`. For opaque identifiers with the same scheme, returns the reference's scheme-specific part.
+ *
+ * @typeParam T The identifier type ({@link URI} or {@link IRI})
+ *
+ * @param base The base identifier
+ * @param reference The identifier to relativize
+ *
+ * @returns A relative reference from `base` to `reference`, or `reference` unchanged if not relativizable
+ */
+export function relativize<T extends URI | IRI>(base: T, reference: T): T {
+
+	const baseURL = new URL(base);
+	const refURL = new URL(reference);
+
+	// different origin: return reference unchanged
+	// for opaque URIs (origin === "null"), compare protocols instead
+
+	const sameOrigin = baseURL.origin !== "null"
+		? baseURL.origin === refURL.origin
+		: baseURL.protocol === refURL.protocol;
+
+	if ( !sameOrigin ) {
+		return reference;
+	}
+
+	// same origin: compute relative path
+
+	const baseParts = baseURL.pathname.split("/").slice(0, -1); // directory segments
+	const refParts = refURL.pathname.split("/");
+
+	// find common prefix length
+
+	const commonLength = baseParts.reduce(
+		(count, segment, index) => segment === refParts[index] ? count+1 : count,
+		0
+	);
+
+	// build relative path: "../" for each remaining base segment + remaining ref segments
+
+	const upSegments = baseParts.slice(commonLength).map(() => "..");
+	const downSegments = refParts.slice(commonLength);
+	const relativePath = [...upSegments, ...downSegments].join("/") || ".";
+
+	return (relativePath+refURL.search+refURL.hash) as T;
+
+}
+
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
