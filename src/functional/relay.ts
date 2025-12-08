@@ -196,7 +196,7 @@ export type Option<O extends Options> = {
  * @typeParam R The return type of all handlers
  * @typeParam D The delegate function type; defaults to `never` (no delegation)
  */
-export type Handlers<O extends Options, R, D = never> = {
+export type Handlers<O extends Options, R, D extends (() => R) | never = never> = {
 
 	readonly [K in keyof O]: Handler<O[K], R, D>
 
@@ -212,7 +212,7 @@ export type Handlers<O extends Options, R, D = never> = {
  * @typeParam R The return type of the handler
  * @typeParam D The delegate function type; defaults to `never` (no delegation)
  */
-export type Handler<V = unknown, R = unknown, D = never> =
+export type Handler<V = unknown, R = unknown, D extends (() => R) | never = never> =
 	| R
 	| ([D] extends [never]
 	? ((value: V) => R)
@@ -232,12 +232,20 @@ export type Handler<V = unknown, R = unknown, D = never> =
  */
 export function relay<O extends Options>(option: Option<O>): Relay<O> {
 
-	const [label, value] = Object.entries(option)[0] ?? []; // find the active option
+	const entries = Object.entries(option);
+
+	if ( entries.length !== 1 ) {
+		throw new TypeError(`relay: option must have exactly one property`);
+	}
+
+	const [label, value] = entries[0];
 
 	return <R>(handlers: Partial<Handlers<O, R, () => R>>, fallback?: Handler<O[keyof O], R>): unknown => {
 
-		return isFunction(handlers[label]) ? handlers[label](value, delegate)
-			: isDefined(handlers[label]) ? handlers[label]
+		const handler = handlers[label];
+
+		return isFunction(handler) ? handler(value, delegate)
+			: isDefined(handler) ? handler
 				: isFunction(fallback) ? fallback(value)
 					: fallback;
 
