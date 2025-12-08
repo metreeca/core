@@ -68,9 +68,22 @@
  * ```typescript
  * const display = r({
  *   value: (email) => email
- * }, (
- *   "‹blank›"
- * ));
+ * }, "‹blank›");
+ * ```
+ *
+ * **Delegation to Fallback**
+ *
+ * When a fallback is provided, handlers receive a delegate function to invoke common logic:
+ *
+ * ```typescript
+ * const format = (v: string | Error | void) =>
+ *   v instanceof Error ? `error: ${v.message}` : `value: ${v}`;
+ *
+ * const display = r({
+ *   unset: "Enter email",
+ *   value: (email, delegate) => email.length > 0 ? email : delegate(),
+ *   error: (_err, delegate) => delegate()
+ * }, format);
  * ```
  *
  * @module
@@ -83,25 +96,18 @@ import { isDefined, isFunction } from "../index.js";
  * Relay.
  *
  * Accepts handlers for each option and returns the result from the matched handler.
- * Three usage patterns are supported:
+ * Four usage patterns are supported:
  *
- * - All options handled: provide a handler for every option, returns `R`
- * - Some options with fallback: provide handlers for some options plus a fallback, returns `R`
  * - Some options without fallback: provide handlers for some options only, returns `R | undefined`
+ * - Some options with fallback: provide handlers for some options plus a fallback, returns `R`
+ * - All options handled: provide a handler for every option, returns `R`
+ * - All options with fallback: provide all handlers plus a fallback for delegation, returns `R`
  *
- * @typeParam C The options type defining all possible option variants
+ * When a fallback is provided, handlers receive a delegate function to invoke it.
+ *
+ * @typeParam O The options type defining all possible option variants
  */
-export interface Relay<C extends Options> {
-
-	/**
-	 * Handles all options with complete handlers.
-	 *
-	 * @typeParam R The return type of all handlers
-	 *
-	 * @param handlers Mapping of all option keys to their handlers
-	 *
-	 * @returns The result from the matched handler
-	 */<R>(handlers: Handlers<C, R>): R;
+export interface Relay<O extends Options> {
 
 	/**
 	 * Handles some options without a fallback.
@@ -111,18 +117,44 @@ export interface Relay<C extends Options> {
 	 * @param handlers Partial mapping of option keys to handlers
 	 *
 	 * @returns The result from the matched handler, or `undefined` if no handler matched
-	 */<R>(handlers: Partial<Handlers<C, R>>): undefined | R;
+	 */<R>(handlers: Partial<Handlers<O, R>>): undefined | R;
 
 	/**
 	 * Handles some options with a fallback handler for unmatched options.
 	 *
+	 * Handlers receive a delegate function that can be called to invoke the fallback.
+	 *
 	 * @typeParam R The return type of all handlers
 	 *
-	 * @param handlers Partial mapping of option keys to handlers
+	 * @param handlers Partial mapping of option keys to delegating handlers
 	 * @param fallback Fallback handler receiving union of option values
 	 *
 	 * @returns The result from the matched handler or fallback
-	 */<R>(handlers: Partial<Handlers<C, R>>, fallback: Handler<C[keyof C], R>): R;
+	 */<R>(handlers: Partial<Handlers<O, R, () => R>>, fallback: Handler<O[keyof O], R>): R;
+
+	/**
+	 * Handles all options with complete handlers.
+	 *
+	 * @typeParam R The return type of all handlers
+	 *
+	 * @param handlers Mapping of all option keys to their handlers
+	 *
+	 * @returns The result from the matched handler
+	 */<R>(handlers: Handlers<O, R>): R;
+
+	/**
+	 * Handles all options with complete handlers and a fallback for delegation.
+	 *
+	 * Handlers receive a delegate function that can be called to invoke the fallback,
+	 * enabling factored common logic across multiple option handlers.
+	 *
+	 * @typeParam R The return type of all handlers
+	 *
+	 * @param handlers Mapping of all option keys to delegating handlers
+	 * @param fallback Fallback handler for delegated calls
+	 *
+	 * @returns The result from the matched handler or fallback
+	 */<R>(handlers: Handlers<O, R, () => R>, fallback: Handler<O[keyof O], R>): R;
 
 }
 
@@ -145,7 +177,7 @@ export type Options = {
  * Represents a specific option with exactly one active property from the options.
  * TypeScript enforces mutual exclusivity, preventing invalid multi-option values at compile time.
  *
- * @typeParam C The options defining available relay options
+ * @typeParam O The options defining available relay options
  */
 export type Option<O extends Options> = {
 
@@ -160,26 +192,31 @@ export type Option<O extends Options> = {
  * Maps each option name to a {@link Handler} that processes the matched value and produces
  * a result of type `R`.
  *
- * @typeParam C The relay options
+ * @typeParam O The relay options
  * @typeParam R The return type of all handlers
+ * @typeParam D The delegate function type; defaults to `never` (no delegation)
  */
-export type Handlers<O extends Options, R> = {
+export type Handlers<O extends Options, R, D = never> = {
 
-	readonly [K in keyof O]: Handler<O[K], R>
+	readonly [K in keyof O]: Handler<O[K], R, D>
 
 }
 
 /**
  * Option handler.
  *
- * Either a constant value of type `R`, or a function `(value: V) => R` that computes the result.
+ * Either a constant value of type `R`, or a function that receives the matched value and optionally
+ * a delegate function for invoking the fallback handler.
  *
  * @typeParam V The type of the matched option value
  * @typeParam R The return type of the handler
+ * @typeParam D The delegate function type; defaults to `never` (no delegation)
  */
-export type Handler<V = unknown, R = unknown> =
+export type Handler<V = unknown, R = unknown, D = never> =
 	| R
-	| ((value: V) => R)
+	| ([D] extends [never]
+	? ((value: V) => R)
+	: ((value: V, delegate: D) => R))
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -197,12 +234,19 @@ export function relay<O extends Options>(option: Option<O>): Relay<O> {
 
 	const [label, value] = Object.entries(option)[0] ?? []; // find the active option
 
-	return <R>(handlers: Partial<Handlers<O, R>>, fallback?: Handler<O[keyof O], R>): unknown => {
+	return <R>(handlers: Partial<Handlers<O, R, () => R>>, fallback?: Handler<O[keyof O], R>): unknown => {
 
-		return isFunction(handlers[label]) ? handlers[label](value)
+		return isFunction(handlers[label]) ? handlers[label](value, delegate)
 			: isDefined(handlers[label]) ? handlers[label]
 				: isFunction(fallback) ? fallback(value)
 					: fallback;
+
+
+		function delegate() {
+			return isFunction(fallback) ? fallback(value)
+				: isDefined(fallback) ? fallback
+					: undefined;
+		}
 
 	};
 

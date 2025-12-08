@@ -268,6 +268,73 @@ describe("Relay", () => {
 
 	});
 
+	describe("Delegation type constraints", () => {
+
+		type TestOptions = {
+			value: string
+			error: Error
+		}
+
+		it("type check: handlers with fallback receive delegate parameter", async () => {
+
+			// ✅ valid: delegate parameter available when fallback is provided
+
+			const result = relay<TestOptions>({ value: "test" })({
+				value: (v, delegate) => delegate()
+			}, "fallback");
+
+			expect(result).toBe("fallback");
+
+		});
+
+		it("type check: handlers without fallback have no delegate parameter", async () => {
+
+			// ✅ valid: single-parameter handler for complete handlers
+
+			const result = relay<TestOptions>({ value: "test" })({
+				value: (v) => `value: ${v}`,
+				error: (e) => `error: ${e.message}`
+			});
+
+			expect(result).toBe("value: test");
+
+		});
+
+		it("type check: should reject delegate usage without fallback in complete handlers", async () => {
+
+			// ⚠️ this test verifies COMPILE-TIME behavior only
+			// TypeScript errors on the next line because delegate is not in the handler signature
+			// runtime assertion is secondary
+
+			// @ts-expect-error - delegate parameter not available without fallback
+			const result = relay<TestOptions>({ value: "test" })({
+				value: (v, delegate) => delegate(),
+				error: (e) => `error: ${e.message}`
+			});
+
+			// runtime: delegate() returns undefined when no fallback provided
+			expect(result).toBeUndefined();
+
+		});
+
+		it("type check: should reject delegate usage in partial handlers without fallback", async () => {
+
+			// ⚠️ this test verifies COMPILE-TIME behavior only
+			// TypeScript errors on the next line because delegate is not in the handler signature
+			// runtime assertion is secondary
+
+			// @ts-expect-error - delegate parameter not available without fallback
+			const result = relay<TestOptions>({ value: "test" })({
+				value: (v, delegate) => delegate()
+			});
+
+			// runtime: delegate() returns undefined when no fallback provided
+			expect(result).toBeUndefined();
+
+		});
+
+	});
+
 });
 
 describe("relay()", () => {
@@ -690,6 +757,120 @@ describe("relay()", () => {
 			});
 
 			expect(result).toBe("null: null");
+
+		});
+
+	});
+
+	describe("delegation to fallback", () => {
+
+		type TestOptions = {
+			value: string
+			error: Error
+			loading: boolean
+		}
+
+		it("should allow handler to delegate to constant fallback", async () => {
+
+			const result = relay<TestOptions>({ value: "test" })({
+				value: (_v, delegate) => delegate()
+			}, "fallback value");
+
+			expect(result).toBe("fallback value");
+
+		});
+
+		it("should allow handler to delegate to function fallback", async () => {
+
+			const result = relay<TestOptions>({ value: "test" })({
+				value: (v, delegate) => delegate()
+			}, (v) => `fallback: ${v}`);
+
+			expect(result).toBe("fallback: test");
+
+		});
+
+		it("should allow handler to conditionally delegate", async () => {
+
+			const handleValue = (v: string, delegate: () => string) =>
+				v.length > 5 ? `long: ${v}` : delegate();
+
+			const longResult = relay<TestOptions>({ value: "lengthy" })({
+				value: handleValue
+			}, "short value");
+
+			const shortResult = relay<TestOptions>({ value: "hi" })({
+				value: handleValue
+			}, "short value");
+
+			expect(longResult).toBe("long: lengthy");
+			expect(shortResult).toBe("short value");
+
+		});
+
+		it("should pass value to fallback function when delegating", async () => {
+
+			const result = relay<TestOptions>({ error: new Error("oops") })({
+				error: (_e, delegate) => delegate()
+			}, (v) => {
+				if ( v instanceof Error ) {
+					return `delegated error: ${v.message}`;
+				}
+				return `delegated: ${v}`;
+			});
+
+			expect(result).toBe("delegated error: oops");
+
+		});
+
+		it("should allow mixing delegating and non-delegating handlers", async () => {
+
+			const result = relay<TestOptions>({ loading: true })({
+				value: "direct value",
+				loading: (_l, delegate) => delegate()
+			}, "fallback");
+
+			expect(result).toBe("fallback");
+
+		});
+
+		it("should return undefined when delegating without fallback", async () => {
+
+			const result = relay<TestOptions>({ value: "test" })({
+				value: (_v, delegate) => delegate()
+			});
+
+			expect(result).toBeUndefined();
+
+		});
+
+		it("should allow complete handlers to delegate to factored fallback", async () => {
+
+			// common formatting logic factored into fallback
+			const format = (v: string | Error | boolean) =>
+				v instanceof Error ? `error: ${v.message}`
+					: typeof v === "boolean" ? `loading: ${v}`
+						: `value: ${v}`;
+
+			const result = relay<TestOptions>({ value: "test" })({
+				value: (_v, delegate) => delegate(),
+				error: (_e, delegate) => delegate(),
+				loading: (_l, delegate) => delegate()
+			}, format);
+
+			expect(result).toBe("value: test");
+
+		});
+
+		it("should allow complete handlers to selectively delegate", async () => {
+
+			const result = relay<TestOptions>({ error: new Error("oops") })({
+				value: (v) => `direct: ${v}`,
+				error: (_e, delegate) => delegate(),
+				loading: (l) => `direct: ${l}`
+			}, (v) => `delegated: ${v instanceof Error ? v.message : v}`);
+
+			expect(result).toBe("delegated: oops");
 
 		});
 
