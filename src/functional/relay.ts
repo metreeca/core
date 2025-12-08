@@ -61,6 +61,16 @@
  * });
  * ```
  *
+ * **Partial Matching without Fallback**
+ *
+ * Handle specific options only, returning `undefined` for unhandled options:
+ *
+ * ```typescript
+ * const email = r({
+ *   value: (email) => email
+ * }); // Returns string | undefined
+ * ```
+ *
  * **Partial Matching with Fallback**
  *
  * Handle specific options and provide a fallback for others:
