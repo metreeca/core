@@ -20,9 +20,7 @@
  * Provides types and functions for resource identifiers (URI/IRI), namespace factories,
  * HTTP error handling, and fetch operations.
  *
- * **Resource Identifiers**
- *
- * Type guards:
+ * **Type Guards**
  *
  * ```typescript
  * import { isURI, isIRI } from "@metreeca/core";
@@ -38,7 +36,7 @@
  * }
  * ```
  *
- * Creating identifiers:
+ * **Identifier Factories**
  *
  * ```typescript
  * import { uri, iri } from "@metreeca/core";
@@ -50,15 +48,41 @@
  *
  * // Relative references
  *
- * const relativeURI = uri("../resource", { relative: true });
- * const relativeIRI = iri("../resource", { relative: true });
+ * const relativeURI = uri("../resource", "relative");
+ * const relativeIRI = iri("../resource", "relative");
+ *
+ * // Root-relative (internal) paths
+ *
+ * const internalURI = uri("/resource", "internal");
+ * const internalIRI = iri("/resource", "internal");
  *
  * // Unicode in IRIs (throws for URIs)
  *
  * const unicodeIRI = iri("http://example.org/资源");
  * ```
  *
- * Namespace factories:
+ * **Reference Operations**
+ *
+ * ```typescript
+ * import { resolve, relativize, internalize, uri } from "@metreeca/core";
+ *
+ * const base = uri("http://example.com/a/b/c");
+ *
+ * // Resolve relative references against base
+ *
+ * resolve(base, uri("../d", "relative"));  // "http://example.com/a/d"
+ * resolve(base, uri("/d", "internal"));    // "http://example.com/d"
+ *
+ * // Convert absolute to root-relative (internal) path
+ *
+ * internalize(base, uri("http://example.com/x/y"));  // "/x/y"
+ *
+ * // Convert absolute to relative path
+ *
+ * relativize(base, uri("http://example.com/a/d"));   // "../d"
+ * ```
+ *
+ * **Namespace Factories**
  *
  * ```typescript
  * import { namespace } from "@metreeca/core";
@@ -83,8 +107,6 @@
  *
  * **HTTP Error Handling**
  *
- * Structured error responses:
- *
  * ```typescript
  * import { Problem } from "@metreeca/core";
  *
@@ -98,8 +120,6 @@
  * ```
  *
  * **Fetch Utilities**
- *
- * Wrapping fetch functions:
  *
  * ```typescript
  * import { fetcher } from "@metreeca/core";
@@ -117,14 +137,15 @@
  *
  * @module
  *
- * @see [RFC 3986 - Uniform Resource Identifiers (URIs)](https://www.rfc-editor.org/rfc/rfc3986.html)
- * @see [RFC 3987 - Internationalized Resource Identifiers (IRIs)](https://www.rfc-editor.org/rfc/rfc3987.html)
- * @see [RFC 7807 - Problem Details for HTTP APIs](https://datatracker.ietf.org/doc/html/rfc7807)
+ * @see {@link https://www.rfc-editor.org/rfc/rfc3986.html RFC 3986 - Uniform Resource Identifiers (URIs)}
+ * @see {@link https://www.rfc-editor.org/rfc/rfc3987.html RFC 3987 - Internationalized Resource Identifiers (IRIs)}
+ * @see {@link https://datatracker.ietf.org/doc/html/rfc7807 RFC 7807 - Problem Details for HTTP APIs}
  */
 
 import { isString, type Value } from "../basic/json.js";
 import { immutable } from "../basic/nested.js";
 import { error } from "../basic/report.js";
+import { isDefined } from "../index.js";
 
 
 /**
@@ -141,6 +162,148 @@ const ExcludedPattern = /[\x00-\x1F\x7F-\x9F\s<>"{}|\\^`]/;
  * ASCII-only pattern for URI validation per RFC 3986 (characters U+0000-U+007F)
  */
 const ASCIIPattern = /^[\x00-\x7F]*$/;
+
+
+/**
+ * Validates and normalizes a reference.
+ *
+ * Performs syntax validation (string type, excluded characters), path normalization
+ * per RFC 3986 § 5.2.4 (Remove Dot Segments), and variant-specific validation.
+ *
+ * @param value The value to validate and normalize
+ * @param variant The identifier variant
+ *
+ * @returns The validated and normalized reference
+ *
+ * @throws RangeError If the value is not a valid reference for the specified variant
+ */
+function normalize<T extends URI | IRI>(value: unknown, variant: Variant): T {
+
+	const invalid = (): never => error(new RangeError(`invalid ${variant} reference <${value}>`));
+	const climbing = (): never => error(new RangeError(`tree-climbing reference <${value}>`));
+
+	// syntax validation
+
+	const validSyntax = isString(value) && !ExcludedPattern.test(value);
+	const hasScheme = validSyntax && SchemePattern.test(value);
+
+	// path normalization
+
+	const normalized = !validSyntax ? invalid()
+		: variant === "absolute" || hasScheme ? normalizeURL(value)
+			: normalizePath(value);
+
+	// variant validation
+
+	const valid = variant === "relative" // accepts relative, internal, and absolute
+		|| (variant === "absolute" && hasScheme && normalized.indexOf(":") < normalized.length-1)
+		|| (variant === "internal" && (hasScheme || normalized.startsWith("/"))); // root-relative or opaque SSP
+
+	return valid ? normalized as T : invalid();
+
+
+	function normalizeURL(url: string): string {
+
+		try {
+
+			// URL API normalizes tree-climbing instead of throwing; detect manually
+
+			const pathMatch = url.match(/^[a-z][a-z0-9+.-]*:\/\/[^/?#]*(\/?[^?#]*)/i);
+			const originalPath = pathMatch?.[1] ?? "";
+			const treeClimbing = originalPath.split("/").reduce((d, s) =>
+				d < 0 ? d : s === ".." ? d-1 : s !== "" && s !== "." ? d+1 : d, 0) < 0;
+
+			return treeClimbing ? climbing() : new URL(url).href;
+
+		} catch {
+
+			return invalid();
+
+		}
+
+	}
+
+	function normalizePath(reference: string): string {
+
+		const queryIndex = reference.indexOf("?");
+		const hashIndex = reference.indexOf("#");
+		const pathEnd = queryIndex !== -1 ? queryIndex : hashIndex !== -1 ? hashIndex : reference.length;
+
+		const path = reference.slice(0, pathEnd);
+		const suffix = reference.slice(pathEnd);
+
+		const last = (s: string[]) => s[s.length-1];
+		const segments = path.split("/").reduce<string[]>((acc, seg) =>
+			seg === "." ? acc
+				: seg === ".." ? (
+						acc.length === 0 || last(acc) === ".." ? [...acc, seg]
+							: last(acc) === "" ? climbing()
+								: acc.slice(0, -1)
+					)
+					: [...acc, seg], []);
+
+		return segments.join("/")+suffix;
+
+	}
+
+}
+
+/**
+ * Resolves a reference against a base URL with tree-climbing detection.
+ *
+ * URL API silently clips `..` segments that would go above root. This function
+ * detects such cases before URL API combination to throw an appropriate error.
+ *
+ * @param base The parsed base URL
+ * @param reference The normalized reference string
+ *
+ * @returns The resolved URL
+ *
+ * @throws RangeError If the reference would tree-climb above the base root
+ */
+function merge(base: URL, reference: string): URL {
+
+	// tree-climbing detection only for hierarchical URIs with relative paths
+
+	if ( base.origin !== "null" && !SchemePattern.test(reference) ) {
+
+		// extract reference path (before query/hash)
+
+		const queryIndex = reference.indexOf("?");
+		const hashIndex = reference.indexOf("#");
+		const pathEnd = queryIndex !== -1 ? queryIndex : hashIndex !== -1 ? hashIndex : reference.length;
+		const refPath = reference.slice(0, pathEnd);
+
+		// check non-root-relative paths for tree-climbing
+
+		if ( !refPath.startsWith("/") ) {
+
+			// count base directory depth (segments after root, excluding filename)
+
+			const baseSegments = base.pathname.split("/").slice(1, -1); // remove root "" and filename
+			const baseDepth = baseSegments.filter(s => s !== "").length;
+
+			// count leading ".." in reference
+
+			const refSegments = refPath.split("/");
+			const climbCount = refSegments.reduce(
+				(count, seg) => count >= 0 && seg === ".." ? count+1 : -1,
+				0
+			);
+
+			// tree-climbing if ".." count exceeds base depth
+
+			if ( climbCount > baseDepth ) {
+				throw new RangeError(`tree-climbing reference <${reference}>`);
+			}
+
+		}
+
+	}
+
+	return new URL(reference, base);
+
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -160,7 +323,7 @@ const ASCIIPattern = /^[\x00-\x7F]*$/;
  *
  * Use {@link uri} to construct validated URIs or {@link isURI} as a type guard.
  *
- * @see [RFC 3986 - URI Generic Syntax](https://www.rfc-editor.org/rfc/rfc3986.html)
+ * @see {@link https://www.rfc-editor.org/rfc/rfc3986.html RFC 3986 - URI Generic Syntax}
  */
 export type URI = string & {
 
@@ -183,7 +346,7 @@ export type URI = string & {
  *
  * Use {@link iri} to construct validated IRIs or {@link isIRI} as a type guard.
  *
- * @see [RFC 3987 § 2.2 - IRI Syntax](https://www.rfc-editor.org/rfc/rfc3987.html#section-2.2)
+ * @see {@link https://www.rfc-editor.org/rfc/rfc3987.html#section-2.2 RFC 3987 § 2.2 - IRI Syntax}
  */
 export type IRI = string & {
 
@@ -193,23 +356,29 @@ export type IRI = string & {
 
 
 /**
- * Identifier variant.
+ * Identifier variant per RFC 3986 §§ 4.2-4.3.
  *
- * Specify a {@link URI} or {@link IRI} variant per RFC 3986 § 4.2:
+ * - `"absolute"`: Contains scheme (e.g., `http://example.org/path`, `urn:example:resource`)
+ * - `"internal"`: Root-relative path starting with `/` (e.g., `/path`)
+ * - `"relative"`: Reference without scheme (e.g., `../path`, `path`)
  *
- * - **Absolute**: Contains scheme (e.g., `http://example.org/path`)
- * - **Relative**: No scheme, resolved against a base
- *   - **Root-relative**: Starts with `/`, resolved against scheme+authority (e.g., `/path`)
- *   - **Path-relative**: No leading `/`, resolved against base path (e.g., `../path`)
+ * @remarks
+ *
+ * The `"internal"` variant is a project-specific subset of relative references, not formally defined in RFC 3986.
+ *
+ * For opaque URIs (e.g., `urn:`, `mailto:`), reference operations adapt their behavior:
+ *
+ * - {@link resolve}: Throws `RangeError` for relative references (no standard resolution)
+ * - {@link internalize}: Returns scheme-specific part if schemes match (e.g., `example:resource` from `urn:`)
+ * - {@link relativize}: Returns scheme-specific part if schemes match
+ *
+ * @see {@link https://www.rfc-editor.org/rfc/rfc3986.html#section-4.2 RFC 3986 § 4.2 - Relative Reference}
+ * @see {@link https://www.rfc-editor.org/rfc/rfc3986.html#section-4.3 RFC 3986 § 4.3 - Absolute URI}
  */
-export type Variant = {
-
-	/**
-	 * If `true`, relative reference variant; otherwise absolute variant (default: `false`)
-	 */
-	relative?: boolean
-
-}
+export type Variant =
+	| "absolute"
+	| "internal"
+	| "relative"
 
 
 /**
@@ -246,7 +415,7 @@ export type Terms<T extends readonly string[]> = {
  * All fields are optional, allowing flexibility in error reporting. Use {@link detail} for human-readable
  * occurrence-specific information, and {@link report} for machine-readable data.
  *
- * @see [RFC 7807 - Problem Details for HTTP APIs](https://datatracker.ietf.org/doc/html/rfc7807)
+ * @see {@link https://datatracker.ietf.org/doc/html/rfc7807 RFC 7807 - Problem Details for HTTP APIs}
  */
 export interface Problem {
 
@@ -294,221 +463,260 @@ export interface Problem {
  *
  * Validates URIs according to RFC 3986, restricting identifiers to ASCII characters only.
  *
- * @param value Value to validate as a URI
- * @param opts Variant options
- * @param opts.relative If `true`, accept relative URI references; otherwise require absolute URIs (default: `false`)
+ * @param value The value to validate as a URI
+ * @param variant The identifier variant to validate against (default: `"absolute"`)
  *
- * @returns `true` if the value is a valid ASCII-only URI
+ * @returns `true` if the value is a valid ASCII-only URI matching the specified variant
  *
  * @see {@link URI}
+ * @see {@link Variant}
  */
-export function isURI(value: unknown, opts: Variant = {}): value is URI {
-	return isIRI(value, opts) && ASCIIPattern.test(value as string);
+export function isURI(value: unknown, variant: Variant = "absolute"): value is URI {
+
+	return isString(value) && ASCIIPattern.test(value) && isIRI(value, variant);
+
 }
 
 /**
  * Creates a validated URI from a string.
  *
  * Validates URIs according to RFC 3986, restricting identifiers to ASCII characters only.
+ * For non-absolute variants, normalizes paths by removing `.` segments and resolving `..` segments.
  *
- * @param value String to convert to a URI
- * @param opts Variant options
- * @param opts.relative If `true`, validate as relative URI reference; otherwise require absolute URI (default: `false`)
+ * @param value The string to convert to a URI
+ * @param variant The identifier variant to validate against (default: `"absolute"`)
  *
- * @returns The validated URI
+ * @returns The validated and normalized URI
  *
- * @throws RangeError If the value is not a valid ASCII-only URI
+ * @throws RangeError If the value is not a valid ASCII-only URI for the specified variant,
+ *   or if `..` segments would climb above the root
  *
  * @see {@link isURI} for validation rules
  * @see {@link URI}
+ * @see {@link Variant}
  */
-export function uri(value: string, opts: Variant = {}): URI {
+export function uri(value: string, variant: Variant = "absolute"): URI {
 
-	if ( !isURI(value, opts) ) {
-		throw new RangeError(`invalid ${opts.relative ? "relative" : "absolute"} URI <${value}>`);
-	}
+	return isString(value) && ASCIIPattern.test(value) ? normalize(value, variant)
+		: error(new RangeError(`invalid ${variant} URI <${value}>`));
 
-	return value;
 }
 
 
 /**
  * Checks if a value is a valid IRI.
  *
- * Validates IRIs according to RFC 3987 with the following rules:
+ * Validates IRIs according to RFC 3987 with variant-specific rules:
  *
- * **Absolute IRIs**: Must contain a valid scheme (alpha followed by alphanumeric/+/./- characters)
- * followed by a colon and a non-empty scheme-specific part.
+ * - `"absolute"`: Must contain a valid scheme followed by non-empty scheme-specific part
+ * - `"internal"`: Root-relative path starting with `/`, or opaque scheme-specific part
+ * - `"relative"`: Any relative reference
  *
- * **Relative IRI references**: Must not contain a scheme component (to avoid ambiguity with absolute IRIs).
- * Empty strings are accepted as valid relative references per RFC 3987.
+ * For non-absolute variants, rejects paths where `..` segments would climb above the root.
  *
  * **Excluded characters** (per RFC 3987 § 2.2): Control characters (U+0000-U+001F, U+007F-U+009F),
  * whitespace, and `< > " { } | \ ^ `` ` (backtick)
  *
- * @param value Value to validate as an IRI
- * @param opts Variant options
- * @param opts.relative If `true`, accept relative IRI references; otherwise require absolute IRIs (default: `false`)
+ * @param value The value to validate as an IRI
+ * @param variant The identifier variant to validate against (default: `"absolute"`)
  *
- * @returns `true` if the value is a string conforming to IRI syntax rules (absolute or relative based on options)
+ * @returns `true` if the value is a string conforming to IRI syntax rules for the specified variant
  *
  * @remarks
  *
  * This function serves as a type guard, narrowing the type from `string` to {@link IRI}
  * when used in conditional checks.
  *
- * The validation is stricter than simple character exclusion but does not enforce complete RFC 3987
- * grammar (e.g., authority, path structure). This provides a balance between correctness and simplicity.
- *
  * @see {@link IRI}
+ * @see {@link Variant}
  */
-export function isIRI(value: unknown, opts: Variant = {}): value is IRI {
+export function isIRI(value: unknown, variant: Variant = "absolute"): value is IRI {
 
-	const { relative } = opts;
+	try {
 
-	return isString(value) && !ExcludedPattern.test(value) && (relative
+		return isDefined(normalize(value, variant));
 
-			// relative IRI reference: must not contain a scheme component
+	} catch {
 
-			? !SchemePattern.test(value)
+		return false;
 
-			// absolute IRI: must contain scheme followed by non-empty scheme-specific part
-			// the scheme pattern validates structure; we check SSP is non-empty separately
-
-			: SchemePattern.test(value) && value.indexOf(":") < value.length-1
-
-	);
+	}
 
 }
 
 /**
  * Creates a validated IRI from a string.
  *
- * @param value String to convert to an IRI
- * @param opts Variant options
- * @param opts.relative If `true`, validate as relative IRI reference; otherwise require absolute IRI (default: `false`)
+ * For non-absolute variants, normalizes paths by removing `.` segments and resolving `..` segments.
  *
- * @returns The validated IRI
+ * @param value The string to convert to an IRI
+ * @param variant The identifier variant to validate against (default: `"absolute"`)
  *
- * @throws RangeError If the value is not a valid IRI according to the validation rules
+ * @returns The validated and normalized IRI
+ *
+ * @throws RangeError If the value is not a valid IRI for the specified variant,
+ *   or if `..` segments would climb above the root
  *
  * @see {@link isIRI} for validation rules
+ * @see {@link Variant}
  */
-export function iri(value: string, opts: Variant = {}): IRI {
+export function iri(value: string, variant: Variant = "absolute"): IRI {
 
-	if ( !isIRI(value, opts) ) {
-		throw new RangeError(`invalid ${opts.relative ? "relative" : "absolute"} IRI <${value}>`);
-	}
+	return normalize(value, variant);
 
-	return value;
 }
 
 
 /**
  * Resolves a reference against a base identifier.
  *
- * For hierarchical identifiers, implements RFC 3986 § 5 reference resolution, combining `base` and `reference`
- * to produce an absolute identifier. For opaque identifiers, appends `reference` to the scheme-specific part.
+ * - **Hierarchical identifiers**: Implements RFC 3986 § 5 reference resolution, combining `base` and `reference`
+ *   to produce an absolute identifier
+ * - **Opaque identifiers** (e.g., `urn:`, `mailto:`): Absolute references are returned unchanged; relative
+ *   references cannot be resolved and throw an error
  *
  * @typeParam T The identifier type ({@link URI} or {@link IRI})
  *
- * @param base The base identifier to resolve against
+ * @param base The absolute base identifier to resolve against
  * @param reference The reference to resolve
  *
  * @returns The resolved absolute identifier
  *
- * @see [RFC 3986 § 5 - Reference Resolution](https://www.rfc-editor.org/rfc/rfc3986.html#section-5)
+ * @throws RangeError If the resolved path contains tree-climbing segments that would go above the root,
+ *   or if a relative reference cannot be resolved against an opaque base
+ *
+ * @see {@link https://www.rfc-editor.org/rfc/rfc3986.html#section-5 RFC 3986 § 5 - Reference Resolution}
  */
 export function resolve<T extends URI | IRI>(base: T, reference: T): T {
 
-	// delegate to standard URL API (available in both Node.js and browsers)
+	const normalizedBase = normalize<T>(base, "absolute");
+	const normalizedReference = normalize<T>(reference, "relative");
 
-	return new URL(reference, base).href as T;
+	const baseURL = new URL(normalizedBase);
+
+	// opaque base URI: URL API can't resolve relative references
+
+	return baseURL.origin === "null" && !SchemePattern.test(normalizedReference)
+		? error(new RangeError(`cannot resolve <${normalizedReference}> against opaque <${normalizedBase}>`))
+		: merge(baseURL, normalizedReference).href as T;
 
 }
 
 /**
  * Extracts a root-relative reference.
  *
- * For hierarchical identifiers with matching scheme and authority, returns the root-relative path (starting with `/`).
- * For opaque identifiers with the same scheme, returns the scheme-specific part.
+ * - **Hierarchical identifiers**: Returns the root-relative path (starting with `/`) if scheme and authority match
+ * - **Opaque identifiers**: Returns the scheme-specific part if schemes match
  *
  * @typeParam T The identifier type ({@link URI} or {@link IRI})
  *
- * @param base The base identifier providing the scheme and authority context
- * @param reference The identifier to internalize
+ * @param base The absolute base identifier providing the scheme and authority context
+ * @param reference The reference to internalize
  *
- * @returns A root-relative reference, or `reference` unchanged if scheme/authority differ
+ * @returns A root-relative reference if same origin, or the normalized absolute reference otherwise
+ *
+ * @throws RangeError If the resolved path contains tree-climbing segments that would go above the root
  */
 export function internalize<T extends URI | IRI>(base: T, reference: T): T {
 
-	const baseURL = new URL(base);
-	const refURL = new URL(reference);
+	const normalizedBase = normalize<T>(base, "absolute");
+	const normalizedReference = normalize<T>(reference, "relative");
 
-	// different origin: return reference unchanged
+	const baseURL = new URL(normalizedBase);
+	const referenceURL = merge(baseURL, normalizedReference);
+
 	// for opaque URIs (origin === "null"), compare protocols instead
 
 	const sameOrigin = baseURL.origin !== "null"
-		? baseURL.origin === refURL.origin
-		: baseURL.protocol === refURL.protocol;
+		? baseURL.origin === referenceURL.origin
+		: baseURL.protocol === referenceURL.protocol;
 
-	return sameOrigin
-		? (refURL.pathname+refURL.search+refURL.hash) as T
-		: reference;
+	return (sameOrigin
+
+			// same origin: return root-relative path (already normalized by URL API)
+
+			? referenceURL.pathname+referenceURL.search+referenceURL.hash
+
+			// different origin: return absolute reference (already normalized by URL API)
+
+			: referenceURL.href
+
+	) as T;
 
 }
 
 /**
  * Creates a relative reference from base to reference.
  *
- * For hierarchical identifiers, computes the shortest path-relative reference that, when resolved against `base`,
- * yields `reference`. For opaque identifiers with the same scheme, returns the reference's scheme-specific part.
+ * - **Hierarchical identifiers**: Computes the shortest path-relative reference that, when resolved against `base`,
+ *   yields `reference`
+ * - **Opaque identifiers**: Returns the scheme-specific part if schemes match
  *
  * @typeParam T The identifier type ({@link URI} or {@link IRI})
  *
- * @param base The base identifier
- * @param reference The identifier to relativize
+ * @param base The absolute base identifier
+ * @param reference The reference to relativize
  *
- * @returns A relative reference from `base` to `reference`, or `reference` unchanged if not relativizable
+ * @returns A relative reference from `base` to `reference`, or the normalized absolute reference if not relativizable
+ *
+ * @throws RangeError If the resolved path contains tree-climbing segments that would go above the root
  */
 export function relativize<T extends URI | IRI>(base: T, reference: T): T {
 
-	const baseURL = new URL(base);
-	const refURL = new URL(reference);
+	const normalizedBase = normalize<T>(base, "absolute");
+	const normalizedReference = normalize<T>(reference, "relative");
 
-	// different origin: return reference unchanged
+	const baseURL = new URL(normalizedBase);
+	const referenceURL = merge(baseURL, normalizedReference);
+
 	// for opaque URIs (origin === "null"), compare protocols instead
 
 	const sameOrigin = baseURL.origin !== "null"
-		? baseURL.origin === refURL.origin
-		: baseURL.protocol === refURL.protocol;
+		? baseURL.origin === referenceURL.origin
+		: baseURL.protocol === referenceURL.protocol;
 
-	if ( !sameOrigin ) {
-		return reference;
+	return !sameOrigin ? absolute()
+		: baseURL.origin === "null" ? internal()
+			: relative();
+
+
+	// different origin: return absolute reference (already normalized by URL API)
+
+	function absolute(): T {
+
+		return referenceURL.href as T;
+
 	}
 
-	// same origin: compute relative path
+	// opaque URIs: return scheme-specific part (not a hierarchical path)
 
-	const baseParts = baseURL.pathname.split("/").slice(0, -1); // directory segments
-	const refParts = refURL.pathname.split("/");
+	function internal(): T {
 
-	// find common prefix length
+		return (referenceURL.pathname+referenceURL.search+referenceURL.hash) as T;
 
-	const commonLength = baseParts.reduce(
-		(count, segment, index) => segment === refParts[index] ? count+1 : count,
-		0
-	);
+	}
 
-	// build relative path: "../" for each remaining base segment + remaining ref segments
+	// hierarchical URIs: compute relative path
 
-	const upSegments = baseParts.slice(commonLength).map(() => "..");
-	const downSegments = refParts.slice(commonLength);
-	const relativePath = [...upSegments, ...downSegments].join("/") || ".";
+	function relative(): T {
 
-	return (relativePath+refURL.search+refURL.hash) as T;
+		const baseParts = baseURL.pathname.split("/").slice(0, -1); // directory segments
+		const refParts = referenceURL.pathname.split("/");
+
+		const commonLength = baseParts.reduce(
+			(len, seg, i) => len < i || seg !== refParts[i] ? len : len+1,
+			0
+		);
+
+		const upSegments = baseParts.slice(commonLength).map(() => "..");
+		const downSegments = refParts.slice(commonLength);
+		const relativePath = [...upSegments, ...downSegments].join("/") || ".";
+
+		return (relativePath+referenceURL.search+referenceURL.hash) as T;
+
+	}
 
 }
-
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
