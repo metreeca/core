@@ -31,6 +31,8 @@
  * - {@link Update}: A function that accesses current version data via `this` and returns partial
  *   version data to be merged into the state
  * - {@link Observer}: A function called asynchronously when state transitions occur
+ * - {@link Manager}: Housekeeping operations (snapshots, observers) accessed via {@link $}`(state)`,
+ *   kept separate from {@link State} to avoid polluting user-defined interfaces
  *
  * States are created by the {@link State} factory from a {@link Seed} where transition
  * methods are implemented as {@link Update} functions that return partial updates. These
@@ -204,12 +206,17 @@
  * @module
  */
 
-import { $, type Meta } from "../basic/meta.js";
 import { immutable } from "../basic/nested.js";
 
 
 /**
- * Symbol used to store observers on state objects.
+ * Symbol used to store managers on state instances.
+ * Non-enumerable to prevent enumeration and maintain clean state interface.
+ */
+const Manager = Symbol("manager");
+
+/**
+ * Symbol used to store observers on state instances.
  * Non-enumerable to prevent enumeration and maintain clean state interface.
  */
 const Observers = Symbol("observers");
@@ -247,18 +254,22 @@ export interface State {
 /**
  * State instance.
  *
- * A concrete {@link State} implementation with attached {@link Manager} metadata, created by
- * the {@link State} factory. Combines state interface members (data properties and transition
- * methods) with manager operations accessible via {@link $}`(state)`.
+ * A concrete {@link State} implementation created by the {@link state} factory. Combines state
+ * interface members (data properties and transition methods) with {@link Manager} operations
+ * accessible via {@link $}`(state)`.
  *
  * @typeParam T The state interface type
  */
-export type Instance<T extends State> = T & Meta<Manager<T>>;
+export type Instance<T extends State> = T & {
+
+	readonly __brand: unique symbol
+
+};
 
 /**
  * State manager.
  *
- * Provides housekeeping operations for state objects, including snapshotting, restoration,
+ * Provides housekeeping operations for state instances, including snapshotting, restoration,
  * and observer management. See module documentation for detailed usage examples.
  *
  * @typeParam T The state type this manager is attached to
@@ -517,12 +528,19 @@ export function state<T extends State>(seed: Seed<T>): Instance<T> {
 
 		// create and attach manager
 
-		return Object.freeze($(state, {
-			capture: () => capture.call(state),
-			restore: (version: Version<T>) => restore.call(state, version),
-			attach: (observer: Observer<T>) => attach.call(state, observer),
-			detach: (observer: Observer<T>) => detach.call(state, observer)
-		}));
+		Object.defineProperty(state, Manager, {
+			value: {
+				capture: () => capture.call(state),
+				restore: (version: Version<T>) => restore.call(state, version),
+				attach: (observer: Observer<T>) => attach.call(state, observer),
+				detach: (observer: Observer<T>) => detach.call(state, observer)
+			},
+			enumerable: false,
+			writable: false,
+			configurable: false
+		});
+
+		return Object.freeze(state) as Instance<T>;
 	}
 
 
@@ -589,5 +607,26 @@ export function state<T extends State>(seed: Seed<T>): Instance<T> {
 		}));
 
 	}
+
+}
+
+/**
+ * Retrieves the {@link Manager} for a state instance.
+ *
+ * @typeParam T The state type
+ *
+ * @param instance The state instance
+ *
+ * @returns The state instance manager providing snapshot, restoration, and observer operations
+ *
+ * @throws Error if the object is not a valid state instance
+ */
+export function $<T extends State>(instance	: Instance<T>): Manager<T> {
+
+	if ( instance === null || typeof instance !== "object" || !(Manager in instance) ) {
+		throw new Error("not a state instance");
+	}
+
+	return (instance as any)[Manager];
 
 }

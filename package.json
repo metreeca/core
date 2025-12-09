@@ -28,7 +28,6 @@
     "./json": "./dist/basic/json.js",
     "./nested": "./dist/basic/nested.js",
     "./report": "./dist/basic/report.js",
-    "./meta": "./dist/basic/meta.js",
     "./resource": "./dist/network/resource.js",
     "./language": "./dist/network/language.js",
     "./async": "./dist/async/index.js",

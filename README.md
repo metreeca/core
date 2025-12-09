@@ -28,7 +28,6 @@ npm install @metreeca/core
 | [@metreeca/core/nested](https://metreeca.github.io/core/modules/nested.html)     | Deep operations on nested objects and arrays   |
 | [@metreeca/core/report](https://metreeca.github.io/core/modules/report.html)     | Error handling and execution reporting         |
 | [@metreeca/core/async](https://metreeca.github.io/core/modules/async.html)       | Primitives for asynchronous operations         |
-| [@metreeca/core/meta](https://metreeca.github.io/core/modules/met.html)          | Metadata annotations                           |
 | **Network Operations**                                                           |                                                |
 | [@metreeca/core/resource](https://metreeca.github.io/core/modules/resource.html) | Resource identifiers and HTTP utilities        |
 | [@metreeca/core/language](https://metreeca.github.io/core/modules/language.html) | Language tags and ranges                       |
