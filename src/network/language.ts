@@ -294,10 +294,10 @@ export function asTagRange(value: string): TagRange {
  * @see {@link Tag}
  * @see {@link TagRange}
  */
-export function matchTag(tag: Tag, range: TagRange): boolean {
+export function matchTag(tag: string|Tag, range: string|TagRange): boolean {
 
-	const tagSubtags = tag.toLowerCase().split("-");
-	const rangeSubtags = range.toLowerCase().split("-");
+	const tagSubtags = asTag(tag).toLowerCase().split("-");
+	const rangeSubtags = asTagRange(range).toLowerCase().split("-");
 
 	const [firstTag, ...restTag] = tagSubtags;
 	const [firstRange, ...restRange] = rangeSubtags;
