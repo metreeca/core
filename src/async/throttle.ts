@@ -41,7 +41,7 @@ export interface Throttle {
 	 * current load and timing. Uses randomized sleep intervals to avoid thundering herd effects.
 	 *
 	 * @param adapt - If true, increments the queue counter and expects completion feedback through
-	 *                the {@link createThrottle.adapt} method. Defaults to false.
+	 *                the {@link Throttle.adapt} method. Defaults to false.
 	 *
 	 * @returns A promise that resolves with the time elapsed since the last task execution in milliseconds
 	 */
