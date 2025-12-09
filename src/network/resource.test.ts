@@ -218,24 +218,27 @@ describe("uri", () => {
 	});
 
 	it("should normalize paths by removing . and resolving .. segments", () => {
-		expect(uri("./path", "relative")).toBe("path");
-		expect(uri("a/./b", "relative")).toBe("a/b");
-		expect(uri("a/../b", "relative")).toBe("b");
-		expect(uri("a/b/../c", "relative")).toBe("a/c");
 		expect(uri("/a/./b/../c", "internal")).toBe("/a/c");
 	});
 
-	it("should reject tree-climbing paths that go above root", () => {
-		expect(() => uri("/../path", "internal")).toThrow(RangeError);
-		expect(() => uri("/a/../../path", "internal")).toThrow(RangeError);
-		expect(() => uri("http://example.com/../path")).toThrow(RangeError);
-		expect(() => uri("http://example.com/a/../../path")).toThrow(RangeError);
+	it("should preserve . and .. in relative paths for later resolution", () => {
+		expect(uri("./path", "relative")).toBe("./path");
+		expect(uri("a/./b", "relative")).toBe("a/./b");
+		expect(uri("a/../b", "relative")).toBe("a/../b");
+		expect(uri("a/b/../c", "relative")).toBe("a/b/../c");
 	});
 
-	it("should preserve leading .. in relative paths", () => {
+	it("should clip excessive .. segments at root", () => {
+		expect(uri("/../path", "internal")).toBe("/path");
+		expect(uri("/a/../../path", "internal")).toBe("/path");
+		expect(uri("http://example.com/../path")).toBe("http://example.com/path");
+		expect(uri("http://example.com/a/../../path")).toBe("http://example.com/path");
+	});
+
+	it("should preserve leading .. in relative paths for later resolution", () => {
 		expect(uri("../path", "relative")).toBe("../path");
 		expect(uri("../../path", "relative")).toBe("../../path");
-		expect(uri("../a/../b", "relative")).toBe("../b");
+		expect(uri("../a/../b", "relative")).toBe("../a/../b");
 	});
 
 });
@@ -317,24 +320,27 @@ describe("iri", () => {
 	});
 
 	it("should normalize paths by removing . and resolving .. segments", () => {
-		expect(iri("./path", "relative")).toBe("path");
-		expect(iri("a/./b", "relative")).toBe("a/b");
-		expect(iri("a/../b", "relative")).toBe("b");
-		expect(iri("a/b/../c", "relative")).toBe("a/c");
 		expect(iri("/a/./b/../c", "internal")).toBe("/a/c");
 	});
 
-	it("should reject tree-climbing paths that go above root", () => {
-		expect(() => iri("/../path", "internal")).toThrow(RangeError);
-		expect(() => iri("/a/../../path", "internal")).toThrow(RangeError);
-		expect(() => iri("http://example.com/../path")).toThrow(RangeError);
-		expect(() => iri("http://example.com/a/../../path")).toThrow(RangeError);
+	it("should preserve . and .. in relative paths for later resolution", () => {
+		expect(iri("./path", "relative")).toBe("./path");
+		expect(iri("a/./b", "relative")).toBe("a/./b");
+		expect(iri("a/../b", "relative")).toBe("a/../b");
+		expect(iri("a/b/../c", "relative")).toBe("a/b/../c");
 	});
 
-	it("should preserve leading .. in relative paths", () => {
+	it("should clip excessive .. segments at root", () => {
+		expect(iri("/../path", "internal")).toBe("/path");
+		expect(iri("/a/../../path", "internal")).toBe("/path");
+		expect(iri("http://example.com/../path")).toBe("http://example.com/path");
+		expect(iri("http://example.com/a/../../path")).toBe("http://example.com/path");
+	});
+
+	it("should preserve leading .. in relative paths for later resolution", () => {
 		expect(iri("../path", "relative")).toBe("../path");
 		expect(iri("../../path", "relative")).toBe("../../path");
-		expect(iri("../a/../b", "relative")).toBe("../b");
+		expect(iri("../a/../b", "relative")).toBe("../a/../b");
 	});
 
 });
@@ -374,6 +380,11 @@ describe("resolve()", () => {
 			expect(resolve(base, uri("./d", "relative"))).toBe("http://example.com/a/b/d");
 			expect(resolve(base, uri("../d", "relative"))).toBe("http://example.com/a/d");
 			expect(resolve(base, uri("../../d", "relative"))).toBe("http://example.com/d");
+		});
+
+		it("should clip excessive .. segments at root", () => {
+			expect(resolve(base, uri("../../../d", "relative"))).toBe("http://example.com/d");
+			expect(resolve(base, uri("../../../../d", "relative"))).toBe("http://example.com/d");
 		});
 
 		it("should preserve absolute reference with scheme", () => {

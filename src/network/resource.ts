@@ -180,18 +180,18 @@ const ASCIIPattern = /^[\x00-\x7F]*$/;
 function normalize<T extends URI | IRI>(value: unknown, variant: Variant): T {
 
 	const invalid = (): never => error(new RangeError(`invalid ${variant} reference <${value}>`));
-	const climbing = (): never => error(new RangeError(`tree-climbing reference <${value}>`));
 
 	// syntax validation
 
 	const validSyntax = isString(value) && !ExcludedPattern.test(value);
 	const hasScheme = validSyntax && SchemePattern.test(value);
 
-	// path normalization
+	// path normalization (URL API silently clips excessive `..` at root)
 
 	const normalized = !validSyntax ? invalid()
-		: variant === "absolute" || hasScheme ? normalizeURL(value)
-			: normalizePath(value);
+		: hasScheme ? tryURL(value, url => url.href)
+			: value.startsWith("/") ? tryURL(value, url => url.pathname+url.search+url.hash)
+				: value; // relative paths: keep `.` and `..` for later resolution
 
 	// variant validation
 
@@ -202,18 +202,11 @@ function normalize<T extends URI | IRI>(value: unknown, variant: Variant): T {
 	return valid ? normalized as T : invalid();
 
 
-	function normalizeURL(url: string): string {
+	function tryURL(ref: string, extract: (url: URL) => string): string {
 
 		try {
 
-			// URL API normalizes tree-climbing instead of throwing; detect manually
-
-			const pathMatch = url.match(/^[a-z][a-z0-9+.-]*:\/\/[^/?#]*(\/?[^?#]*)/i);
-			const originalPath = pathMatch?.[1] ?? "";
-			const treeClimbing = originalPath.split("/").reduce((d, s) =>
-				d < 0 ? d : s === ".." ? d-1 : s !== "" && s !== "." ? d+1 : d, 0) < 0;
-
-			return treeClimbing ? climbing() : new URL(url).href;
+			return extract(new URL(ref, "x:/"));
 
 		} catch {
 
@@ -223,86 +216,21 @@ function normalize<T extends URI | IRI>(value: unknown, variant: Variant): T {
 
 	}
 
-	function normalizePath(reference: string): string {
-
-		const queryIndex = reference.indexOf("?");
-		const hashIndex = reference.indexOf("#");
-		const pathEnd = queryIndex !== -1 ? queryIndex : hashIndex !== -1 ? hashIndex : reference.length;
-
-		const path = reference.slice(0, pathEnd);
-		const suffix = reference.slice(pathEnd);
-
-		const last = (s: string[]) => s[s.length-1];
-		const segments = path.split("/").reduce<string[]>((acc, seg) =>
-			seg === "." ? acc
-				: seg === ".." ? (
-						acc.length === 0 || last(acc) === ".." ? [...acc, seg]
-							: last(acc) === "" ? climbing()
-								: acc.slice(0, -1)
-					)
-					: [...acc, seg], []);
-
-		return segments.join("/")+suffix;
-
-	}
-
 }
 
 /**
- * Resolves a reference against a base URL with tree-climbing detection.
+ * Resolves a reference against a base URL.
  *
- * URL API silently clips `..` segments that would go above root. This function
- * detects such cases before URL API combination to throw an appropriate error.
+ * Aligns with standard URL API semantics: excessive `..` segments that would
+ * go above root are silently clipped rather than throwing errors.
  *
  * @param base The parsed base URL
  * @param reference The normalized reference string
  *
  * @returns The resolved URL
- *
- * @throws RangeError If the reference would tree-climb above the base root
  */
 function merge(base: URL, reference: string): URL {
-
-	// tree-climbing detection only for hierarchical URIs with relative paths
-
-	if ( base.origin !== "null" && !SchemePattern.test(reference) ) {
-
-		// extract reference path (before query/hash)
-
-		const queryIndex = reference.indexOf("?");
-		const hashIndex = reference.indexOf("#");
-		const pathEnd = queryIndex !== -1 ? queryIndex : hashIndex !== -1 ? hashIndex : reference.length;
-		const refPath = reference.slice(0, pathEnd);
-
-		// check non-root-relative paths for tree-climbing
-
-		if ( !refPath.startsWith("/") ) {
-
-			// count base directory depth (segments after root, excluding filename)
-
-			const baseSegments = base.pathname.split("/").slice(1, -1); // remove root "" and filename
-			const baseDepth = baseSegments.filter(s => s !== "").length;
-
-			// count leading ".." in reference
-
-			const refSegments = refPath.split("/");
-			const climbCount = refSegments.reduce(
-				(count, seg) => count >= 0 && seg === ".." ? count+1 : -1,
-				0
-			);
-
-			// tree-climbing if ".." count exceeds base depth
-
-			if ( climbCount > baseDepth ) {
-				throw new RangeError(`tree-climbing reference <${reference}>`);
-			}
-
-		}
-
-	}
-
 	return new URL(reference, base);
-
 }
 
 
