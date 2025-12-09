@@ -515,7 +515,7 @@ export function iri(value: string, variant: Variant = "absolute"): IRI {
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986.html#section-5 RFC 3986 § 5 - Reference Resolution}
  */
-export function resolve<T extends URI | IRI>(base: T, reference: T): T {
+export function resolve<T extends URI | IRI>(base: string|T, reference: string|T): T {
 
 	const normalizedBase = normalize<T>(base, "absolute");
 	const normalizedReference = normalize<T>(reference, "relative");
@@ -545,7 +545,7 @@ export function resolve<T extends URI | IRI>(base: T, reference: T): T {
  *
  * @throws RangeError If the resolved path contains tree-climbing segments that would go above the root
  */
-export function internalize<T extends URI | IRI>(base: T, reference: T): T {
+export function internalize<T extends URI | IRI>(base: string|T, reference: string|T): T {
 
 	const normalizedBase = normalize<T>(base, "absolute");
 	const normalizedReference = normalize<T>(reference, "relative");
@@ -589,7 +589,7 @@ export function internalize<T extends URI | IRI>(base: T, reference: T): T {
  *
  * @throws RangeError If the resolved path contains tree-climbing segments that would go above the root
  */
-export function relativize<T extends URI | IRI>(base: T, reference: T): T {
+export function relativize<T extends URI | IRI>(base: string|T, reference: string|T): T {
 
 	const normalizedBase = normalize<T>(base, "absolute");
 	const normalizedReference = normalize<T>(reference, "relative");
@@ -674,20 +674,22 @@ export function relativize<T extends URI | IRI>(base: T, reference: T): T {
  * **Closed namespaces** (terms provided): Restrict access to predefined terms only, throwing errors
  * for undefined term names.
  */
-export function namespace<const T extends readonly string[]>(base: IRI, terms?: T): Namespace & Terms<T> {
+export function namespace<const T extends readonly string[]>(base: string|IRI, terms?: T): Namespace & Terms<T> {
 
-	const dictionary = Object.fromEntries((terms ?? []).map(term => [term, iri(base+term)])) as Terms<T>;
+	const normalizedBase=iri(base); // validate base eagerly
+
+	const dictionary = Object.fromEntries((terms ?? []).map(term => [term, iri(normalizedBase+term)])) as Terms<T>;
 
 	const factory = terms && terms.length > 0
 
 		// closed namespace: only allow predefined terms
 
 		? (name: string): IRI => name in dictionary ? dictionary[name as T[number]]
-			: error(new RangeError(`unknown term <${name}> in closed namespace <${base}>`))
+			: error(new RangeError(`unknown term <${name}> in closed namespace <${normalizedBase}>`))
 
 		// open namespace: dynamically create IRIs
 
-		: (name: string): IRI => iri(base+name);
+		: (name: string): IRI => iri(normalizedBase+name);
 
 	return Object.assign(factory, dictionary);
 
