@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { Option, relay } from "./relay.js";
+import { Option, createRelay } from "./relay.js";
 
 
 /**
@@ -88,7 +88,7 @@ describe("Relay", () => {
 
 			// ✅ valid: fallback as handler
 
-			const singleProp = relay<TestOptions>({ string: "test" })({
+			const singleProp = createRelay<TestOptions>({ string: "test" })({
 				string: "ok"
 			}, "default");
 
@@ -105,7 +105,7 @@ describe("Relay", () => {
 
 			// @ts-expect-error - handler should accept string, not number
 
-			const result = relay<TestOptions>({ string: "test" })({
+			const result = createRelay<TestOptions>({ string: "test" })({
 				string: (v: number) => v*2,
 				boolean: (b) => b ? "true" : "false",
 				number: (n) => n.toString()
@@ -120,7 +120,7 @@ describe("Relay", () => {
 			// this test verifies that all handlers should return the same type
 			// when implemented, TypeScript should enforce consistent return types
 
-			const result = relay<TestOptions>({ string: "test" })({
+			const result = createRelay<TestOptions>({ string: "test" })({
 				boolean: 42,
 				number: 10,
 				// @ts-expect-error - Type 'string' is not assignable to type 'Handler<string, number>'
@@ -135,7 +135,7 @@ describe("Relay", () => {
 
 		it("should infer handler parameter types correctly", async () => {
 
-			const result = relay<TestOptions>({ string: "test" })({
+			const result = createRelay<TestOptions>({ string: "test" })({
 				boolean: (b) => b ? 1 : 0, // b is inferred as boolean
 				number: (n) => n*2, // n is inferred as number
 				string: (v) => v.length // v is inferred as string
@@ -151,7 +151,7 @@ describe("Relay", () => {
 
 			// missing 'number' handler, so result is string | undefined
 
-			const result: string | undefined = relay<TestOptions>({ string: "test" })({
+			const result: string | undefined = createRelay<TestOptions>({ string: "test" })({
 				string: "ok",
 				boolean: "error"
 			});
@@ -162,7 +162,7 @@ describe("Relay", () => {
 
 		it("type check: should reject extra handler keys", async () => {
 
-			const result = relay<TestOptions>({ string: "test" })({
+			const result = createRelay<TestOptions>({ string: "test" })({
 				string: "ok",
 				boolean: "error",
 				number: "other",
@@ -180,7 +180,7 @@ describe("Relay", () => {
 
 		it("should support fallback handler", async () => {
 
-			const result: string = relay<TestOptions>({ string: "test" })({
+			const result: string = createRelay<TestOptions>({ string: "test" })({
 				string: "matched string",
 				boolean: "matched boolean",
 				number: "matched number"
@@ -192,7 +192,7 @@ describe("Relay", () => {
 
 		it("should pass union of all option types to fallback handler", async () => {
 
-			const result: string = relay<TestOptions>({ number: 42 })({
+			const result: string = createRelay<TestOptions>({ number: 42 })({
 				string: (v) => `string: ${v}`,
 				number: (n) => `number: ${n}`,
 				boolean: (b) => `boolean: ${b}`
@@ -213,7 +213,7 @@ describe("Relay", () => {
 
 		it("should support constant fallback value", async () => {
 
-			const result: number = relay<TestOptions>({ boolean: true })({
+			const result: number = createRelay<TestOptions>({ boolean: true })({
 				boolean: 1,
 				string: 2,
 				number: 3
@@ -225,7 +225,7 @@ describe("Relay", () => {
 
 		it("should return R (not R | undefined) with fallback", async () => {
 
-			const result: string = relay<TestOptions>({ string: "test" })({
+			const result: string = createRelay<TestOptions>({ string: "test" })({
 				boolean: "matched boolean"
 				// 'string' and 'number' handlers missing, but fallback guarantees a result
 			}, "default option");
@@ -237,7 +237,7 @@ describe("Relay", () => {
 
 		it("type check: should reject wrong type for fallback handler", async () => {
 
-			const result = relay<TestOptions>({ string: "test" })({
+			const result = createRelay<TestOptions>({ string: "test" })({
 					string: (v) => v.length,
 					number: (n) => n*2,
 					boolean: (b) => b ? 1 : 0
@@ -258,7 +258,7 @@ describe("Relay", () => {
 
 			// ✅ valid: Fallback parameter specified
 
-			const a = relay<{ value: string; error: Error }>({ value: "done" })({
+			const a = createRelay<{ value: string; error: Error }>({ value: "done" })({
 				value: (v) => `value: ${v}`
 			}, () => "unhandled");
 
@@ -279,7 +279,7 @@ describe("Relay", () => {
 
 			// ✅ valid: delegate parameter available when fallback is provided
 
-			const result = relay<TestOptions>({ value: "test" })({
+			const result = createRelay<TestOptions>({ value: "test" })({
 				value: (v, delegate) => delegate()
 			}, "fallback");
 
@@ -291,7 +291,7 @@ describe("Relay", () => {
 
 			// ✅ valid: single-parameter handler for complete handlers
 
-			const result = relay<TestOptions>({ value: "test" })({
+			const result = createRelay<TestOptions>({ value: "test" })({
 				value: (v) => `value: ${v}`,
 				error: (e) => `error: ${e.message}`
 			});
@@ -307,7 +307,7 @@ describe("Relay", () => {
 			// runtime assertion is secondary
 
 			// @ts-expect-error - delegate parameter not available without fallback
-			const result = relay<TestOptions>({ value: "test" })({
+			const result = createRelay<TestOptions>({ value: "test" })({
 				value: (v, delegate) => delegate(),
 				error: (e) => `error: ${e.message}`
 			});
@@ -324,7 +324,7 @@ describe("Relay", () => {
 			// runtime assertion is secondary
 
 			// @ts-expect-error - delegate parameter not available without fallback
-			const result = relay<TestOptions>({ value: "test" })({
+			const result = createRelay<TestOptions>({ value: "test" })({
 				value: (v, delegate) => delegate()
 			});
 
@@ -354,7 +354,7 @@ describe("relay()", () => {
 
 		it("should handle all options with function handlers", async () => {
 
-			const result = relay<TestOptions>({ value: "success" })({
+			const result = createRelay<TestOptions>({ value: "success" })({
 				value: (v) => `Value: ${v}`,
 				error: (e) => `Error: ${e.message}`,
 				loading: (l) => `Loading: ${l}`
@@ -366,7 +366,7 @@ describe("relay()", () => {
 
 		it("should handle all options with constant handlers", async () => {
 
-			const result = relay<TestOptions>({ error: new Error("failed") })({
+			const result = createRelay<TestOptions>({ error: new Error("failed") })({
 				value: 1,
 				error: 2,
 				loading: 3
@@ -378,7 +378,7 @@ describe("relay()", () => {
 
 		it("should handle mixed function and constant handlers", async () => {
 
-			const result = relay<TestOptions>({ loading: true })({
+			const result = createRelay<TestOptions>({ loading: true })({
 				value: (v) => v.length,
 				error: 0,
 				loading: (l) => l ? 100 : 0
@@ -391,7 +391,7 @@ describe("relay()", () => {
 		it("should correctly pass the active option value to handler", async () => {
 
 			const testError = new Error("test error");
-			const result = relay<TestOptions>({ error: testError })({
+			const result = createRelay<TestOptions>({ error: testError })({
 				value: (v) => `value: ${v}`,
 				error: (e) => e.message,
 				loading: (l) => `loading: ${l}`
@@ -407,7 +407,7 @@ describe("relay()", () => {
 
 		it("should return handler result when option matches", async () => {
 
-			const result = relay<TestOptions>({ value: "done" })({
+			const result = createRelay<TestOptions>({ value: "done" })({
 				value: "matched",
 				error: "error matched"
 			});
@@ -418,7 +418,7 @@ describe("relay()", () => {
 
 		it("should return undefined when option does not match any handler", async () => {
 
-			const result = relay<TestOptions>({ loading: true })({
+			const result = createRelay<TestOptions>({ loading: true })({
 				value: "value matched",
 				error: "error matched"
 			});
@@ -429,7 +429,7 @@ describe("relay()", () => {
 
 		it("should return undefined with empty handlers object", async () => {
 
-			const result = relay<TestOptions>({ value: "test" })({});
+			const result = createRelay<TestOptions>({ value: "test" })({});
 
 			expect(result).toBeUndefined();
 
@@ -437,7 +437,7 @@ describe("relay()", () => {
 
 		it("should handle function handlers in partial mode", async () => {
 
-			const result = relay<TestOptions>({ error: new Error("oops") })({
+			const result = createRelay<TestOptions>({ error: new Error("oops") })({
 				error: (e) => `Error occurred: ${e.message}`
 			});
 
@@ -451,7 +451,7 @@ describe("relay()", () => {
 
 		it("should use specific handler when option matches", async () => {
 
-			const result = relay<TestOptions>({ value: "hello" })({
+			const result = createRelay<TestOptions>({ value: "hello" })({
 				value: "specific handler"
 			}, "fallback handler");
 
@@ -461,7 +461,7 @@ describe("relay()", () => {
 
 		it("should use fallback when option does not match any specific handler", async () => {
 
-			const result = relay<TestOptions>({ loading: false })({
+			const result = createRelay<TestOptions>({ loading: false })({
 				value: "value handler"
 			}, "fallback handler");
 
@@ -471,7 +471,7 @@ describe("relay()", () => {
 
 		it("should pass value to fallback function handler", async () => {
 
-			const result = relay<TestOptions>({ error: new Error("fail") })({
+			const result = createRelay<TestOptions>({ error: new Error("fail") })({
 				value: (v) => `value: ${v}`
 			}, (v) => {
 				if ( v instanceof Error ) {
@@ -486,7 +486,7 @@ describe("relay()", () => {
 
 		it("should use constant fallback handler", async () => {
 
-			const result = relay<TestOptions>({ loading: true })({}, 999);
+			const result = createRelay<TestOptions>({ loading: true })({}, 999);
 
 			expect(result).toBe(999);
 
@@ -494,7 +494,7 @@ describe("relay()", () => {
 
 		it("should prefer specific handler over fallback", async () => {
 
-			const result = relay<TestOptions>({ value: "test" })({
+			const result = createRelay<TestOptions>({ value: "test" })({
 				value: "specific",
 				error: "error",
 				loading: "loading"
@@ -518,7 +518,7 @@ describe("relay()", () => {
 
 		it("should handle string values", async () => {
 
-			const result = relay<MixedOptions>({ string: "hello" })({
+			const result = createRelay<MixedOptions>({ string: "hello" })({
 				string: (v) => v.toUpperCase(),
 				number: (n) => n.toString(),
 				boolean: (b) => b.toString(),
@@ -532,7 +532,7 @@ describe("relay()", () => {
 
 		it("should handle number values", async () => {
 
-			const result = relay<MixedOptions>({ number: 42 })({
+			const result = createRelay<MixedOptions>({ number: 42 })({
 				string: (v) => v.length,
 				number: (n) => n*2,
 				boolean: (b) => b ? 1 : 0,
@@ -546,7 +546,7 @@ describe("relay()", () => {
 
 		it("should handle boolean values", async () => {
 
-			const result = relay<MixedOptions>({ boolean: true })({
+			const result = createRelay<MixedOptions>({ boolean: true })({
 				string: "string",
 				number: "number",
 				boolean: (b) => b ? "yes" : "no",
@@ -561,7 +561,7 @@ describe("relay()", () => {
 		it("should handle object values", async () => {
 
 			const obj = { id: 123, name: "test" };
-			const result = relay<MixedOptions>({ object: obj })({
+			const result = createRelay<MixedOptions>({ object: obj })({
 				string: (v) => `string: ${v}`,
 				number: (n) => `number: ${n}`,
 				boolean: (b) => `boolean: ${b}`,
@@ -576,7 +576,7 @@ describe("relay()", () => {
 		it("should handle array values", async () => {
 
 			const arr = ["a", "b", "c"];
-			const result = relay<MixedOptions>({ array: arr })({
+			const result = createRelay<MixedOptions>({ array: arr })({
 				string: (v) => [v],
 				number: (n) => [n.toString()],
 				boolean: (b) => [b.toString()],
@@ -600,19 +600,19 @@ describe("relay()", () => {
 
 		it("should handle async operation states", async () => {
 
-			const pending = relay<AsyncResult<string>>({ pending: undefined })({
+			const pending = createRelay<AsyncResult<string>>({ pending: undefined })({
 				pending: "Loading...",
 				success: (data) => `Success: ${data}`,
 				failure: (err) => `Error: ${err.message}`
 			});
 
-			const success = relay<AsyncResult<string>>({ success: "data loaded" })({
+			const success = createRelay<AsyncResult<string>>({ success: "data loaded" })({
 				pending: "Loading...",
 				success: (data) => `Success: ${data}`,
 				failure: (err) => `Error: ${err.message}`
 			});
 
-			const failure = relay<AsyncResult<string>>({ failure: new Error("network error") })({
+			const failure = createRelay<AsyncResult<string>>({ failure: new Error("network error") })({
 				pending: "Loading...",
 				success: (data) => `Success: ${data}`,
 				failure: (err) => `Error: ${err.message}`
@@ -632,13 +632,13 @@ describe("relay()", () => {
 
 		it("should handle HTTP response status patterns", async () => {
 
-			const ok = relay<HttpStatus>({ ok: { data: "response" } })({
+			const ok = createRelay<HttpStatus>({ ok: { data: "response" } })({
 				ok: (res) => res.data,
 				notFound: (err) => `Not found: ${err.path}`,
 				serverError: (err) => `Server error: ${err.code}`
 			});
 
-			const notFound = relay<HttpStatus>({ notFound: { path: "/api/users" } })({
+			const notFound = createRelay<HttpStatus>({ notFound: { path: "/api/users" } })({
 				ok: (res) => res.data,
 				notFound: (err) => `Not found: ${err.path}`,
 				serverError: (err) => `Server error: ${err.code}`
@@ -658,7 +658,7 @@ describe("relay()", () => {
 
 		it("should handle form state transitions with fallback", async () => {
 
-			const result = relay<FormState>({ editing: { value: "text" } })({
+			const result = createRelay<FormState>({ editing: { value: "text" } })({
 				submitted: (s) => `Submitted with id: ${s.id}`
 			}, "Form is not submitted");
 
@@ -677,7 +677,7 @@ describe("relay()", () => {
 
 		it("should handle undefined as a valid option value", async () => {
 
-			const result = relay<SomeNoneOptions>({ none: undefined })({
+			const result = createRelay<SomeNoneOptions>({ none: undefined })({
 				some: (v) => `Value: ${v}`,
 				none: "No value"
 			});
@@ -688,7 +688,7 @@ describe("relay()", () => {
 
 		it("should distinguish undefined from missing property", async () => {
 
-			const result = relay<SomeNoneOptions>({ none: undefined })({
+			const result = createRelay<SomeNoneOptions>({ none: undefined })({
 				none: (v) => `none: ${v}`,
 				some: (v) => `some: ${v}`
 			});
@@ -710,7 +710,7 @@ describe("relay()", () => {
 
 		it("should handle zero as a value", async () => {
 
-			const result = relay<EdgeOptions>({ zero: 0 })({
+			const result = createRelay<EdgeOptions>({ zero: 0 })({
 				zero: (n) => `zero: ${n}`,
 				emptyString: "empty",
 				falseBool: "false",
@@ -723,7 +723,7 @@ describe("relay()", () => {
 
 		it("should handle empty string as a value", async () => {
 
-			const result = relay<EdgeOptions>({ emptyString: "" })({
+			const result = createRelay<EdgeOptions>({ emptyString: "" })({
 				zero: "zero",
 				emptyString: (s) => `empty: ${s}`,
 				falseBool: "false",
@@ -736,7 +736,7 @@ describe("relay()", () => {
 
 		it("should handle false as a value", async () => {
 
-			const result = relay<EdgeOptions>({ falseBool: false })({
+			const result = createRelay<EdgeOptions>({ falseBool: false })({
 				zero: "zero",
 				emptyString: "empty",
 				falseBool: (b) => `false: ${b}`,
@@ -749,7 +749,7 @@ describe("relay()", () => {
 
 		it("should handle null as a value", async () => {
 
-			const result = relay<EdgeOptions>({ nullValue: null })({
+			const result = createRelay<EdgeOptions>({ nullValue: null })({
 				zero: "zero",
 				emptyString: "empty",
 				falseBool: "false",
@@ -772,7 +772,7 @@ describe("relay()", () => {
 
 		it("should allow handler to delegate to constant fallback", async () => {
 
-			const result = relay<TestOptions>({ value: "test" })({
+			const result = createRelay<TestOptions>({ value: "test" })({
 				value: (_v, delegate) => delegate()
 			}, "fallback value");
 
@@ -782,7 +782,7 @@ describe("relay()", () => {
 
 		it("should allow handler to delegate to function fallback", async () => {
 
-			const result = relay<TestOptions>({ value: "test" })({
+			const result = createRelay<TestOptions>({ value: "test" })({
 				value: (v, delegate) => delegate()
 			}, (v) => `fallback: ${v}`);
 
@@ -795,11 +795,11 @@ describe("relay()", () => {
 			const handleValue = (v: string, delegate: () => string) =>
 				v.length > 5 ? `long: ${v}` : delegate();
 
-			const longResult = relay<TestOptions>({ value: "lengthy" })({
+			const longResult = createRelay<TestOptions>({ value: "lengthy" })({
 				value: handleValue
 			}, "short value");
 
-			const shortResult = relay<TestOptions>({ value: "hi" })({
+			const shortResult = createRelay<TestOptions>({ value: "hi" })({
 				value: handleValue
 			}, "short value");
 
@@ -810,7 +810,7 @@ describe("relay()", () => {
 
 		it("should pass value to fallback function when delegating", async () => {
 
-			const result = relay<TestOptions>({ error: new Error("oops") })({
+			const result = createRelay<TestOptions>({ error: new Error("oops") })({
 				error: (_e, delegate) => delegate()
 			}, (v) => {
 				if ( v instanceof Error ) {
@@ -825,7 +825,7 @@ describe("relay()", () => {
 
 		it("should allow mixing delegating and non-delegating handlers", async () => {
 
-			const result = relay<TestOptions>({ loading: true })({
+			const result = createRelay<TestOptions>({ loading: true })({
 				value: "direct value",
 				loading: (_l, delegate) => delegate()
 			}, "fallback");
@@ -836,7 +836,7 @@ describe("relay()", () => {
 
 		it("should return undefined when delegating without fallback", async () => {
 
-			const result = relay<TestOptions>({ value: "test" })({
+			const result = createRelay<TestOptions>({ value: "test" })({
 				value: (_v, delegate) => delegate()
 			});
 
@@ -852,7 +852,7 @@ describe("relay()", () => {
 					: typeof v === "boolean" ? `loading: ${v}`
 						: `value: ${v}`;
 
-			const result = relay<TestOptions>({ value: "test" })({
+			const result = createRelay<TestOptions>({ value: "test" })({
 				value: (_v, delegate) => delegate(),
 				error: (_e, delegate) => delegate(),
 				loading: (_l, delegate) => delegate()
@@ -864,7 +864,7 @@ describe("relay()", () => {
 
 		it("should allow complete handlers to selectively delegate", async () => {
 
-			const result = relay<TestOptions>({ error: new Error("oops") })({
+			const result = createRelay<TestOptions>({ error: new Error("oops") })({
 				value: (v) => `direct: ${v}`,
 				error: (_e, delegate) => delegate(),
 				loading: (l) => `direct: ${l}`

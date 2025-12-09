@@ -31,7 +31,7 @@
  * - {@link Update}: A function that accesses current version data via `this` and returns partial
  *   version data to be merged into the state
  * - {@link Observer}: A function called asynchronously when state transitions occur
- * - {@link Manager}: Housekeeping operations (snapshots, observers) accessed via {@link $}`(state)`,
+ * - {@link Manager}: Housekeeping operations (snapshots, observers) accessed via {@link manageState}`(state)`,
  *   kept separate from {@link State} to avoid polluting user-defined interfaces
  *
  * States are created by the {@link State} factory from a {@link Seed} where transition
@@ -45,7 +45,7 @@
  * by providing initial values and update functions:
  *
  * ```typescript
- * import { State } from '@metreeca/core/state';
+ * import { createState } from '@metreeca/core/state';
  *
  * interface Counter {
  *
@@ -56,7 +56,7 @@
  *
  * }
  *
- * const counter = state<Counter>({
+ * const counter = createState<Counter>({
  *
  *   count: 0,
  *
@@ -95,7 +95,7 @@
  *
  * }
  *
- * const toggle = state<Toggle>({
+ * const toggle = createState<Toggle>({
  *
  *   items: [],
  *
@@ -117,13 +117,13 @@
  *
  * **Observers**
  *
- * States support the observer pattern through manager metadata accessed via {@link $}`(state)`.
+ * States support the observer pattern through manager metadata accessed via {@link manageState}`(state)`.
  * The manager's `attach(observer)` and `detach(observer)` methods create and return
  * a **new** state with the observer attached or detached, preserving immutability.
  * Observers are called asynchronously when transitions occur:
  *
  * ```typescript
- * const counter = state<Counter>({
+ * const counter = createState<Counter>({
  *
  *   count: 0,
  *
@@ -137,7 +137,7 @@
  *
  * // Get manager and attach observer - returns a new state with the observer attached
  *
- * const withObserver = $(counter).attach(observer);
+ * const withObserver = manageState(counter).attach(observer);
  *
  * withObserver.increment(); // Logs asynchronously: "Count changed: 1"
  *
@@ -147,7 +147,7 @@
  *
  * // Detach observer - returns a new state without the observer
  *
- * const withoutObserver = $(withObserver).detach(observer);
+ * const withoutObserver = manageState(withObserver).detach(observer);
  * ```
  *
  * Observers are compared by **reference** equality (`===`), which means the same function
@@ -157,12 +157,12 @@
  *
  * States support creating and restoring version snapshots for implementing features
  * like undo/redo, checkpointing, or time-travel debugging through manager metadata
- * accessed via {@link $}`(state)`. Snapshots capture the current version data but not observers.
+ * accessed via {@link manageState}`(state)`. Snapshots capture the current version data but not observers.
  *
  * Call the manager's `capture()` method to create a snapshot:
  *
  * ```typescript
- * const counter = state<Counter>({
+ * const counter = createState<Counter>({
  *   count: 0,
  *   increment() { return { count: this.count + 1 }; }
  * });
@@ -171,7 +171,7 @@
  * const step2 = step1.increment();
  *
  * // Create snapshot at step2 (count is 2)
- * const snapshot = $(step2).capture();
+ * const snapshot = manageState(step2).capture();
  * ```
  *
  * Restore state from a snapshot by calling the manager's `restore(snapshot)` method:
@@ -180,7 +180,7 @@
  * const step3 = step2.increment(); // count is 3
  *
  * // Restore to step2 (count is 2)
- * const restored = $(step3).restore(snapshot);
+ * const restored = manageState(step3).restore(snapshot);
  *
  * console.log(restored.count); // 2
  * ```
@@ -191,16 +191,16 @@
  * const history: Version<Counter>[] = [];
  * let current = counter;
  *
- * history.push($(current).capture()); // Save initial version
+ * history.push(manageState(current).capture()); // Save initial version
  * current = current.increment();
  *
- * history.push($(current).capture()); // Save after increment
+ * history.push(manageState(current).capture()); // Save after increment
  * current = current.increment();
  *
- * history.push($(current).capture()); // Save after second increment
+ * history.push(manageState(current).capture()); // Save after second increment
  *
  * // Undo to previous version
- * current = $(current).restore(history[history.length - 2]);
+ * current = manageState(current).restore(history[history.length - 2]);
  * ```
  *
  * @module
@@ -254,9 +254,9 @@ export interface State {
 /**
  * State instance.
  *
- * A concrete {@link State} implementation created by the {@link state} factory. Combines state
+ * A concrete {@link State} implementation created by the {@link createState} factory. Combines state
  * interface members (data properties and transition methods) with {@link Manager} operations
- * accessible via {@link $}`(state)`.
+ * accessible via {@link manageState}`(state)`.
  *
  * @typeParam T The state interface type
  */
@@ -439,7 +439,7 @@ export type Update<T, I extends readonly unknown[]> = {
  * - Returns same state reference when all partial values are shallowly equal (`Object.is`) to
  *   current values
  */
-export function state<T extends State>(seed: Seed<T>): Instance<T> {
+export function createState<T extends State>(seed: Seed<T>): Instance<T> {
 
 	/**
 	 * Internal type representing a state object with observer storage.
@@ -621,7 +621,7 @@ export function state<T extends State>(seed: Seed<T>): Instance<T> {
  *
  * @throws Error if the object is not a valid state instance
  */
-export function $<T extends State>(instance	: Instance<T>): Manager<T> {
+export function manageState<T extends State>(instance	: Instance<T>): Manager<T> {
 
 	if ( instance === null || typeof instance !== "object" || !(Manager in instance) ) {
 		throw new Error("not a state instance");

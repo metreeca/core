@@ -16,7 +16,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { $, State, state, Version } from "./state.js";
+import { manageState, State, createState, Version } from "./state.js";
 
 /**
  * Type system validation tests.
@@ -42,7 +42,7 @@ describe("State", () => {
 
 			// ✓ valid: transition method returns `this`
 
-			const s = state<ValidSimple>({
+			const s = createState<ValidSimple>({
 				value: 0,
 				step() { return { value: 1 }; }
 			});
@@ -69,7 +69,7 @@ describe("State", () => {
 
 			// ✓ valid: all action methods return `this`
 
-			const s = state<ValidMultiAction>({
+			const s = createState<ValidMultiAction>({
 				count: 0,
 				delta: 1,
 				increment() { return { count: this.count+this.delta }; },
@@ -95,7 +95,7 @@ describe("State", () => {
 
 			// ✓ valid: optional data properties are allowed
 
-			const s = state<ValidOptional>({
+			const s = createState<ValidOptional>({
 				value: 0,
 				setValue() { return { value: 42 }; }
 			});
@@ -115,7 +115,7 @@ describe("State", () => {
 
 			// ✓ valid: interfaces with only data properties (no actions)
 
-			const s = state<ValidDataOnly>({
+			const s = createState<ValidDataOnly>({
 				x: 0,
 				y: 0
 			});
@@ -142,7 +142,7 @@ describe("State", () => {
 			// ✗ invalid: action method returns `string` instead of `this`
 			// Type error is caught at compile time by @ts-expect-error
 
-			state<InvalidReturnType>({
+			createState<InvalidReturnType>({
 				value: 0,
 				// @ts-expect-error
 				step() { return "invalid"; }
@@ -166,7 +166,7 @@ describe("State", () => {
 			// ✗ invalid: async actions not supported (returns `Promise<this>` not `this`)
 			// Type error is caught at compile time by @ts-expect-error
 
-			state<InvalidPromiseReturn>({
+			createState<InvalidPromiseReturn>({
 				data: "",
 				// @ts-expect-error
 				load() { return { data: "loaded" }; }
@@ -193,7 +193,7 @@ describe("State", () => {
 
 			// ✓ valid: transition returns only changed properties
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				delta: 1,
 				increment() {
@@ -220,7 +220,7 @@ describe("State", () => {
 			// ✗ invalid: transition returns wrong type (should return `Partial<ValidInterface>`)
 			// Type error is caught at compile time by @ts-expect-error
 
-			state<ValidInterface>({
+			createState<ValidInterface>({
 				value: 0,
 				// @ts-expect-error
 				increment() { return "not a partial state"; }
@@ -245,7 +245,7 @@ describe("State", () => {
 			// Type error is caught at compile time by @ts-expect-error
 
 			// @ts-expect-error
-			state<RequiredData>({
+			createState<RequiredData>({
 				value: 0,
 				update() { return { value: 1 }; }
 			});
@@ -273,7 +273,7 @@ describe("State", () => {
 			// ✗ invalid: transition expects [number] but receives [string]
 			// Type error is caught at compile time by @ts-expect-error
 
-			state<Adder>({
+			createState<Adder>({
 				value: 0,
 				// @ts-expect-error
 				add(delta: string) {
@@ -298,7 +298,7 @@ describe("State", () => {
 			// ✗ invalid: transition expects 2 parameters but receives 3
 			// Type error is caught at compile time by @ts-expect-error
 
-			state<Multiplier>({
+			createState<Multiplier>({
 				value: 1,
 				// @ts-expect-error
 				multiply(x: number, y: number, z: number) {
@@ -323,7 +323,7 @@ describe("State", () => {
 			// ✗ invalid: parameterized action must return `this`
 			// Type error is caught at compile time by @ts-expect-error
 
-			state<InvalidParamReturn>({
+			createState<InvalidParamReturn>({
 				items: [],
 				// @ts-expect-error
 				add(item: string) {
@@ -349,7 +349,7 @@ describe("State", () => {
 			// ✗ invalid: optional parameter has wrong type (string instead of number | undefined)
 			// Type error is caught at compile time by @ts-expect-error
 
-			state<OptionalParam>({
+			createState<OptionalParam>({
 				count: 0,
 				// @ts-expect-error
 				increment(delta?: string) {
@@ -377,7 +377,7 @@ describe("State()", () => {
 				readonly step: number;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				step: 1
 			});
@@ -395,7 +395,7 @@ describe("State()", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count+1 }; }
 			});
@@ -412,7 +412,7 @@ describe("State()", () => {
 				readonly active: boolean;
 			}
 
-			const s = state<Person>({
+			const s = createState<Person>({
 				name: "Alice",
 				age: 30,
 				active: true
@@ -436,7 +436,7 @@ describe("State()", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count+1 }; }
 			});
@@ -455,7 +455,7 @@ describe("State()", () => {
 				up(): this;
 			}
 
-			const counter = state<Counter>({
+			const counter = createState<Counter>({
 				value: 0,
 				up() { return { value: this.value+1 }; }
 			});
@@ -481,7 +481,7 @@ describe("State()", () => {
 				reset(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count+1 }; },
 				reset() { return { count: 0 }; }
@@ -509,7 +509,7 @@ describe("State()", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count+1 }; }
 			});
@@ -532,7 +532,7 @@ describe("State()", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				step: 5,
 				increment() { return { count: this.count+this.step }; }
@@ -555,7 +555,7 @@ describe("State()", () => {
 				reset(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count+1 }; },
 				reset() { return { count: 0 }; }
@@ -578,7 +578,7 @@ describe("State()", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 10,
 				delta: 3,
 				increment() { return { count: this.count+this.delta }; }
@@ -603,7 +603,7 @@ describe("State()", () => {
 				toggle(item: string): this;
 			}
 
-			const s = state<Toggle>({
+			const s = createState<Toggle>({
 				items: [],
 				toggle(item: string) {
 					const items = this.items.includes(item)
@@ -627,7 +627,7 @@ describe("State()", () => {
 				add(x: number, y: number): this;
 			}
 
-			const s = state<Calculator>({
+			const s = createState<Calculator>({
 				result: 0,
 				add(x: number, y: number) {
 					return { result: this.result+x+y };
@@ -648,7 +648,7 @@ describe("State()", () => {
 				add(delta: number): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				add(delta: number) {
 					return { count: this.count+delta };
@@ -676,7 +676,7 @@ describe("State()", () => {
 				reset(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() {
 					return { count: this.count+1 };
@@ -707,7 +707,7 @@ describe("State()", () => {
 				toggle(item: string): this;
 			}
 
-			const s = state<Toggle>({
+			const s = createState<Toggle>({
 				items: [],
 				toggle(item: string) {
 					const items = this.items.includes(item)
@@ -742,7 +742,7 @@ describe("State()", () => {
 				updateName(name: string): this;
 			}
 
-			const s = state<UserManager>({
+			const s = createState<UserManager>({
 				user: { name: "Alice", age: 30 },
 				setUser(user: User) {
 					return { user };
@@ -769,7 +769,7 @@ describe("State()", () => {
 				addItem(item: string, price: number): this;
 			}
 
-			const s = state<ShoppingCart>({
+			const s = createState<ShoppingCart>({
 				items: [],
 				total: 0,
 				addItem(item: string, price: number) {
@@ -798,7 +798,7 @@ describe("State()", () => {
 				increment(delta?: number): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment(delta?: number) {
 					return { count: this.count+(delta ?? 1) };
@@ -827,7 +827,7 @@ describe("State()", () => {
 				setPort(port: number): this;
 			}
 
-			const s = state<Config>({
+			const s = createState<Config>({
 				host: "localhost",
 				port: 8080,
 				enabled: true,
@@ -861,7 +861,7 @@ describe("State()", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count+1 }; }
 			});
@@ -880,7 +880,7 @@ describe("State()", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count+1 }; }
 			});
@@ -899,7 +899,7 @@ describe("State()", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count+1 }; }
 			});
@@ -927,7 +927,7 @@ describe("State()", () => {
 				noop(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				noop() { return {}; }
 			});
@@ -946,7 +946,7 @@ describe("State()", () => {
 				setToSame(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 42,
 				setToSame() { return { count: this.count }; }
 			});
@@ -966,7 +966,7 @@ describe("State()", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				step: 1,
 				increment() { return { count: this.count+this.step }; }
@@ -991,7 +991,7 @@ describe("State()", () => {
 				updateName(): this;
 			}
 
-			const s = state<AppState>({
+			const s = createState<AppState>({
 				user: { name: "Alice", age: 30 },
 				settings: { theme: "dark" },
 				updateName() { return { user: { name: "Bob", age: 30 } }; }
@@ -1013,7 +1013,7 @@ describe("State()", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				max: 10,
 				increment() {
@@ -1024,7 +1024,7 @@ describe("State()", () => {
 			const step1 = s.increment();
 			expect(step1.count).toBe(1);
 
-			const atMax = state<Counter>({
+			const atMax = createState<Counter>({
 				count: 10,
 				max: 10,
 				increment() {
@@ -1047,7 +1047,7 @@ describe("State()", () => {
 				move(): this;
 			}
 
-			const s = state<Point>({
+			const s = createState<Point>({
 				x: 0,
 				y: 0,
 				move() { return { x: this.x+1, y: this.y+1 }; }
@@ -1071,7 +1071,7 @@ describe("State()", () => {
 				reset(): this;
 			}
 
-			const counter = state<Counter>({
+			const counter = createState<Counter>({
 				count: 0,
 				step: 1,
 				increment() { return { count: this.count+this.step }; },
@@ -1101,13 +1101,13 @@ describe("State observers", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count + 1 }; }
 			});
 
 			const observer = () => {};
-			const next = $(s).attach(observer);
+			const next = manageState(s).attach(observer);
 
 			expect(next).not.toBe(s);
 		});
@@ -1117,11 +1117,11 @@ describe("State observers", () => {
 				readonly count: number;
 			}
 
-			const s = state<Counter>({ count: 0 });
+			const s = createState<Counter>({ count: 0 });
 			const observer = () => {};
 
-			const first = $(s).attach(observer);
-			const second = $(first).attach(observer);
+			const first = manageState(s).attach(observer);
+			const second = manageState(first).attach(observer);
 
 			expect(second).toBe(first);
 		});
@@ -1131,11 +1131,11 @@ describe("State observers", () => {
 				readonly count: number;
 			}
 
-			const s = state<Counter>({ count: 0 });
+			const s = createState<Counter>({ count: 0 });
 			const observer1 = (s: Counter) => {};
 			const observer2 = (s: Counter) => {};
 
-			const next = $($(s).attach(observer1)).attach(observer2);
+			const next = manageState(manageState(s).attach(observer1)).attach(observer2);
 
 			expect(next).not.toBe(s);
 		});
@@ -1145,8 +1145,8 @@ describe("State observers", () => {
 				readonly count: number;
 			}
 
-			const s = state<Counter>({ count: 0 });
-			const manager = $(s);
+			const s = createState<Counter>({ count: 0 });
+			const manager = manageState(s);
 			const observer = () => {};
 
 			const next = manager.attach(observer);
@@ -1163,11 +1163,11 @@ describe("State observers", () => {
 				readonly count: number;
 			}
 
-			const s = state<Counter>({ count: 0 });
+			const s = createState<Counter>({ count: 0 });
 			const observer = () => {};
 
-			const withObserver = $(s).attach(observer);
-			const withoutObserver = $(withObserver).detach(observer);
+			const withObserver = manageState(s).attach(observer);
+			const withoutObserver = manageState(withObserver).detach(observer);
 
 			expect(withoutObserver).not.toBe(withObserver);
 		});
@@ -1177,10 +1177,10 @@ describe("State observers", () => {
 				readonly count: number;
 			}
 
-			const s = state<Counter>({ count: 0 });
+			const s = createState<Counter>({ count: 0 });
 			const observer = () => {};
 
-			const next = $(s).detach(observer);
+			const next = manageState(s).detach(observer);
 
 			expect(next).toBe(s);
 		});
@@ -1191,7 +1191,7 @@ describe("State observers", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count + 1 }; }
 			});
@@ -1202,8 +1202,8 @@ describe("State observers", () => {
 			const observer1 = () => { observer1Called = true; };
 			const observer2 = () => { observer2Called = true; };
 
-			const withBoth = $($(s).attach(observer1)).attach(observer2);
-			const withOne = $(withBoth).detach(observer1);
+			const withBoth = manageState(manageState(s).attach(observer1)).attach(observer2);
+			const withOne = manageState(withBoth).detach(observer1);
 
 			withOne.increment();
 
@@ -1220,12 +1220,12 @@ describe("State observers", () => {
 				readonly count: number;
 			}
 
-			const s = state<Counter>({ count: 0 });
+			const s = createState<Counter>({ count: 0 });
 			const observer1 = () => {};
 			const observer2 = () => {}; // Different reference
 
-			const withObserver = $(s).attach(observer1);
-			const next = $(withObserver).detach(observer2);
+			const withObserver = manageState(s).attach(observer1);
+			const next = manageState(withObserver).detach(observer2);
 
 			// Should return same state since observer2 was never attached
 			expect(next).toBe(withObserver);
@@ -1241,7 +1241,7 @@ describe("State observers", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count + 1 }; }
 			});
@@ -1249,7 +1249,7 @@ describe("State observers", () => {
 			let notified = false;
 			const observer = () => { notified = true; };
 
-			const withObserver = $(s).attach(observer);
+			const withObserver = manageState(s).attach(observer);
 			withObserver.increment();
 
 			// Wait for microtasks
@@ -1264,7 +1264,7 @@ describe("State observers", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count + 1 }; }
 			});
@@ -1272,7 +1272,7 @@ describe("State observers", () => {
 			const nextHolder: (typeof s)[] = [];
 
 			const receivedState = await new Promise<Counter>(resolve => {
-				const withObserver = $(s).attach((s: Counter) => {
+				const withObserver = manageState(s).attach((s: Counter) => {
 					resolve(s);
 				});
 				const next = withObserver.increment();
@@ -1289,7 +1289,7 @@ describe("State observers", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count + 1 }; }
 			});
@@ -1302,7 +1302,7 @@ describe("State observers", () => {
 			const observer2 = () => { observer2Called = true; };
 			const observer3 = () => { observer3Called = true; };
 
-			const withObservers = $($($(s).attach(observer1)).attach(observer2)).attach(observer3);
+			const withObservers = manageState(manageState(manageState(s).attach(observer1)).attach(observer2)).attach(observer3);
 
 			withObservers.increment();
 
@@ -1319,7 +1319,7 @@ describe("State observers", () => {
 				noop(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				noop() { return {}; }
 			});
@@ -1327,7 +1327,7 @@ describe("State observers", () => {
 			let notified = false;
 			const observer = () => { notified = true; };
 
-			const withObserver = $(s).attach(observer);
+			const withObserver = manageState(s).attach(observer);
 			withObserver.noop();
 
 			await new Promise(resolve => setTimeout(resolve, 0));
@@ -1341,7 +1341,7 @@ describe("State observers", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count + 1 }; }
 			});
@@ -1349,7 +1349,7 @@ describe("State observers", () => {
 			let notified = false;
 			const observer = () => { notified = true; };
 
-			const withObserver = $(s).attach(observer);
+			const withObserver = manageState(s).attach(observer);
 			withObserver.increment();
 
 			// Should not be called yet (microtasks run after sync code)
@@ -1366,7 +1366,7 @@ describe("State observers", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count + 1 }; }
 			});
@@ -1374,7 +1374,7 @@ describe("State observers", () => {
 			let callCount = 0;
 			const observer = () => { callCount++; };
 
-			const withObserver = $(s).attach(observer);
+			const withObserver = manageState(s).attach(observer);
 			withObserver.increment().increment().increment();
 
 			await new Promise(resolve => setTimeout(resolve, 0));
@@ -1389,7 +1389,7 @@ describe("State observers", () => {
 				reset(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count + 1 }; },
 				reset() { return { count: 0 }; }
@@ -1398,7 +1398,7 @@ describe("State observers", () => {
 			const states: number[] = [];
 			const observer = (s: Counter) => { states.push(s.count); };
 
-			const withObserver = $(s).attach(observer);
+			const withObserver = manageState(s).attach(observer);
 			withObserver
 				.increment()
 				.increment()
@@ -1416,7 +1416,7 @@ describe("State observers", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count + 1 }; }
 			});
@@ -1424,7 +1424,7 @@ describe("State observers", () => {
 			let notified = false;
 			const observer = () => { notified = true; };
 
-			const withObserver = $(s).attach(observer);
+			const withObserver = manageState(s).attach(observer);
 			const { increment } = withObserver;
 
 			increment();
@@ -1444,7 +1444,7 @@ describe("State observers", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count + 1 }; }
 			});
@@ -1458,7 +1458,7 @@ describe("State observers", () => {
 			const observer2 = () => { observer2Called = true; };
 			const observer3 = () => { observer3Called = true; };
 
-			const withObservers = $($($(s).attach(observer1)).attach(observer2)).attach(observer3);
+			const withObservers = manageState(manageState(manageState(s).attach(observer1)).attach(observer2)).attach(observer3);
 
 			withObservers.increment();
 
@@ -1476,13 +1476,13 @@ describe("State observers", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count + 1 }; }
 			});
 
 			const throwingObserver = () => { throw new Error("Error"); };
-			const withObserver = $(s).attach(throwingObserver);
+			const withObserver = manageState(s).attach(throwingObserver);
 
 			const next = withObserver.increment();
 
@@ -1499,7 +1499,7 @@ describe("State observers", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count + 1 }; }
 			});
@@ -1515,13 +1515,13 @@ describe("State observers", () => {
 				readonly count: number;
 			}
 
-			const s = state<Counter>({ count: 0 });
+			const s = createState<Counter>({ count: 0 });
 			const observer = () => {};
 
-			const s1 = $(s).attach(observer);
-			const s2 = $(s1).attach(observer); // Should return same
-			const s3 = $(s2).detach(observer);
-			const s4 = $(s3).detach(observer); // Should return same
+			const s1 = manageState(s).attach(observer);
+			const s2 = manageState(s1).attach(observer); // Should return same
+			const s3 = manageState(s2).detach(observer);
+			const s4 = manageState(s3).detach(observer); // Should return same
 
 			expect(s2).toBe(s1);
 			expect(s4).toBe(s3);
@@ -1533,7 +1533,7 @@ describe("State observers", () => {
 				add(delta: number): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				add(delta) { return { count: this.count + delta }; }
 			});
@@ -1541,7 +1541,7 @@ describe("State observers", () => {
 			let receivedCount = 0;
 			const observer = (s: Counter) => { receivedCount = s.count; };
 
-			const withObserver = $(s).attach(observer);
+			const withObserver = manageState(s).attach(observer);
 			withObserver.add(5);
 
 			await new Promise(resolve => setTimeout(resolve, 0));
@@ -1556,14 +1556,14 @@ describe("State observers", () => {
 				move(dx: number, dy: number): this;
 			}
 
-			const s = state<Point>({
+			const s = createState<Point>({
 				x: 0,
 				y: 0,
 				move(dx, dy) { return { x: this.x + dx, y: this.y + dy }; }
 			});
 
 			const receivedPoint = await new Promise<Point>(resolve => {
-				const withObserver = $(s).attach((s: Point) => {
+				const withObserver = manageState(s).attach((s: Point) => {
 					resolve(s);
 				});
 				withObserver.move(3, 4);
@@ -1588,12 +1588,12 @@ describe("State snapshots", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 5,
 				increment() { return { count: this.count+1 }; }
 			});
 
-			const snapshot = $(s).capture();
+			const snapshot = manageState(s).capture();
 
 			expect(snapshot).toBeDefined();
 			expect(typeof snapshot).toBe("object");
@@ -1604,11 +1604,11 @@ describe("State snapshots", () => {
 				readonly count: number;
 			}
 
-			const state1 = state<Counter>({ count: 1 });
-			const state2 = state<Counter>({ count: 2 });
+			const state1 = createState<Counter>({ count: 1 });
+			const state2 = createState<Counter>({ count: 2 });
 
-			const snapshot1 = $(state1).capture();
-			const snapshot2 = $(state2).capture();
+			const snapshot1 = manageState(state1).capture();
+			const snapshot2 = manageState(state2).capture();
 
 			expect(snapshot1).not.toBe(snapshot2);
 		});
@@ -1620,13 +1620,13 @@ describe("State snapshots", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count+1 }; }
 			});
 
 			const next = s.increment().increment().increment();
-			const snapshot = $(next).capture();
+			const snapshot = manageState(next).capture();
 
 			// Snapshot should capture count=3 (verified through restoration test)
 			expect(snapshot).toBeDefined();
@@ -1643,15 +1643,15 @@ describe("State snapshots", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count+1 }; }
 			});
 
 			const next = s.increment().increment().increment();
-			const snapshot = $(next).capture();
+			const snapshot = manageState(next).capture();
 
-			const restored = $(s).restore(snapshot);
+			const restored = manageState(s).restore(snapshot);
 
 			expect(restored.count).toBe(3);
 		});
@@ -1661,10 +1661,10 @@ describe("State snapshots", () => {
 				readonly count: number;
 			}
 
-			const s = state<Counter>({ count: 0 });
-			const snapshot = $(s).capture();
+			const s = createState<Counter>({ count: 0 });
+			const snapshot = manageState(s).capture();
 
-			const restored = $(s).restore(snapshot);
+			const restored = manageState(s).restore(snapshot);
 
 			expect(restored).not.toBe(s);
 		});
@@ -1677,16 +1677,16 @@ describe("State snapshots", () => {
 				move(dx: number, dy: number): this;
 			}
 
-			const s = state<Point>({
+			const s = createState<Point>({
 				x: 0,
 				y: 0,
 				move(dx, dy) { return { x: this.x+dx, y: this.y+dy }; }
 			});
 
 			const moved = s.move(10, 20);
-			const snapshot = $(moved).capture();
+			const snapshot = manageState(moved).capture();
 
-			const restored = $(s).restore(snapshot);
+			const restored = manageState(s).restore(snapshot);
 
 			expect(restored.x).toBe(10);
 			expect(restored.y).toBe(20);
@@ -1699,15 +1699,15 @@ describe("State snapshots", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count+1 }; }
 			});
 
 			const next = s.increment();
-			const snapshot = $(next).capture();
+			const snapshot = manageState(next).capture();
 
-			const restored = $(s).restore(snapshot);
+			const restored = manageState(s).restore(snapshot);
 
 			expect(typeof restored.increment).toBe("function");
 			expect(restored.increment().count).toBe(2);
@@ -1720,7 +1720,7 @@ describe("State snapshots", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count+1 }; }
 			});
@@ -1728,10 +1728,10 @@ describe("State snapshots", () => {
 			let notified = false;
 			const observer = () => { notified = true; };
 
-			const withObserver = $(s).attach(observer);
-			const snapshot = $(withObserver).capture();
+			const withObserver = manageState(s).attach(observer);
+			const snapshot = manageState(withObserver).capture();
 
-			const restored = $(s).restore(snapshot);
+			const restored = manageState(s).restore(snapshot);
 			restored.increment();
 
 			await new Promise(resolve => setTimeout(resolve, 0));
@@ -1747,19 +1747,19 @@ describe("State snapshots", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count+1 }; }
 			});
 
 			const temp = s.increment().increment();
-			const snapshot = $(temp).capture();
+			const snapshot = manageState(temp).capture();
 
 			let notified = false;
 			const observer = () => { notified = true; };
 
-			const withObserver = $(s).attach(observer);
-			const restored = $(withObserver).restore(snapshot);
+			const withObserver = manageState(s).attach(observer);
+			const restored = manageState(withObserver).restore(snapshot);
 			restored.increment();
 
 			await new Promise(resolve => setTimeout(resolve, 0));
@@ -1779,14 +1779,14 @@ describe("State snapshots", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count+1 }; }
 			});
 
 			const next = s.increment().increment();
-			const snapshot = $(next).capture();
-			const restored = $(next).restore(snapshot);
+			const snapshot = manageState(next).capture();
+			const restored = manageState(next).restore(snapshot);
 
 			expect(restored.count).toBe(2);
 		});
@@ -1800,7 +1800,7 @@ describe("State snapshots", () => {
 				reset(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count+1 }; },
 				reset() { return { count: 0 }; }
@@ -1808,13 +1808,13 @@ describe("State snapshots", () => {
 
 			const step1 = s.increment();
 			const step2 = step1.increment();
-			const snapshot2 = $(step2).capture();
+			const snapshot2 = manageState(step2).capture();
 
 			const step3 = step2.reset();
 			const step4 = step3.increment();
 
 			// step4 is in same lineage, should accept snapshot from step2
-			const restored = $(step4).restore(snapshot2);
+			const restored = manageState(step4).restore(snapshot2);
 
 			expect(restored.count).toBe(2);
 		});
@@ -1826,16 +1826,16 @@ describe("State snapshots", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count+1 }; }
 			});
 
 			const { increment } = s;
 			const next = increment();
-			const snapshot = $(next).capture();
+			const snapshot = manageState(next).capture();
 
-			const restored = $(s).restore(snapshot);
+			const restored = manageState(s).restore(snapshot);
 
 			expect(restored.count).toBe(1);
 		});
@@ -1851,24 +1851,24 @@ describe("State snapshots", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count+1 }; }
 			});
 
 			const step1 = s.increment();
-			const snapshot1 = $(step1).capture();
+			const snapshot1 = manageState(step1).capture();
 
 			const step2 = step1.increment();
-			const snapshot2 = $(step2).capture();
+			const snapshot2 = manageState(step2).capture();
 
 			const step3 = step2.increment();
-			const snapshot3 = $(step3).capture();
+			const snapshot3 = manageState(step3).capture();
 
 			// All snapshots belong to same lineage
-			expect($(s).restore(snapshot1).count).toBe(1);
-			expect($(s).restore(snapshot2).count).toBe(2);
-			expect($(s).restore(snapshot3).count).toBe(3);
+			expect(manageState(s).restore(snapshot1).count).toBe(1);
+			expect(manageState(s).restore(snapshot2).count).toBe(2);
+			expect(manageState(s).restore(snapshot3).count).toBe(3);
 		});
 
 		it("should support snapshot-based undo/redo pattern", () => {
@@ -1880,7 +1880,7 @@ describe("State snapshots", () => {
 				decrement(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count+1 }; },
 				decrement() { return { count: this.count-1 }; }
@@ -1890,23 +1890,23 @@ describe("State snapshots", () => {
 
 			// Build history
 			let current = s;
-			history.push($(current).capture());
+			history.push(manageState(current).capture());
 
 			current = current.increment();
-			history.push($(current).capture());
+			history.push(manageState(current).capture());
 
 			current = current.increment();
-			history.push($(current).capture());
+			history.push(manageState(current).capture());
 
 			current = current.decrement();
-			history.push($(current).capture());
+			history.push(manageState(current).capture());
 
 			// Undo to step 2 (count=2)
-			const undone = $(s).restore(history[2]);
+			const undone = manageState(s).restore(history[2]);
 			expect(undone.count).toBe(2);
 
 			// Redo to step 3 (count=1)
-			const redone = $(s).restore(history[3]);
+			const redone = manageState(s).restore(history[3]);
 			expect(redone.count).toBe(1);
 		});
 
@@ -1918,7 +1918,7 @@ describe("State snapshots", () => {
 				updateUser(name: string, age: number): this;
 			}
 
-			const s = state<AppState>({
+			const s = createState<AppState>({
 				user: { name: "Alice", age: 30 },
 				settings: { theme: "dark" },
 				updateUser(name, age) {
@@ -1927,9 +1927,9 @@ describe("State snapshots", () => {
 			});
 
 			const updated = s.updateUser("Bob", 25);
-			const snapshot = $(updated).capture();
+			const snapshot = manageState(updated).capture();
 
-			const restored = $(s).restore(snapshot);
+			const restored = manageState(s).restore(snapshot);
 
 			expect(restored.user.name).toBe("Bob");
 			expect(restored.user.age).toBe(25);
@@ -1943,7 +1943,7 @@ describe("State snapshots", () => {
 				increment(): this;
 			}
 
-			const s = state<Counter>({
+			const s = createState<Counter>({
 				count: 0,
 				increment() { return { count: this.count+1 }; }
 			});
@@ -1951,12 +1951,12 @@ describe("State snapshots", () => {
 			let observedCount = 0;
 			const observer = (s: Counter) => { observedCount = s.count; };
 
-			const withObserver = $(s).attach(observer);
+			const withObserver = manageState(s).attach(observer);
 			const step1 = withObserver.increment();
-			const snapshot = $(step1).capture();
+			const snapshot = manageState(step1).capture();
 
 			// Restore and verify observer notified
-			const restored = $(withObserver).restore(snapshot);
+			const restored = manageState(withObserver).restore(snapshot);
 			restored.increment();
 
 			await new Promise(resolve => setTimeout(resolve, 0));

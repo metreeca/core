@@ -44,7 +44,7 @@ export interface Mutex {
  * @example
  *
  * ```typescript
- * const mutex = Mutex();
+ * const mutex = createMutex();
  *
  * await mutex.execute(async () => { // prevents race conditions in read-modify-write operations
  *
@@ -55,7 +55,7 @@ export interface Mutex {
  *
  * @returns A mutex instance that serializes task execution in FIFO order
  */
-export function Mutex(): Mutex {
+export function createMutex(): Mutex {
 
 	let next: Promise<void> = Promise.resolve();
 

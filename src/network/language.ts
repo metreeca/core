@@ -18,43 +18,43 @@
  * Language tags and ranges.
  *
  * Provides branded types and utilities for working with BCP 47 language tags ({@link Tag}) and RFC 4647 language
- * ranges ({@link Range}). Use {@link tag} and {@link range} to create validated instances, {@link isTag} and
- * {@link isRange} as type guards, and {@link matches} to test tags against range patterns.
+ * ranges ({@link TagRange}). Use {@link asTag} and {@link asTagRange} to create validated instances, {@link isTag} and
+ * {@link isTagRange} as type guards, and {@link matchTag} to test tags against range patterns.
  *
  * **Language Tags**
  *
  * ```typescript
- * import { isTag, tag } from "@metreeca/core";
+ * import { isTag, asTag } from "@metreeca/core";
  *
  * if (isTag(value)) {
  *   // value is typed as Tag
  * }
  *
- * const languageTag = tag("en-US");      // US English
- * const simpleTag = tag("fr");           // French
- * const complexTag = tag("zh-Hans-CN");  // Simplified Chinese (China)
+ * const languageTag = asTag("en-US");      // US English
+ * const simpleTag = asTag("fr");           // French
+ * const complexTag = asTag("zh-Hans-CN");  // Simplified Chinese (China)
  * ```
  *
  * **Language Ranges**
  *
  * ```typescript
- * import { isRange, range } from "@metreeca/core";
+ * import { isTagRange, asTagRange } from "@metreeca/core";
  *
- * if (isRange(value)) {
- *   // value is typed as Range
+ * if (isTagRange(value)) {
+ *   // value is typed as TagRange
  * }
  *
- * const wildcard = range("*");       // matches any language
- * const english = range("en-*");     // matches any English variant
- * const swiss = range("*-CH");       // matches any language in Switzerland
+ * const wildcard = asTagRange("*");       // matches any language
+ * const english = asTagRange("en-*");     // matches any English variant
+ * const swiss = asTagRange("*-CH");       // matches any language in Switzerland
  * ```
  *
  * **Matching**
  *
  * ```typescript
- * import { matches, tag, range } from "@metreeca/core";
+ * import { matchTag, asTag, asTagRange } from "@metreeca/core";
  *
- * matches(tag("de-CH"), range("de-*"));  // true - Swiss German matches German range
+ * matchTag(asTag("de-CH"), asTagRange("de-*"));  // true - Swiss German matches German range
  * ```
  *
  * @module
@@ -136,7 +136,7 @@ const RFC4647Pattern = /^(?:[a-z]{1,8}|\*)(?:-(?:[a-z0-9]{1,8}|\*))*$/i;
  *
  * The brand is a compile-time construct with no runtime overhead.
  *
- * Use {@link tag} to construct validated language tags or {@link isTag} as a type guard.
+ * Use {@link asTag} to construct validated language tags or {@link isTag} as a type guard.
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc5646.html RFC 5646 - Tags for Identifying Languages}
  * @see {@link https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes ISO 639-2 Language Codes}
@@ -169,12 +169,12 @@ export type Tag = string & {
  *
  * The brand is a compile-time construct with no runtime overhead.
  *
- * Use {@link range} to construct validated language ranges or {@link isRange} as a type guard.
+ * Use {@link asTagRange} to construct validated language ranges or {@link isTagRange} as a type guard.
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc4647.html RFC 4647 - Matching of Language Tags}
  * @see {@link Tag}
  */
-export type Range = string & {
+export type TagRange = string & {
 
 	readonly __brand: unique symbol
 
@@ -212,7 +212,7 @@ export function isTag(value: unknown): value is Tag {
  * @see {@link isTag} for validation rules
  * @see {@link Tag}
  */
-export function tag(value: string): Tag {
+export function asTag(value: string): Tag {
 
 	if ( !isTag(value) ) {
 		throw new RangeError(`invalid language tag <${value}>`);
@@ -232,9 +232,9 @@ export function tag(value: string): Tag {
  *
  * @returns `true` if the value matches the extended language range pattern
  *
- * @see {@link Range}
+ * @see {@link TagRange}
  */
-export function isRange(value: unknown): value is Range {
+export function isTagRange(value: unknown): value is TagRange {
 	return isString(value) && value.length > 0 && RFC4647Pattern.test(value);
 }
 
@@ -250,12 +250,12 @@ export function isRange(value: unknown): value is Range {
  *
  * @throws RangeError If the value is not a valid language range
  *
- * @see {@link isRange} for validation rules
- * @see {@link Range}
+ * @see {@link isTagRange} for validation rules
+ * @see {@link TagRange}
  */
-export function range(value: string): Range {
+export function asTagRange(value: string): TagRange {
 
-	if ( !isRange(value) ) {
+	if ( !isTagRange(value) ) {
 		throw new RangeError(`invalid language range <${value}>`);
 	}
 
@@ -282,19 +282,19 @@ export function range(value: string): Range {
  * @example
  *
  * ```typescript
- * import { matches, tag, range } from "@metreeca/core";
+ * import { matchTag, asTag, asTagRange } from "@metreeca/core";
  *
- * matches(tag("de-DE"), range("de-*-DE"));        // true
- * matches(tag("de-Latn-DE"), range("de-*-DE"));   // true
- * matches(tag("de"), range("de-*-DE"));           // false - missing 'DE'
- * matches(tag("de-x-DE"), range("de-*-DE"));      // false - singleton 'x' blocks
+ * matchTag(asTag("de-DE"), asTagRange("de-*-DE"));        // true
+ * matchTag(asTag("de-Latn-DE"), asTagRange("de-*-DE"));   // true
+ * matchTag(asTag("de"), asTagRange("de-*-DE"));           // false - missing 'DE'
+ * matchTag(asTag("de-x-DE"), asTagRange("de-*-DE"));      // false - singleton 'x' blocks
  * ```
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc4647.html#section-3.3.2 RFC 4647 § 3.3.2 - Extended Filtering}
  * @see {@link Tag}
- * @see {@link Range}
+ * @see {@link TagRange}
  */
-export function matches(tag: Tag, range: Range): boolean {
+export function matchTag(tag: Tag, range: TagRange): boolean {
 
 	const tagSubtags = tag.toLowerCase().split("-");
 	const rangeSubtags = range.toLowerCase().split("-");

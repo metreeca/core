@@ -15,14 +15,14 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { Mutex } from "./mutex.js";
+import { createMutex } from "./mutex.js";
 
 describe("Mutex", () => {
 
 	describe("Mutex()", () => {
 
 		it("should create a mutex", () => {
-			const mutex = Mutex();
+			const mutex = createMutex();
 			expect(mutex).toBeDefined();
 			expect(mutex.execute).toBeDefined();
 		});
@@ -32,13 +32,13 @@ describe("Mutex", () => {
 	describe("execute()", () => {
 
 		it("should execute a synchronous task", async () => {
-			const mutex = Mutex();
+			const mutex = createMutex();
 			const result = await mutex.execute(() => 42);
 			expect(result).toBe(42);
 		});
 
 		it("should execute an asynchronous task", async () => {
-			const mutex = Mutex();
+			const mutex = createMutex();
 			const result = await mutex.execute(async () => {
 				await new Promise(resolve => setTimeout(resolve, 10));
 				return "done";
@@ -47,7 +47,7 @@ describe("Mutex", () => {
 		});
 
 		it("should execute tasks sequentially", async () => {
-			const mutex = Mutex();
+			const mutex = createMutex();
 			const order: number[] = [];
 
 			await Promise.all([
@@ -69,7 +69,7 @@ describe("Mutex", () => {
 		});
 
 		it("should handle task errors without breaking the mutex", async () => {
-			const mutex = Mutex();
+			const mutex = createMutex();
 			const order: string[] = [];
 
 			// First task succeeds
@@ -94,7 +94,7 @@ describe("Mutex", () => {
 		});
 
 		it("should properly release lock on task rejection", async () => {
-			const mutex = Mutex();
+			const mutex = createMutex();
 
 			await expect(
 				mutex.execute(() => {
@@ -108,7 +108,7 @@ describe("Mutex", () => {
 		});
 
 		it("should prevent concurrent execution", async () => {
-			const mutex = Mutex();
+			const mutex = createMutex();
 			let executing = false;
 			let concurrencyViolation = false;
 
@@ -131,7 +131,7 @@ describe("Mutex", () => {
 		});
 
 		it("should maintain FIFO order under concurrent submissions", async () => {
-			const mutex = Mutex();
+			const mutex = createMutex();
 			const results: number[] = [];
 
 			// Submit tasks concurrently
@@ -148,7 +148,7 @@ describe("Mutex", () => {
 		});
 
 		it("should work with different return types", async () => {
-			const mutex = Mutex();
+			const mutex = createMutex();
 
 			const num = await mutex.execute(() => 42);
 			expect(num).toBe(42);
@@ -167,7 +167,7 @@ describe("Mutex", () => {
 		});
 
 		it("should handle many concurrent tasks", async () => {
-			const mutex = Mutex();
+			const mutex = createMutex();
 			const count = 100;
 			const results: number[] = [];
 
@@ -184,7 +184,7 @@ describe("Mutex", () => {
 		});
 
 		it("should handle re-entrant lock attempts gracefully", async () => {
-			const mutex = Mutex();
+			const mutex = createMutex();
 
 			// This will deadlock in a naive implementation
 			const result = await mutex.execute(async () => {

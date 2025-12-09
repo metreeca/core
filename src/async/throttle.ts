@@ -15,7 +15,7 @@
  */
 
 import { isBoolean } from "../basic/json.js";
-import { Mutex } from "./mutex.js";
+import { createMutex } from "./mutex.js";
 import { sleep } from "./sleep.js";
 
 
@@ -41,7 +41,7 @@ export interface Throttle {
 	 * current load and timing. Uses randomized sleep intervals to avoid thundering herd effects.
 	 *
 	 * @param adapt - If true, increments the queue counter and expects completion feedback through
-	 *                the {@link Throttle.adapt} method. Defaults to false.
+	 *                the {@link createThrottle.adapt} method. Defaults to false.
 	 *
 	 * @returns A promise that resolves with the time elapsed since the last task execution in milliseconds
 	 */
@@ -159,7 +159,7 @@ export interface Throttle {
  * @example
  *
  * ```typescript
- * const throttle = Throttle({ minimum: 100, backoff: 2.0, recover: 0.5 });
+ * const throttle = createThrottle({ minimum: 100, backoff: 2.0, recover: 0.5 });
  *
  * await throttle.queue(true);
  *
@@ -182,7 +182,7 @@ export interface Throttle {
  *
  * @throws Error if any parameter validation fails
  */
-export function Throttle({
+export function createThrottle({
 
 	minimum = 0,
 	maximum = 0,
@@ -236,7 +236,7 @@ export function Throttle({
 	let fence = Date.now(); // the timestamp of the last task execution (ms since epoch)
 	let count = 0; // the number of active tasks
 
-	const mutex = Mutex();
+	const mutex = createMutex();
 
 
 	/**

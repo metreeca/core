@@ -21,7 +21,7 @@
  * that are either successful or failed, UI states that are loading, ready, or error, or any domain
  * model where alternatives are mutually exclusive.
  *
- * The {@link relay} function lets you handle each option with a dedicated handler, while TypeScript
+ * The {@link createRelay} function lets you handle each option with a dedicated handler, while TypeScript
  * ensures all options are covered and values are accessed safely. Eliminates verbose conditional
  * logic and prevents bugs from unhandled options.
  *
@@ -30,7 +30,7 @@
  * Define options and match with function handlers:
  *
  * ```typescript
- * import { relay } from '@metreeca/core/relay';
+ * import { createRelay } from '@metreeca/core/relay';
  *
  * type FieldState = {
  *   unset: void;
@@ -38,7 +38,7 @@
  *   error: Error;
  * };
  *
- * const r = relay<FieldState>({
+ * const r = createRelay<FieldState>({
  *   value: "user@example.com"
  * });
  *
@@ -240,7 +240,7 @@ export type Handler<V = unknown, R = unknown, D extends (() => R) | never = neve
  *
  * @returns A {@link Relay} function that accepts handlers for each option and an optional fallback
  */
-export function relay<O extends Options>(option: Option<O>): Relay<O> {
+export function createRelay<O extends Options>(option: Option<O>): Relay<O> {
 
 	const entries = Object.entries(option);
 

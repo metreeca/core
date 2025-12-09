@@ -39,57 +39,57 @@
  * **Identifier Factories**
  *
  * ```typescript
- * import { uri, iri } from "@metreeca/core";
+ * import { asURI, asIRI } from "@metreeca/core";
  *
  * // Absolute identifiers
  *
- * const absoluteURI = uri("http://example.org/resource");
- * const absoluteIRI = iri("http://example.org/resource");
+ * const absoluteURI = asURI("http://example.org/resource");
+ * const absoluteIRI = asIRI("http://example.org/resource");
  *
  * // Relative references
  *
- * const relativeURI = uri("../resource", "relative");
- * const relativeIRI = iri("../resource", "relative");
+ * const relativeURI = asURI("../resource", "relative");
+ * const relativeIRI = asIRI("../resource", "relative");
  *
  * // Root-relative (internal) paths
  *
- * const internalURI = uri("/resource", "internal");
- * const internalIRI = iri("/resource", "internal");
+ * const internalURI = asURI("/resource", "internal");
+ * const internalIRI = asIRI("/resource", "internal");
  *
  * // Unicode in IRIs (throws for URIs)
  *
- * const unicodeIRI = iri("http://example.org/资源");
+ * const unicodeIRI = asIRI("http://example.org/资源");
  * ```
  *
  * **Reference Operations**
  *
  * ```typescript
- * import { resolve, relativize, internalize, uri } from "@metreeca/core";
+ * import { resolve, relativize, internalize, asURI } from "@metreeca/core";
  *
- * const base = uri("http://example.com/a/b/c");
+ * const base = asURI("http://example.com/a/b/c");
  *
  * // Resolve relative references against base
  *
- * resolve(base, uri("../d", "relative"));  // "http://example.com/a/d"
- * resolve(base, uri("/d", "internal"));    // "http://example.com/d"
+ * resolve(base, asURI("../d", "relative"));  // "http://example.com/a/d"
+ * resolve(base, asURI("/d", "internal"));    // "http://example.com/d"
  *
  * // Convert absolute to root-relative (internal) path
  *
- * internalize(base, uri("http://example.com/x/y"));  // "/x/y"
+ * internalize(base, asURI("http://example.com/x/y"));  // "/x/y"
  *
  * // Convert absolute to relative path
  *
- * relativize(base, uri("http://example.com/a/d"));   // "../d"
+ * relativize(base, asURI("http://example.com/a/d"));   // "../d"
  * ```
  *
  * **Namespace Factories**
  *
  * ```typescript
- * import { namespace } from "@metreeca/core";
+ * import { createNamespace } from "@metreeca/core";
  *
  * // Closed namespace with predefined terms
  *
- * const rdfs = namespace("http://www.w3.org/2000/01/rdf-schema#", [
+ * const rdfs = createNamespace("http://www.w3.org/2000/01/rdf-schema#", [
  *   "label",
  *   "comment"
  * ]);
@@ -100,7 +100,7 @@
  *
  * // Open namespace for dynamic terms
  *
- * const ex = namespace("http://example.org/");
+ * const ex = createNamespace("http://example.org/");
  *
  * ex("anything");    // IRI: "http://example.org/anything"
  * ```
@@ -122,9 +122,9 @@
  * **Fetch Utilities**
  *
  * ```typescript
- * import { fetcher } from "@metreeca/core";
+ * import { createFetch } from "@metreeca/core";
  *
- * const guard = fetcher(fetch);
+ * const guard = createFetch(fetch);
  *
  * try {
  *   const response = await guard("https://api.example.com/data");
@@ -249,7 +249,7 @@ function merge(base: URL, reference: string): URL {
  *
  * The brand is a compile-time construct with no runtime overhead.
  *
- * Use {@link uri} to construct validated URIs or {@link isURI} as a type guard.
+ * Use {@link asURI} to construct validated URIs or {@link isURI} as a type guard.
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986.html RFC 3986 - URI Generic Syntax}
  */
@@ -272,7 +272,7 @@ export type URI = string & {
  *
  * The brand is a compile-time construct with no runtime overhead.
  *
- * Use {@link iri} to construct validated IRIs or {@link isIRI} as a type guard.
+ * Use {@link asIRI} to construct validated IRIs or {@link isIRI} as a type guard.
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc3987.html#section-2.2 RFC 3987 § 2.2 - IRI Syntax}
  */
@@ -313,12 +313,12 @@ export type Variant =
  * Namespace factory function type for generating IRIs with a common base.
  *
  * A callable function that constructs IRIs by appending names to a namespace base IRI.
- * When created via {@link namespace} with predefined terms, the function is augmented
+ * When created via {@link createNamespace} with predefined terms, the function is augmented
  * with typed properties for direct access to known terms.
  *
  * The function signature accepts a name parameter and returns the constructed {@link IRI}.
  *
- * @see {@link namespace} for creating namespace factories with typed term properties
+ * @see {@link createNamespace} for creating namespace factories with typed term properties
  */
 export type Namespace = ((name: string) => IRI)
 
@@ -423,7 +423,7 @@ export function isURI(value: unknown, variant: Variant = "absolute"): value is U
  * @see {@link URI}
  * @see {@link Variant}
  */
-export function uri(value: string, variant: Variant = "absolute"): URI {
+export function asURI(value: string, variant: Variant = "absolute"): URI {
 
 	return isString(value) && ASCIIPattern.test(value) ? normalize(value, variant)
 		: error(new RangeError(`invalid ${variant} URI <${value}>`));
@@ -488,7 +488,7 @@ export function isIRI(value: unknown, variant: Variant = "absolute"): value is I
  * @see {@link isIRI} for validation rules
  * @see {@link Variant}
  */
-export function iri(value: string, variant: Variant = "absolute"): IRI {
+export function asIRI(value: string, variant: Variant = "absolute"): IRI {
 
 	return normalize(value, variant);
 
@@ -674,11 +674,11 @@ export function relativize<T extends URI | IRI>(base: string|T, reference: strin
  * **Closed namespaces** (terms provided): Restrict access to predefined terms only, throwing errors
  * for undefined term names.
  */
-export function namespace<const T extends readonly string[]>(base: string|IRI, terms?: T): Namespace & Terms<T> {
+export function createNamespace<const T extends readonly string[]>(base: string|IRI, terms?: T): Namespace & Terms<T> {
 
-	const normalizedBase=iri(base); // validate base eagerly
+	const normalizedBase=asIRI(base); // validate base eagerly
 
-	const dictionary = Object.fromEntries((terms ?? []).map(term => [term, iri(normalizedBase+term)])) as Terms<T>;
+	const dictionary = Object.fromEntries((terms ?? []).map(term => [term, asIRI(normalizedBase+term)])) as Terms<T>;
 
 	const factory = terms && terms.length > 0
 
@@ -689,7 +689,7 @@ export function namespace<const T extends readonly string[]>(base: string|IRI, t
 
 		// open namespace: dynamically create IRIs
 
-		: (name: string): IRI => iri(normalizedBase+name);
+		: (name: string): IRI => asIRI(normalizedBase+name);
 
 	return Object.assign(factory, dictionary);
 
@@ -717,7 +717,7 @@ export function namespace<const T extends readonly string[]>(base: string|IRI, t
  * @param base The fetch function to wrap
  * @returns Fetch function whose promises reject with {@link Problem} for all error conditions
  */
-export function fetcher(base: typeof fetch): typeof fetch {
+export function createFetch(base: typeof fetch): typeof fetch {
 	return (input: RequestInfo | URL, init?: RequestInit) => base(input, init)
 
 		.catch(error => {

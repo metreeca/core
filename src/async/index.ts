@@ -43,9 +43,9 @@
  * Prevent race conditions in concurrent operations:
  *
  * ```typescript
- * import { Mutex, sleep } from '@metreeca/core/async';
+ * import { createMutex, sleep } from '@metreeca/core/async';
  *
- * const mutex = Mutex();
+ * const mutex = createMutex();
  * let counter = 0;
  *
  * async function increment() {
@@ -62,9 +62,9 @@
  * Control execution rate with automatic backoff:
  *
  * ```typescript
- * import { Throttle } from '@metreeca/core/async';
+ * import { createThrottle } from '@metreeca/core/async';
  *
- * const throttle = Throttle({
+ * const throttle = createThrottle({
  *   minimum: 100,   // At least 100ms between requests
  *   backoff: 2.0,   // Double delay on failure
  *   recover: 0.5    // Halve delay on success
