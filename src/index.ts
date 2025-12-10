@@ -15,10 +15,7 @@
  */
 
 /**
- * Type guards for JavaScript types and protocols.
- *
- * Provides predicates to safely narrow unknown values to specific types at runtime,
- * enabling type-safe operations on dynamically-typed data.
+ * Core utility types and type guards.
  *
  * ```typescript
  * import {
@@ -75,6 +72,29 @@
  */
 export type Identifier =
 	string & { readonly __brand: unique symbol }
+
+
+/**
+ * A value or a readonly array of values.
+ *
+ * Enables APIs to accept either a single value or multiple values uniformly.
+ *
+ * @typeParam T The type of the value(s)
+ */
+export type Some<T> =
+	| T
+	| readonly T[]
+
+/**
+ * A value or a function returning a value.
+ *
+ * Enables deferred evaluation, allowing values to be computed on demand rather than upfront.
+ *
+ * @typeParam T The type of the value
+ */
+export type Lazy<T> =
+	| T
+	| (() => T);
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
