@@ -158,6 +158,28 @@ export function isError(value: unknown): value is Error {
 }
 
 /**
+ * Checks if a value is a RegExp instance.
+ *
+ * @param value The value to check
+ *
+ * @returns `true` if the value is a RegExp instance
+ */
+export function isRegExp(value: unknown): value is RegExp {
+	return value instanceof RegExp;
+}
+
+/**
+ * Checks if a value is a Date instance.
+ *
+ * @param value The value to check
+ *
+ * @returns `true` if the value is a Date instance
+ */
+export function isDate(value: unknown): value is Date {
+	return value instanceof Date;
+}
+
+/**
  * Checks if a value is a promise.
  *
  * @typeParam T The type of the promised value

@@ -21,6 +21,8 @@ import {
 	isDefined,
 	isError,
 	isFunction,
+	isRegExp,
+	isDate,
 	isIdentifier,
 	isIterable,
 	isPromise,
@@ -175,6 +177,39 @@ describe("isError()", () => {
 		expect(isError({ message: "error" })).toBeFalsy();
 		expect(isError("Error")).toBeFalsy();
 		expect(isError(null)).toBeFalsy();
+	});
+
+});
+
+describe("isRegExp()", () => {
+
+	it("should return true for RegExp instances", () => {
+		expect(isRegExp(/test/)).toBeTruthy();
+		expect(isRegExp(new RegExp("test"))).toBeTruthy();
+		expect(isRegExp(/test/gi)).toBeTruthy();
+	});
+
+	it("should return false for non-regexp values", () => {
+		expect(isRegExp("/test/")).toBeFalsy();
+		expect(isRegExp({ source: "test" })).toBeFalsy();
+		expect(isRegExp(null)).toBeFalsy();
+	});
+
+});
+
+describe("isDate()", () => {
+
+	it("should return true for Date instances", () => {
+		expect(isDate(new Date())).toBeTruthy();
+		expect(isDate(new Date("2024-01-01"))).toBeTruthy();
+		expect(isDate(new Date(0))).toBeTruthy();
+	});
+
+	it("should return false for non-date values", () => {
+		expect(isDate("2024-01-01")).toBeFalsy();
+		expect(isDate(1704067200000)).toBeFalsy();
+		expect(isDate({ getTime: () => 0 })).toBeFalsy();
+		expect(isDate(null)).toBeFalsy();
 	});
 
 });
