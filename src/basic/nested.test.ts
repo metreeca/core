@@ -19,6 +19,8 @@ import { describe, expect, it } from "vitest";
 import { equals, immutable } from "./nested.js";
 
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 describe("equals()", () => {
 
 	// Note: equals() does not handle circular references and will cause stack overflow.
@@ -140,6 +142,76 @@ describe("equals()", () => {
 
 			expect(equals([{ uno: 1, due: 2 }], [{ uno: 1, due: 2 }])).toBeTruthy();
 			expect(equals([{ uno: 1, due: 2 }], [{ uno: 1, tre: 3 }])).toBeFalsy();
+
+		});
+
+	});
+
+	describe("custom equality", () => {
+
+		it("should use Object.is by default", async () => {
+
+			expect(equals(-0, +0)).toBeFalsy();
+			expect(equals(NaN, NaN)).toBeTruthy();
+
+		});
+
+		it("should use custom equality for primitives", async () => {
+
+			const looseEqual = (x: unknown, y: unknown) => x == y;
+
+			expect(equals(1, "1", looseEqual)).toBeTruthy();
+			expect(equals(0, false, looseEqual)).toBeTruthy();
+			expect(equals(null, undefined, looseEqual)).toBeTruthy();
+
+		});
+
+		it("should use custom equality for nested primitives in objects", async () => {
+
+			const looseEqual = (x: unknown, y: unknown) => x == y;
+
+			expect(equals({ a: 1 }, { a: "1" }, looseEqual)).toBeTruthy();
+			expect(equals({ a: { b: 0 } }, { a: { b: false } }, looseEqual)).toBeTruthy();
+
+		});
+
+		it("should use custom equality for nested primitives in arrays", async () => {
+
+			const looseEqual = (x: unknown, y: unknown) => x == y;
+
+			expect(equals([1, 2], ["1", "2"], looseEqual)).toBeTruthy();
+			expect(equals([[0]], [[false]], looseEqual)).toBeTruthy();
+
+		});
+
+		it("should use custom equality for case-insensitive string comparison", async () => {
+
+			const caseInsensitive = (x: unknown, y: unknown) =>
+				typeof x === "string" && typeof y === "string"
+					? x.toLowerCase() === y.toLowerCase()
+					: Object.is(x, y);
+
+			expect(equals("Hello", "hello", caseInsensitive)).toBeTruthy();
+			expect(equals({ name: "Alice" }, { name: "ALICE" }, caseInsensitive)).toBeTruthy();
+			expect(equals(["A", "B"], ["a", "b"], caseInsensitive)).toBeTruthy();
+
+			// non-strings still use Object.is semantics
+			expect(equals(1, 1, caseInsensitive)).toBeTruthy();
+			expect(equals(1, 2, caseInsensitive)).toBeFalsy();
+
+		});
+
+		it("should use custom equality for numeric tolerance comparison", async () => {
+
+			const tolerance = 0.001;
+			const approxEqual = (x: unknown, y: unknown) =>
+				typeof x === "number" && typeof y === "number"
+					? Math.abs(x - y) < tolerance
+					: Object.is(x, y);
+
+			expect(equals(0.1 + 0.2, 0.3, approxEqual)).toBeTruthy();
+			expect(equals({ value: 1.0001 }, { value: 1.0002 }, approxEqual)).toBeTruthy();
+			expect(equals([0.1, 0.2], [0.1001, 0.2001], approxEqual)).toBeTruthy();
 
 		});
 

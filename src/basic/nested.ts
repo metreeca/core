@@ -88,23 +88,25 @@ const Immutable = Symbol("immutable");
  *
  * - two {@link isObject plain objects} with deeply equal entry sets
  * - two {@link isArray arrays} with pairwise deeply equal items
- * - two values otherwise equal according to `Object.is`
+ * - two values otherwise equal according to `equal` or `Object.is` by default
+ *
+ * > [!CAUTION]
+ * > **Circular references are not supported**. Do not pass objects with cycles.
  *
  * @param x The target object to be checked for equality
  * @param y The reference object to be checked for equality
+ * @param equal An optional custom equality function for comparing non-object, non-array values; defaults to `Object.is`
  *
  * @returns `true` if `x` and `y` are deeply equal; `false` otherwise
  *
- * @throws {RangeError} Stack overflow when `x` or `y` contains circular references
+ * @throws RangeError - Stack overflow when `x` or `y` contains circular references
  *
  * @remarks
- *
- * **Circular references are not supported**. Do not pass objects with cycles.
  */
-export function equals(x: unknown, y: unknown): boolean {
+export function equals(x: unknown, y: unknown, equal: (x: unknown, y: unknown) => boolean=Object.is): boolean {
 
 	function arrayEquals(x: unknown[], y: typeof x) {
-		return x.length === y.length && x.every((value, index) => equals(value, y[index]));
+		return x.length === y.length && x.every((value, index) => equals(value, y[index], equal));
 	}
 
 	function objectEquals(x: { [s: string | number | symbol]: unknown }, y: typeof x) {
@@ -113,20 +115,23 @@ export function equals(x: unknown, y: unknown): boolean {
 		const yKeys = Object.keys(y);
 
 		return xKeys.length !== yKeys.length ? false
-			: xKeys.every(key => key in y && equals(x[key], y[key]));
+			: xKeys.every(key => key in y && equals(x[key], y[key], equal));
 	}
 
 	return isArray(x) ? isArray(y) && arrayEquals(x, y)
 		: isObject(x) ? isObject(y) && objectEquals(x, y)
-			: Object.is(x, y);
+			: equal(x, y);
 }
 
 /**
  * Creates an immutable deep clone.
  *
- * Plain objects, arrays, and functions with custom properties are recursively cloned
- * and frozen. Functions without custom properties are returned as-is. Other object types
- * (`Date`, `RegExp`, `Buffer`, etc.) are returned as-is to preserve their functionality.
+ * Plain objects, arrays, and functions with custom properties are recursively cloned and frozen. Functions without
+ * custom properties are returned as-is. Other object types (`Date`, `RegExp`, `Buffer`, etc.) are returned as-is to
+ * preserve their functionality.
+ *
+ * > [!CAUTION]
+ * > **Circular references are not supported**. Do not pass objects with cycles.
  *
  * @typeParam T The type of the value to be cloned
  *
@@ -134,11 +139,10 @@ export function equals(x: unknown, y: unknown): boolean {
  *
  * @returns A deeply immutable clone of `value`
  *
- * @throws {RangeError} Stack overflow when `value` contains circular references
+ * @throws RangeError - Stack overflow when `value` contains circular references
  *
  * @remarks
  *
- * - **Circular references are not supported**. Do not pass objects with cycles.
  * - Only plain objects (those with `Object.prototype`) and arrays are cloned and frozen.
  *   All other objects (`Date`, `RegExp`, `Map`, `Set`, class instances, objects with `null`
  *   prototype, etc.) are returned as-is to preserve their functionality.
