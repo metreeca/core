@@ -19,6 +19,12 @@ import { describe, expect, it } from "vitest";
 import { equals, immutable } from "./nested.js";
 
 
+// module-level validator with stable identity
+function stableValidator<T>(v: T): T { return v; }
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 describe("equals()", () => {
 
 	// Note: equals() does not handle circular references and will cause stack overflow.
@@ -623,7 +629,7 @@ describe("immutable()", () => {
 			const symbols = Object.getOwnPropertySymbols(frozen1);
 			const immutableSymbol = symbols.find(s => s.toString() === "Symbol(immutable)");
 			expect(immutableSymbol).toBeDefined();
-			expect((frozen1 as any)[immutableSymbol!]).toBe(true);
+			expect((frozen1 as any)[immutableSymbol!]).toBe(true); // true when no validator provided
 
 			// Verify optimization: calling immutable() on already-frozen function should return early
 			// We can test this by checking that immutable() on frozen2 returns immediately
@@ -679,6 +685,87 @@ describe("immutable()", () => {
 			const descriptor = Object.getOwnPropertyDescriptor(frozen, "value");
 			expect(descriptor?.get).toBeDefined();
 			expect(descriptor?.set).toBeDefined();
+
+		});
+
+	});
+
+	describe("validator", () => {
+
+		it("should use identity function by default", async () => {
+
+			const value = { name: "Alice" };
+			const result = immutable(value);
+
+			expect(result).toEqual(value);
+
+		});
+
+		it("should call validator before deep freeze", async () => {
+
+			const value = { name: "alice" };
+			const result = immutable(value, v => ({ ...v, name: v.name.toUpperCase() }));
+
+			expect(result.name).toBe("ALICE");
+
+		});
+
+		it("should not freeze when validator throws", async () => {
+
+			const value = { age: -5 };
+
+			expect(() => immutable(value, v => {
+				if (v.age < 0) throw new Error("Age must be non-negative");
+				return v;
+			})).toThrow();
+
+		});
+
+		it("should freeze the validated value", async () => {
+
+			const value = { count: 5 };
+			const result = immutable(value, v => ({ ...v, count: v.count * 2 }));
+
+			expect(result.count).toBe(10);
+			expect(() => (result as any).count = 20).toThrow();
+
+		});
+
+		it("should be idempotent with stable validator identity", async () => {
+
+			const value = { name: "Alice" };
+			const frozen1 = immutable(value, stableValidator);
+			const frozen2 = immutable(frozen1, stableValidator);
+
+			expect(frozen2).toBe(frozen1);
+
+		});
+
+		it("should re-validate with different validator identity", async () => {
+
+			const validator1 = (v: { name: string }) => ({ ...v, name: v.name.toUpperCase() });
+			const validator2 = (v: { name: string }) => ({ ...v, name: v.name.toLowerCase() });
+
+			const value = { name: "Alice" };
+			const frozen1 = immutable(value, validator1);
+			const frozen2 = immutable(frozen1, validator2);
+
+			expect(frozen1.name).toBe("ALICE");
+			expect(frozen2.name).toBe("alice");
+			expect(frozen2).not.toBe(frozen1);
+
+		});
+
+		it("should return new object when validator identity changes", async () => {
+
+			const identityValidator1 = <T>(v: T): T => v;
+			const identityValidator2 = <T>(v: T): T => v;
+
+			const value = { name: "Alice" };
+			const frozen1 = immutable(value, identityValidator1);
+			const frozen2 = immutable(frozen1, identityValidator2);
+
+			expect(frozen2).not.toBe(frozen1);
 
 		});
 

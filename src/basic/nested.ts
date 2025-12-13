@@ -90,16 +90,17 @@ const Immutable = Symbol("immutable");
  * - two {@link isArray arrays} with pairwise deeply equal items
  * - two values otherwise equal according to `Object.is`
  *
+ * > [!CAUTION]
+ * > **Circular references are not supported**. Do not pass objects with cycles.
+ *
  * @param x The target object to be checked for equality
  * @param y The reference object to be checked for equality
  *
  * @returns `true` if `x` and `y` are deeply equal; `false` otherwise
  *
- * @throws {RangeError} Stack overflow when `x` or `y` contains circular references
+ * @throws RangeError - Stack overflow when `x` or `y` contains circular references
  *
  * @remarks
- *
- * **Circular references are not supported**. Do not pass objects with cycles.
  */
 export function equals(x: unknown, y: unknown): boolean {
 
@@ -124,21 +125,29 @@ export function equals(x: unknown, y: unknown): boolean {
 /**
  * Creates an immutable deep clone.
  *
- * Plain objects, arrays, and functions with custom properties are recursively cloned
- * and frozen. Functions without custom properties are returned as-is. Other object types
- * (`Date`, `RegExp`, `Buffer`, etc.) are returned as-is to preserve their functionality.
+ * Plain objects, arrays, and functions with custom properties are recursively cloned and frozen. Functions without
+ * custom properties are returned as-is. Other object types (`Date`, `RegExp`, `Buffer`, etc.) are returned as-is to
+ * preserve their functionality. Optionally validates and transforms the input before cloning.
+ *
+ * > [!CAUTION]
+ * > **Circular references are not supported**. Do not pass objects with cycles.
+ *
+ * > [!IMPORTANT]
+ * > If `validator` has a stable identity (that is, it's a module-level function rather than an inline lambda),
+ * > calls with the same validator are idempotent and can be repeated freely without performance penalty.
  *
  * @typeParam T The type of the value to be cloned
  *
  * @param value The value to make immutable
+ * @param validator A function called before deep cloning to validate and optionally transform `value`; returns a
+ *   compatible value on success or throws on validation failure; defaults to the identity function
  *
  * @returns A deeply immutable clone of `value`
  *
- * @throws {RangeError} Stack overflow when `value` contains circular references
- *
+ * @throws RangeError - Stack overflow when `value` contains circular references
+  *
  * @remarks
  *
- * - **Circular references are not supported**. Do not pass objects with cycles.
  * - Only plain objects (those with `Object.prototype`) and arrays are cloned and frozen.
  *   All other objects (`Date`, `RegExp`, `Map`, `Set`, class instances, objects with `null`
  *   prototype, etc.) are returned as-is to preserve their functionality.
@@ -150,12 +159,30 @@ export function equals(x: unknown, y: unknown): boolean {
  * - Accessor properties (getters/setters) are preserved as-is without freezing the accessor
  *   functions themselves. Getters may still return mutable values.
  */
-export function immutable<T>(value: T): T {
+export function immutable<T>(value: T, validator?: ((value: T) => T)): T {
 
-	return isFunction(value) ? freeze(value, value)
-		: isArray(value) ? freeze(value, [])
-			: isObject(value) ? freeze(value, {})
-				: value;
+	// check for stable validator identity to skip re-validation
+
+	const stored = (value as Record<symbol, unknown>)[Immutable];
+
+	const stable = stored === true
+		? validator === undefined
+		: stored instanceof WeakRef && stored.deref() === validator;
+
+	if ( stable ) {
+
+		return value;
+
+	} else {
+
+		const validated = validator === undefined ? value : validator(value);
+
+		return isFunction(validated) ? freeze(validated, validated)
+			: isArray(validated) ? freeze(validated, [])
+				: isObject(validated) ? freeze(validated, {})
+					: validated;
+
+	}
 
 
 	/**
@@ -173,21 +200,17 @@ export function immutable<T>(value: T): T {
 	 */
 	function freeze(value: T & object, accumulator: {}): T {
 
-		if ( Immutable in value ) {
-
-			return value as T;
-
-		} else {
-
 			const source = value as Record<PropertyKey, unknown>;
 
 			Reflect.ownKeys(source).forEach(key => {
 
-				const builtin = isFunction(value) && (
+				// skip internal immutable tag and function built-in properties
+
+				const skip = key === Immutable || isFunction(value) && (
 					key === "length" || key === "name" || key === "prototype"
 				);
 
-				if ( !builtin ) {
+				if ( !skip ) {
 
 					const descriptor = Object.getOwnPropertyDescriptor(source, key)!;
 
@@ -219,13 +242,11 @@ export function immutable<T>(value: T): T {
 			});
 
 			Object.defineProperty(accumulator, Immutable, {
-				value: true,
+				value: validator === undefined? true : new WeakRef(validator),
 				enumerable: false
 			});
 
-			return Object.freeze(accumulator) as T;
-
-		}
+		return Object.freeze(accumulator) as T;
 
 	}
 
