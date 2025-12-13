@@ -88,13 +88,14 @@ const Immutable = Symbol("immutable");
  *
  * - two {@link isObject plain objects} with deeply equal entry sets
  * - two {@link isArray arrays} with pairwise deeply equal items
- * - two values otherwise equal according to `Object.is`
+ * - two values otherwise equal according to `equal` or `Object.is` by default
  *
  * > [!CAUTION]
  * > **Circular references are not supported**. Do not pass objects with cycles.
  *
  * @param x The target object to be checked for equality
  * @param y The reference object to be checked for equality
+ * @param equal An optional custom equality function for comparing non-object, non-array values; defaults to `Object.is`
  *
  * @returns `true` if `x` and `y` are deeply equal; `false` otherwise
  *
@@ -102,10 +103,10 @@ const Immutable = Symbol("immutable");
  *
  * @remarks
  */
-export function equals(x: unknown, y: unknown): boolean {
+export function equals(x: unknown, y: unknown, equal: (x: unknown, y: unknown) => boolean=Object.is): boolean {
 
 	function arrayEquals(x: unknown[], y: typeof x) {
-		return x.length === y.length && x.every((value, index) => equals(value, y[index]));
+		return x.length === y.length && x.every((value, index) => equals(value, y[index], equal));
 	}
 
 	function objectEquals(x: { [s: string | number | symbol]: unknown }, y: typeof x) {
@@ -114,12 +115,12 @@ export function equals(x: unknown, y: unknown): boolean {
 		const yKeys = Object.keys(y);
 
 		return xKeys.length !== yKeys.length ? false
-			: xKeys.every(key => key in y && equals(x[key], y[key]));
+			: xKeys.every(key => key in y && equals(x[key], y[key], equal));
 	}
 
 	return isArray(x) ? isArray(y) && arrayEquals(x, y)
 		: isObject(x) ? isObject(y) && objectEquals(x, y)
-			: Object.is(x, y);
+			: equal(x, y);
 }
 
 /**
