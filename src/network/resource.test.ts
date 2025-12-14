@@ -547,12 +547,18 @@ describe("namespace", () => {
 
 	describe("open namespace (no terms)", () => {
 
-		it("should create namespace factory with dynamic term generation", () => {
+		it("should create namespace factory with dynamic term generation", async () => {
 			const ns = createNamespace(base);
 			expect(typeof ns).toBe("function");
 		});
 
-		it("should generate IRIs dynamically for any term", () => {
+		it("should return namespace IRI when called without arguments", async () => {
+			const ns = createNamespace(base);
+			expect(ns()).toBe(base);
+			expect(isIRI(ns())).toBe(true);
+		});
+
+		it("should generate IRIs dynamically for any term", async () => {
 			const ns = createNamespace(base);
 			const label = ns("label");
 			const comment = ns("comment");
@@ -573,14 +579,20 @@ describe("namespace", () => {
 
 	describe("closed namespace (with terms)", () => {
 
-		it("should create namespace factory with typed term properties", () => {
+		it("should create namespace factory with typed term properties", async () => {
 			const ns = createNamespace(base, ["label", "comment"]);
 			expect(typeof ns).toBe("function");
 			expect(isIRI(ns.label)).toBe(true);
 			expect(isIRI(ns.comment)).toBe(true);
 		});
 
-		it("should provide access to predefined terms via properties", () => {
+		it("should return namespace IRI when called without arguments", async () => {
+			const ns = createNamespace(base, ["label", "comment"] as const);
+			expect(ns()).toBe(base);
+			expect(isIRI(ns())).toBe(true);
+		});
+
+		it("should provide access to predefined terms via properties", async () => {
 			const ns = createNamespace(base, ["label", "comment"] as const);
 			expect(ns.label).toBe(`${base}label`);
 			expect(ns.comment).toBe(`${base}comment`);

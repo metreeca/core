@@ -94,6 +94,7 @@
  *   "comment"
  * ]);
  *
+ * rdfs();           // IRI: "http://www.w3.org/2000/01/rdf-schema#"
  * rdfs.label;        // IRI: "http://www.w3.org/2000/01/rdf-schema#label"
  * rdfs("comment");   // IRI: "http://www.w3.org/2000/01/rdf-schema#comment"
  * rdfs("seeAlso");   // Throws RangeError: unknown term
@@ -102,6 +103,7 @@
  *
  * const ex = createNamespace("http://example.org/");
  *
+ * ex();              // IRI: "http://example.org/"
  * ex("anything");    // IRI: "http://example.org/anything"
  * ```
  *
@@ -294,17 +296,19 @@ export type Variant =
 
 
 /**
- * Namespace factory function type for generating IRIs with a common base.
+ * Factory function type for generating IRIs within a common namespace.
  *
- * A callable function that constructs IRIs by appending names to a namespace base IRI.
+ * A callable function that constructs IRIs by appending names to the namespace IRI.
  * When created via {@link createNamespace} with predefined terms, the function is augmented
  * with typed properties for direct access to known terms.
  *
- * The function signature accepts a name parameter and returns the constructed {@link IRI}.
+ * The function signature accepts an optional name parameter and returns the constructed {@link IRI}.
+ * If name is omitted, returns the namespace IRI itself.
  *
  * @see {@link createNamespace} for creating namespace factories with typed term properties
  */
-export type Namespace = ((name: string) => IRI)
+export type Namespace =
+	((name?: string) => IRI)
 
 /**
  * Mapped type for namespace term properties.
@@ -634,20 +638,20 @@ export function relativize<T extends URI | IRI>(base: string|T, reference: strin
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Creates a namespace factory for generating IRIs with a common base.
+ * Creates a namespace factory for generating IRIs within a common namespace.
  *
- * Returns a callable function that constructs IRIs by appending names to the base,
+ * Returns a callable function that constructs IRIs by appending names to the namespace,
  * enhanced with typed properties for each predefined term. This enables both dynamic IRI creation
  * (`ns("custom")`) and type-safe access to known terms (`ns.label`).
  *
  * @typeParam T The readonly array type of term names, inferred as const
  *
- * @param base The base IRI to which names and terms are appended
+ * @param namespace The namespace IRI to which names and terms are appended
  * @param terms Optional array of predefined term names to expose as typed properties
  *
  * @returns A callable function accepting a name parameter, augmented with IRI properties for each term
  *
- * @throws RangeError If the base or any term produces an invalid IRI during initialization.
+ * @throws RangeError If the namespace or any term produces an invalid IRI during initialization.
  *   For closed namespaces, also throws when the factory is called with an undefined term name.
  *   For open namespaces, throws when the factory is called with a name that produces an invalid IRI.
  *
@@ -658,22 +662,23 @@ export function relativize<T extends URI | IRI>(base: string|T, reference: strin
  * **Closed namespaces** (terms provided): Restrict access to predefined terms only, throwing errors
  * for undefined term names.
  */
-export function createNamespace<const T extends readonly string[]>(base: string|IRI, terms?: T): Namespace & Terms<T> {
+export function createNamespace<const T extends readonly string[]>(namespace: string|IRI, terms?: T): Namespace & Terms<T> {
 
-	const normalizedBase=asIRI(base); // validate base eagerly
+	const ns=asIRI(namespace); // validate namespace eagerly
 
-	const dictionary = Object.fromEntries((terms ?? []).map(term => [term, asIRI(normalizedBase+term)])) as Terms<T>;
+	const dictionary = Object.fromEntries((terms ?? []).map(term => [term, asIRI(ns+term)])) as Terms<T>;
 
 	const factory = terms && terms.length > 0
 
 		// closed namespace: only allow predefined terms
 
-		? (name: string): IRI => name in dictionary ? dictionary[name as T[number]]
-			: error(new RangeError(`unknown term <${name}> in closed namespace <${normalizedBase}>`))
+		? (name?: string): IRI => name === undefined ? ns
+			: name in dictionary ? dictionary[name as T[number]]
+				: error(new RangeError(`unknown term <${name}> in closed namespace <${ns}>`))
 
 		// open namespace: dynamically create IRIs
 
-		: (name: string): IRI => asIRI(normalizedBase+name);
+		: (name?: string): IRI => name === undefined ? ns : asIRI(ns+name);
 
 	return Object.assign(factory, dictionary);
 
