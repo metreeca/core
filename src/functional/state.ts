@@ -258,13 +258,14 @@ export interface State {
  * interface members (data properties and transition methods) with {@link Manager} operations
  * accessible via {@link manageState}`(state)`.
  *
+ * > [!WARNING]
+ * > This is a type alias for documentation purposes only. Branding was considered but not adopted due to
+ * > interoperability issues with tools relying on static code analysis. Instances must be created
+ * > using {@link createState}.
+ *
  * @typeParam T The state interface type
  */
-export type Instance<T extends State> = T & {
-
-	readonly __brand: unique symbol
-
-};
+export type Instance<T extends State> = T;
 
 /**
  * State manager.

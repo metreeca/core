@@ -11,3 +11,9 @@ description: Development guidelines and conventions for the @metreeca/core packa
 - **`npm run check`** - Run Vitest test suite
 - **`npm run watch`** - Watch and recompile TypeScript on changes
 - **`npm run proof`** - Start TypeDoc watch mode and documentation server
+
+# Type Aliases
+
+Semantic type aliases are plain aliases rather than branded types to avoid issues with type inference and compatibility
+with runtime validation tools like Typia. Values must be validated at runtime using the corresponding `isX` type guards
+or `asX` validator functions.

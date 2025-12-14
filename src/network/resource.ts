@@ -242,22 +242,14 @@ function merge(base: URL, reference: string): URL {
  * A URI is a sequence of characters that identifies an abstract or physical resource using
  * only ASCII characters (U+0000-U+007F).
  *
- * @remarks
- *
- * This opaque type ensures that only validated URIs can be used where a URI is expected,
- * preventing raw strings from being passed directly without validation.
- *
- * The brand is a compile-time construct with no runtime overhead.
- *
- * Use {@link asURI} to construct validated URIs or {@link isURI} as a type guard.
+ * > [!WARNING]
+ * > This is a type alias for documentation purposes only. Branding was considered but not adopted due to
+ * > interoperability issues with tools relying on static code analysis. Values must be validated at runtime
+ * > using {@link isURI} or {@link asURI}.
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986.html RFC 3986 - URI Generic Syntax}
  */
-export type URI = string & {
-
-	readonly __brand: unique symbol
-
-}
+export type URI = string
 
 /**
  * Internationalized Resource Identifier (IRI) as defined by RFC 3987.
@@ -265,22 +257,14 @@ export type URI = string & {
  * An IRI is a sequence of characters that identifies an abstract or physical resource, allowing
  * Unicode characters beyond the ASCII subset permitted in URIs.
  *
- * @remarks
- *
- * This opaque type ensures that only validated IRIs can be used where an IRI is expected,
- * preventing raw strings from being passed directly without validation.
- *
- * The brand is a compile-time construct with no runtime overhead.
- *
- * Use {@link asIRI} to construct validated IRIs or {@link isIRI} as a type guard.
+ * > [!WARNING]
+ * > This is a type alias for documentation purposes only. Branding was considered but not adopted due to
+ * > interoperability issues with tools relying on static code analysis. Values must be validated at runtime
+ * > using {@link isIRI} or {@link asIRI}.
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc3987.html#section-2.2 RFC 3987 § 2.2 - IRI Syntax}
  */
-export type IRI = string & {
-
-	readonly __brand: unique symbol
-
-}
+export type IRI = string
 
 
 /**

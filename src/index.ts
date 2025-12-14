@@ -62,16 +62,21 @@
 /**
  * ECMAScript Identifier.
  *
- * A branded string matching ECMAScript IdentifierName syntax:
+ * A string matching ECMAScript IdentifierName syntax:
  *
  * ```js
  * /^[_$\p{ID_Start}][$\u200C\u200D\p{ID_Continue}]*$/u
  * ```
  *
+ * > [!WARNING]
+ * > This is a type alias for documentation purposes only. Branding was considered but not adopted due to
+ * > interoperability issues with tools relying on static code analysis. Values must be validated at runtime
+ * > using {@link isIdentifier}.
+ *
  * @see [ECMAScript® 2024 - §12.7 Names and Keywords](https://262.ecma-international.org/15.0/#sec-names-and-keywords)
  */
 export type Identifier =
-	string & { readonly __brand: unique symbol }
+	string
 
 
 /**

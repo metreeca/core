@@ -129,23 +129,15 @@ const RFC4647Pattern = /^(?:[a-z]{1,8}|\*)(?:-(?:[a-z0-9]{1,8}|\*))*$/i;
  *
  * Grandfathered tags are omitted from validation for simplicity.
  *
- * @remarks
- *
- * This opaque type ensures that only validated BCP 47 language tags can be used where a language tag is expected,
- * preventing raw strings from being passed directly without validation.
- *
- * The brand is a compile-time construct with no runtime overhead.
- *
- * Use {@link asTag} to construct validated language tags or {@link isTag} as a type guard.
+ * > [!WARNING]
+ * > This is a type alias for documentation purposes only. Branding was considered but not adopted due to
+ * > interoperability issues with tools relying on static code analysis. Values must be validated at runtime
+ * > using {@link isTag} or {@link asTag}.
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc5646.html RFC 5646 - Tags for Identifying Languages}
  * @see {@link https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes ISO 639-2 Language Codes}
  */
-export type Tag = string & {
-
-	readonly __brand: unique symbol
-
-}
+export type Tag = string
 
 /**
  * Language range as defined by BCP 47/RFC 4647.
@@ -162,23 +154,15 @@ export type Tag = string & {
  * extended-language-range = (1*8ALPHA / "*") *("-" (1*8alphanum / "*"))
  * ```
  *
- * @remarks
- *
- * This opaque type ensures that only validated BCP 47 language ranges can be used where a range is expected,
- * preventing raw strings from being passed directly without validation.
- *
- * The brand is a compile-time construct with no runtime overhead.
- *
- * Use {@link asTagRange} to construct validated language ranges or {@link isTagRange} as a type guard.
+ * > [!WARNING]
+ * > This is a type alias for documentation purposes only. Branding was considered but not adopted due to
+ * > interoperability issues with tools relying on static code analysis. Values must be validated at runtime
+ * > using {@link isTagRange} or {@link asTagRange}.
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc4647.html RFC 4647 - Matching of Language Tags}
  * @see {@link Tag}
  */
-export type TagRange = string & {
-
-	readonly __brand: unique symbol
-
-}
+export type TagRange = string
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
