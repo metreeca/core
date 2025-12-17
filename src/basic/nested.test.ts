@@ -734,6 +734,33 @@ describe("immutable()", () => {
 
 		});
 
+		it("should handle non-enumerable symbol properties", async () => {
+
+			const Brand = Symbol("brand");
+			const original = { visible: 1 };
+
+			Object.defineProperty(original, Brand, {
+				value: "branded",
+				writable: true,
+				enumerable: false,
+				configurable: true
+			});
+
+			const frozen = immutable(original);
+
+			// Should preserve the symbol property value
+			expect((frozen as any)[Brand]).toBe("branded");
+			expect(frozen.visible).toBe(1);
+
+			// Check if non-enumerable symbol property is still non-enumerable
+			const descriptor = Object.getOwnPropertyDescriptor(frozen, Brand);
+			expect(descriptor?.enumerable).toBe(false);
+
+			// Should be frozen
+			expect(() => (frozen as any)[Brand] = "changed").toThrow();
+
+		});
+
 		it("should handle accessor properties (getters/setters)", async () => {
 
 			const original = {
