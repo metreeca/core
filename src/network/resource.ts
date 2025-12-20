@@ -186,33 +186,28 @@ function normalize<T extends URI | IRI>(value: unknown, variant: Variant): T | u
 	// path normalization (URL API silently clips excessive `..` at root)
 
 	const normalized = !validSyntax ? undefined
-		: hasScheme ? tryURL(value, url => url.href)
-			: value.startsWith("/") ? tryURL(value, url => url.pathname+url.search+url.hash)
+		: hasScheme ? parseURL(value, url => url.href)
+			: value.startsWith("/") ? parseURL(value, url => url.pathname+url.search+url.hash, "x:/")
 				: value; // relative paths: keep `.` and `..` for later resolution
 
 	if ( normalized === undefined ) { return undefined; }
 
-	// variant validation
+	// variant validation (hierarchy: hierarchical ⊂ absolute ⊂ internal ⊂ relative)
 
-	const valid = variant === "relative" // accepts relative, internal, and absolute
-		|| (variant === "absolute" && hasScheme && normalized.indexOf(":") < normalized.length-1)
-		|| (variant === "internal" && (hasScheme || normalized.startsWith("/"))); // root-relative or opaque SSP
+	const isHierarchical = hasScheme && normalized.startsWith(normalized.slice(0, normalized.indexOf(":")+1)+"//");
+	const isAbsolute = hasScheme && normalized.indexOf(":") < normalized.length-1;
+	const isInternal = isAbsolute || normalized.startsWith("/");
+
+	const valid = variant === "hierarchical" && isHierarchical
+		|| variant === "absolute" && isAbsolute
+		|| variant === "internal" && isInternal
+		|| variant === "relative";
 
 	return valid ? normalized as T : undefined;
 
 
-	function tryURL(ref: string, extract: (url: URL) => string): string | undefined {
-
-		try {
-
-			return extract(new URL(ref, "x:/"));
-
-		} catch {
-
-			return undefined;
-
-		}
-
+	function parseURL(ref: string, extract: (url: URL) => string, base?: string): string | undefined {
+		try { return extract(new URL(ref, base)); } catch { return undefined; }
 	}
 
 }
@@ -281,24 +276,26 @@ export type IRI = string
 /**
  * Identifier variant per RFC 3986 §§ 4.2-4.3.
  *
+ * - `"hierarchical"`: Absolute with authority (e.g., `http://example.org/path`) — can be used as resolution base
  * - `"absolute"`: Contains scheme (e.g., `http://example.org/path`, `urn:example:resource`)
  * - `"internal"`: Root-relative path starting with `/` (e.g., `/path`)
  * - `"relative"`: Reference without scheme (e.g., `../path`, `path`)
  *
  * @remarks
  *
- * The `"internal"` variant is a project-specific subset of relative references, not formally defined in RFC 3986.
+ * - Variants form an inclusivity hierarchy: `hierarchical ⊂ absolute ⊂ internal ⊂ relative`
+ * - The `"internal"` variant is project-specific, not formally defined in RFC 3986
+ * - For opaque URIs (e.g., `urn:`, `mailto:`), reference operations adapt their behaviour:
+ *   - {@link resolve}: Throws `RangeError` for relative references (no standard resolution)
+ *   - {@link internalize}: Returns scheme-specific part if schemes match
+ *   - {@link relativize}: Returns scheme-specific part if schemes match
  *
- * For opaque URIs (e.g., `urn:`, `mailto:`), reference operations adapt their behavior:
- *
- * - {@link resolve}: Throws `RangeError` for relative references (no standard resolution)
- * - {@link internalize}: Returns scheme-specific part if schemes match (e.g., `example:resource` from `urn:`)
- * - {@link relativize}: Returns scheme-specific part if schemes match
- *
- * @see {@link https://www.rfc-editor.org/rfc/rfc3986.html#section-4.2 RFC 3986 § 4.2 - Relative Reference}
- * @see {@link https://www.rfc-editor.org/rfc/rfc3986.html#section-4.3 RFC 3986 § 4.3 - Absolute URI}
+ * @see {@link https://www.rfc-editor.org/rfc/rfc3986#section-4.2 RFC 3986 § 4.2 - Relative Reference}
+ * @see {@link https://www.rfc-editor.org/rfc/rfc3986#section-4.3 RFC 3986 § 4.3 - Absolute URI}
+ * @see {@link https://www.rfc-editor.org/rfc/rfc6454#section-4 RFC 6454 § 4 - Origin of a URI}
  */
 export type Variant =
+	| "hierarchical"
 	| "absolute"
 	| "internal"
 	| "relative"
@@ -432,9 +429,10 @@ export function asURI(value: string, variant: Variant = "absolute"): URI {
  *
  * Validates IRIs according to RFC 3987 with variant-specific rules:
  *
- * - `"absolute"`: Must contain a valid scheme followed by non-empty scheme-specific part
- * - `"internal"`: Root-relative path starting with `/`, or absolute reference
- * - `"relative"`: Any well-formed reference (relative, internal, or absolute)
+ * - `"hierarchical"`: Absolute with authority (`scheme://...`) — can be used as resolution base
+ * - `"absolute"`: Hierarchical or opaque (`scheme:...`)
+ * - `"internal"`: Root-relative (`/...`) or absolute
+ * - `"relative"`: Any well-formed reference
  *
  * For non-absolute variants, rejects paths where `..` segments would climb above the root.
  *

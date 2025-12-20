@@ -7,6 +7,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unpublished](https://github.com/metreeca/core/compare/v0.9.17...HEAD)
 
+### Added
+
+- `"hierarchical"` variant for URI/IRI validation (absolute with authority, usable as resolution base)
+
 ## [0.9.17](https://github.com/metreeca/core/compare/v0.9.16...v0.9.17) - 2025-12-17
 
 ### Added
