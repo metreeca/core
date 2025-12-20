@@ -147,7 +147,6 @@
 import { isString, type Value } from "../basic/json.js";
 import { immutable } from "../basic/nested.js";
 import { error } from "../basic/report.js";
-import { isDefined } from "../index.js";
 
 
 /**
@@ -175,13 +174,9 @@ const ASCIIPattern = /^[\x00-\x7F]*$/;
  * @param value The value to validate and normalize
  * @param variant The identifier variant
  *
- * @returns The validated and normalized reference
- *
- * @throws RangeError If the value is not a valid reference for the specified variant
+ * @returns The validated and normalized reference, or `undefined` if invalid
  */
-function normalize<T extends URI | IRI>(value: unknown, variant: Variant): T {
-
-	const invalid = (): never => error(new RangeError(`invalid ${variant} reference <${value}>`));
+function normalize<T extends URI | IRI>(value: unknown, variant: Variant): T | undefined {
 
 	// syntax validation
 
@@ -190,10 +185,12 @@ function normalize<T extends URI | IRI>(value: unknown, variant: Variant): T {
 
 	// path normalization (URL API silently clips excessive `..` at root)
 
-	const normalized = !validSyntax ? invalid()
+	const normalized = !validSyntax ? undefined
 		: hasScheme ? tryURL(value, url => url.href)
 			: value.startsWith("/") ? tryURL(value, url => url.pathname+url.search+url.hash)
 				: value; // relative paths: keep `.` and `..` for later resolution
+
+	if ( normalized === undefined ) { return undefined; }
 
 	// variant validation
 
@@ -201,10 +198,10 @@ function normalize<T extends URI | IRI>(value: unknown, variant: Variant): T {
 		|| (variant === "absolute" && hasScheme && normalized.indexOf(":") < normalized.length-1)
 		|| (variant === "internal" && (hasScheme || normalized.startsWith("/"))); // root-relative or opaque SSP
 
-	return valid ? normalized as T : invalid();
+	return valid ? normalized as T : undefined;
 
 
-	function tryURL(ref: string, extract: (url: URL) => string): string {
+	function tryURL(ref: string, extract: (url: URL) => string): string | undefined {
 
 		try {
 
@@ -212,7 +209,7 @@ function normalize<T extends URI | IRI>(value: unknown, variant: Variant): T {
 
 		} catch {
 
-			return invalid();
+			return undefined;
 
 		}
 
@@ -233,6 +230,18 @@ function normalize<T extends URI | IRI>(value: unknown, variant: Variant): T {
  */
 function merge(base: URL, reference: string): URL {
 	return new URL(reference, base);
+}
+
+/**
+ * Throws a RangeError for an invalid reference.
+ *
+ * @param value The invalid value
+ * @param variant The expected variant
+ *
+ * @returns Never (always throws)
+ */
+function invalid(value: unknown, variant: Variant): never {
+	return error(new RangeError(`invalid ${variant} reference <${value}>`));
 }
 
 
@@ -389,7 +398,7 @@ export interface Problem {
  */
 export function isURI(value: unknown, variant: Variant = "absolute"): value is URI {
 
-	return isString(value) && ASCIIPattern.test(value) && isIRI(value, variant);
+	return isString(value) && ASCIIPattern.test(value) && normalize(value, variant) !== undefined;
 
 }
 
@@ -413,8 +422,7 @@ export function isURI(value: unknown, variant: Variant = "absolute"): value is U
  */
 export function asURI(value: string, variant: Variant = "absolute"): URI {
 
-	return isString(value) && ASCIIPattern.test(value) ? normalize(value, variant)
-		: error(new RangeError(`invalid ${variant} URI <${value}>`));
+	return (ASCIIPattern.test(value) ? normalize(value, variant) : undefined) ?? invalid(value, variant);
 
 }
 
@@ -425,8 +433,8 @@ export function asURI(value: string, variant: Variant = "absolute"): URI {
  * Validates IRIs according to RFC 3987 with variant-specific rules:
  *
  * - `"absolute"`: Must contain a valid scheme followed by non-empty scheme-specific part
- * - `"internal"`: Root-relative path starting with `/`, or opaque scheme-specific part
- * - `"relative"`: Any relative reference
+ * - `"internal"`: Root-relative path starting with `/`, or absolute reference
+ * - `"relative"`: Any well-formed reference (relative, internal, or absolute)
  *
  * For non-absolute variants, rejects paths where `..` segments would climb above the root.
  *
@@ -448,15 +456,7 @@ export function asURI(value: string, variant: Variant = "absolute"): URI {
  */
 export function isIRI(value: unknown, variant: Variant = "absolute"): value is IRI {
 
-	try {
-
-		return isDefined(normalize(value, variant));
-
-	} catch { // !!! avoid throw/catch
-
-		return false;
-
-	}
+	return normalize(value, variant) !== undefined;
 
 }
 
@@ -478,7 +478,7 @@ export function isIRI(value: unknown, variant: Variant = "absolute"): value is I
  */
 export function asIRI(value: string, variant: Variant = "absolute"): IRI {
 
-	return normalize(value, variant);
+	return normalize(value, variant) ?? invalid(value, variant);
 
 }
 
@@ -517,8 +517,8 @@ export function asIRI(value: string, variant: Variant = "absolute"): IRI {
  */
 export function resolve<T extends URI | IRI>(base: string|T, reference: string|T): T {
 
-	const normalizedBase = normalize<T>(base, "absolute");
-	const normalizedReference = normalize<T>(reference, "relative");
+	const normalizedBase = normalize<T>(base, "absolute") ?? invalid(base, "absolute");
+	const normalizedReference = normalize<T>(reference, "relative") ?? invalid(reference, "relative");
 
 	const baseURL = new URL(normalizedBase);
 
@@ -547,8 +547,8 @@ export function resolve<T extends URI | IRI>(base: string|T, reference: string|T
  */
 export function internalize<T extends URI | IRI>(base: string|T, reference: string|T): T {
 
-	const normalizedBase = normalize<T>(base, "absolute");
-	const normalizedReference = normalize<T>(reference, "relative");
+	const normalizedBase = normalize<T>(base, "absolute") ?? invalid(base, "absolute");
+	const normalizedReference = normalize<T>(reference, "relative") ?? invalid(reference, "relative");
 
 	const baseURL = new URL(normalizedBase);
 	const referenceURL = merge(baseURL, normalizedReference);
@@ -591,8 +591,8 @@ export function internalize<T extends URI | IRI>(base: string|T, reference: stri
  */
 export function relativize<T extends URI | IRI>(base: string|T, reference: string|T): T {
 
-	const normalizedBase = normalize<T>(base, "absolute");
-	const normalizedReference = normalize<T>(reference, "relative");
+	const normalizedBase = normalize<T>(base, "absolute") ?? invalid(base, "absolute");
+	const normalizedReference = normalize<T>(reference, "relative") ?? invalid(reference, "relative");
 
 	const baseURL = new URL(normalizedBase);
 	const referenceURL = merge(baseURL, normalizedReference);
