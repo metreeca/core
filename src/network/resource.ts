@@ -452,7 +452,7 @@ export function isIRI(value: unknown, variant: Variant = "absolute"): value is I
 
 		return isDefined(normalize(value, variant));
 
-	} catch {
+	} catch { // !!! avoid throw/catch
 
 		return false;
 
@@ -491,6 +491,16 @@ export function asIRI(value: string, variant: Variant = "absolute"): IRI {
  * - **Opaque identifiers** (e.g., `urn:`, `mailto:`): Absolute references are returned unchanged; relative
  *   references cannot be resolved and throw an error
  *
+ * @remarks
+ *
+ * While RFC 3986 § 5 defines a path-merging algorithm that technically applies to all URI schemes, opaque identifiers
+ * lack a hierarchical authority component, making relative resolution semantically undefined in practice. The WHATWG
+ * URL Standard follows RFC 6454, which assigns opaque origins (serialized as the string `"null"`) to such URIs,
+ * explicitly preventing same-origin comparisons and relative resolution.
+ *
+ * This implementation aligns with WHATWG/URL API behavior by rejecting relative references against opaque bases,
+ * providing clearer error semantics than the underlying URL API.
+ *
  * @typeParam T The identifier type ({@link URI} or {@link IRI})
  *
  * @param base The absolute base identifier to resolve against
@@ -501,7 +511,9 @@ export function asIRI(value: string, variant: Variant = "absolute"): IRI {
  * @throws RangeError If the resolved path contains tree-climbing segments that would go above the root,
  *   or if a relative reference cannot be resolved against an opaque base
  *
- * @see {@link https://www.rfc-editor.org/rfc/rfc3986.html#section-5 RFC 3986 § 5 - Reference Resolution}
+ * @see {@link https://www.rfc-editor.org/rfc/rfc3986#section-5 RFC 3986 § 5 - Reference Resolution}
+ * @see {@link https://www.rfc-editor.org/rfc/rfc6454#section-4 RFC 6454 § 4 - Origin of a URI}
+ * @see {@link https://url.spec.whatwg.org/#origin WHATWG URL Standard - Origin}
  */
 export function resolve<T extends URI | IRI>(base: string|T, reference: string|T): T {
 
