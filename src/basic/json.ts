@@ -174,7 +174,7 @@ export function isString(value: unknown): value is string {
  * @typeParam T The type of array elements
  *
  * @param value The value to check
- * @param is Optional type guard to validate elements
+ * @param is Optional type guard or predicate to validate elements
  *
  * @returns `true` if the value is an array. Empty arrays return `true` even when a guard is provided.
  *
@@ -185,7 +185,7 @@ export function isString(value: unknown): value is string {
  */
 export function isArray<T = unknown>(
 	value: unknown,
-	is?: (value: unknown) => value is T
+	is?: ((value: unknown) => value is T) | ((value: unknown) => boolean)
 ): value is T[] {
 
 	return Array.isArray(value)
@@ -208,7 +208,7 @@ export function isArray<T = unknown>(
  * @typeParam V The type of property values
  *
  * @param value The value to check
- * @param is Optional type guard to validate `[key, value]` entry tuples
+ * @param is Optional type guard or predicate to validate `[key, value]` entry tuples
  *
  * @returns `true` if the value is a plain object. Empty objects return `true` even when a guard is provided.
  *
@@ -219,7 +219,7 @@ export function isArray<T = unknown>(
  */
 export function isObject<K extends PropertyKey = PropertyKey, V = unknown>(
 	value: unknown,
-	is?: (entry: [unknown, unknown]) => entry is [K, V]
+	is?: ((entry: [unknown, unknown]) => entry is [K, V]) | ((entry: [unknown, unknown]) => boolean)
 ): value is Record<K, V> {
 
 	if ( value === undefined || value === null || typeof value !== "object" ) {
@@ -305,7 +305,7 @@ export function asString(value: unknown): string {
  * @typeParam T The type of array elements
  *
  * @param value The value to validate
- * @param is Optional type guard to validate elements
+ * @param is Optional type guard or predicate to validate elements
  *
  * @returns The value if it is an array
  *
@@ -313,7 +313,7 @@ export function asString(value: unknown): string {
  */
 export function asArray<T = unknown>(
 	value: unknown,
-	is?: (value: unknown) => value is T
+	is?: ((value: unknown) => value is T) | ((value: unknown) => boolean)
 ): T[] {
 
 	return isArray(value, is) ? value : error(new TypeError("expected array"));
@@ -327,7 +327,7 @@ export function asArray<T = unknown>(
  * @typeParam V The type of property values
  *
  * @param value The value to validate
- * @param is Optional type guard to validate `[key, value]` entry tuples
+ * @param is Optional type guard or predicate to validate `[key, value]` entry tuples
  *
  * @returns The value if it is a plain object
  *
@@ -335,7 +335,7 @@ export function asArray<T = unknown>(
  */
 export function asObject<K extends PropertyKey = PropertyKey, V = unknown>(
 	value: unknown,
-	is?: (entry: [unknown, unknown]) => entry is [K, V]
+	is?: ((entry: [unknown, unknown]) => entry is [K, V]) | ((entry: [unknown, unknown]) => boolean)
 ): Record<K, V> {
 
 	return isObject(value, is) ? value : error(new TypeError("expected object"));
