@@ -146,7 +146,7 @@
 
 import { isString, type Value } from "../basic/json.js";
 import { immutable } from "../basic/nested.js";
-import { error } from "../basic/report.js";
+import { error } from "../basic/error.js";
 
 
 /**

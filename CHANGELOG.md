@@ -14,6 +14,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Optional `is` guard/predicate parameter to `isArray`/`asArray` for element validation
 - Optional `is` guard/predicate parameter to `isObject`/`asObject` for `[key, value]` entry validation
 
+### Changed
+
+- Rename `report` module to `error`
+
 ## [0.9.17](https://github.com/metreeca/core/compare/v0.9.16...v0.9.17) - 2025-12-17
 
 ### Added

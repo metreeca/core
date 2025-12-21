@@ -25,7 +25,7 @@
  * Throw errors in expression contexts where statements aren't allowed:
  *
  * ```typescript
- * import { error } from '@metreeca/core/report';
+ * import { error } from '@metreeca/core/error';
  *
  * const value = map.get(key) ?? error("Missing required key");
  *
@@ -39,7 +39,7 @@
  * Extract readable messages from various value types:
  *
  * ```typescript
- * import { message } from '@metreeca/core/report';
+ * import { message } from '@metreeca/core/error';
  *
  * console.error(`Failed with: ${message(errorValue)}`);
  *
@@ -53,7 +53,7 @@
  * Monitor timing for synchronous and asynchronous operations:
  *
  * ```typescript
- * import { time } from '@metreeca/core/report';
+ * import { time } from '@metreeca/core/error';
  *
  * const result = await time(
  *   async () => fetchData(url),

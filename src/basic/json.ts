@@ -50,7 +50,7 @@
  */
 
 
-import { error } from "./report.js";
+import { error } from "./error.js";
 
 
 /**

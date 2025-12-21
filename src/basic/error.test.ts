@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { error, message, time } from "./report.js";
+import { error, message, time } from "./error.js";
 
 
 describe("message()", () => {

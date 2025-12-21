@@ -27,7 +27,7 @@
     ".": "./dist/index.js",
     "./json": "./dist/basic/json.js",
     "./nested": "./dist/basic/nested.js",
-    "./report": "./dist/basic/report.js",
+    "./error": "./dist/basic/error.js",
     "./resource": "./dist/network/resource.js",
     "./language": "./dist/network/language.js",
     "./async": "./dist/async/index.js",
