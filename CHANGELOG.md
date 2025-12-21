@@ -15,6 +15,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Optional `is` guard/predicate parameter to `isObject`/`asObject` for `[key, value]` entry validation
 - `assert` memoized validation function for plain objects
 - `IdentifierPattern` regex constant for ECMAScript identifier validation
+- `TagPattern` regex constant for BCP 47 language tag validation
+- `TagRangePattern` regex constant for BCP 47 extended language range validation
 
 ### Changed
 

@@ -68,21 +68,14 @@ import { isString } from "../basic/json.js";
 
 
 /**
- * Matches BCP 47 language tag pattern per RFC 5646 § 2.1.
+ * Regular expression for matching BCP 47 language tags.
  *
- * ```
- * Language-Tag = langtag / privateuse / grandfathered
- * langtag = language ["-" script] ["-" region] *("-" variant) *("-" extension) ["-" privateuse]
- * ```
- *
- * @remarks
- *
- * Grandfathered tags are omitted from this regex for simplicity.
+ * Matches strings following the language tag syntax defined in RFC 5646 § 2.1, excluding grandfathered tags.
  *
  * @see {@link https://www.rfc-editor.org/info/bcp47 BCP 47 - Tags for Identifying Languages}
  * @see {@link https://www.rfc-editor.org/rfc/rfc5646.html RFC 5646 - Tags for Identifying Languages}
  */
-const RFC5646Pattern = (() => {
+export const TagPattern = (() => {
 
 	const language = "(?:[a-z]{2,3}(?:-[a-z]{3}){0,3}|[a-z]{4}|[a-z]{5,8})"; // 2-3 + extlang / 4 / 5-8 letters
 	const script = "(?:-[a-z]{4})?"; // optional 4-letter script
@@ -98,16 +91,14 @@ const RFC5646Pattern = (() => {
 })();
 
 /**
- * Matches BCP 47 extended language range pattern per RFC 4647 § 2.2.
+ * Regular expression for matching BCP 47 extended language ranges.
  *
- * ```
- * extended-language-range = (1*8ALPHA / "*") *("-" (1*8alphanum / "*"))
- * ```
+ * Matches strings following the extended language range syntax defined in RFC 4647 § 2.2.
  *
  * @see {@link https://www.rfc-editor.org/info/bcp47 BCP 47 - Tags for Identifying Languages}
  * @see {@link https://www.rfc-editor.org/rfc/rfc4647.html RFC 4647 - Matching of Language Tags}
  */
-const RFC4647Pattern = /^(?:[a-z]{1,8}|\*)(?:-(?:[a-z0-9]{1,8}|\*))*$/i;
+export const TagRangePattern = /^(?:[a-z]{1,8}|\*)(?:-(?:[a-z0-9]{1,8}|\*))*$/i;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -179,7 +170,7 @@ export type TagRange = string
  * @see {@link Tag}
  */
 export function isTag(value: unknown): value is Tag {
-	return isString(value) && value.length > 0 && RFC5646Pattern.test(value);
+	return isString(value) && value.length > 0 && TagPattern.test(value);
 }
 
 /**
@@ -219,7 +210,7 @@ export function asTag(value: string): Tag {
  * @see {@link TagRange}
  */
 export function isTagRange(value: unknown): value is TagRange {
-	return isString(value) && value.length > 0 && RFC4647Pattern.test(value);
+	return isString(value) && value.length > 0 && TagRangePattern.test(value);
 }
 
 /**
