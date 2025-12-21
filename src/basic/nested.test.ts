@@ -16,7 +16,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { equals, immutable } from "./nested.js";
+import { assert, equals, immutable } from "./nested.js";
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -902,3 +902,201 @@ describe("immutable()", () => {
 	});
 
 });
+
+describe("assert", () => {
+
+	const validator = <T>(value: T): T => value;
+	const otherValidator = <T>(value: T): T => value;
+
+	describe("with non-plain-object values", () => {
+
+		it("validates and returns primitives unchanged", async () => {
+
+			expect(assert(validator, 42)).toBe(42);
+			expect(assert(validator, "hello")).toBe("hello");
+			expect(assert(validator, true)).toBe(true);
+
+		});
+
+		it("validates and returns null/undefined unchanged", async () => {
+
+			expect(assert(validator, null)).toBe(null);
+			expect(assert(validator, undefined)).toBe(undefined);
+
+		});
+
+		it("throws if validator throws for primitives", async () => {
+
+			const throwingValidator = (): never => {
+				throw new Error("validation failed");
+			};
+
+			expect(() => assert(throwingValidator, 42)).toThrow();
+
+		});
+
+		it("does not cache primitives", async () => {
+
+			let validationCount = 0;
+			const countingValidator = <T>(value: T): T => {
+				validationCount++;
+				return value;
+			};
+
+			assert(countingValidator, 42);
+			assert(countingValidator, 42);
+
+			expect(validationCount).toBe(2);
+
+		});
+
+		it("validates and returns arrays without branding", async () => {
+
+			const arr = [1, 2, 3];
+			const result = assert(validator, arr);
+
+			expect(result).toEqual([1, 2, 3]);
+			expect(Object.isFrozen(result)).toBeFalsy();
+
+		});
+
+		it("validates and returns functions without branding", async () => {
+
+			const fn = () => 42;
+			const result = assert(validator, fn);
+
+			expect(result).toBe(fn);
+			expect((result as () => number)()).toBe(42);
+
+		});
+
+	});
+
+	describe("with unbranded value", () => {
+
+		it("runs value through validator", async () => {
+
+			let validated = false;
+			const trackingValidator = <T>(value: T): T => {
+				validated = true;
+				return value;
+			};
+
+			assert(trackingValidator, { a: 1 });
+
+			expect(validated).toBeTruthy();
+
+		});
+
+		it("throws if validator throws", async () => {
+
+			const throwingValidator = (): never => {
+				throw new Error("validation failed");
+			};
+
+			expect(() => assert(throwingValidator, { a: 1 })).toThrow();
+
+		});
+
+		it("returns immutable object", async () => {
+
+			const result = assert(validator, { a: 1 });
+
+			expect(Object.isFrozen(result)).toBeTruthy();
+
+		});
+
+	});
+
+	describe("with branded value", () => {
+
+		it("returns same object when branded with same validator", async () => {
+
+			const first = assert(validator, { a: 1 });
+			const second = assert(validator, first);
+
+			expect(second).toBe(first);
+
+		});
+
+		it("skips validation when branded with same validator", async () => {
+
+			let validationCount = 0;
+			const countingValidator = <T>(value: T): T => {
+				validationCount++;
+				return value;
+			};
+
+			const first = assert(countingValidator, { a: 1 });
+			assert(countingValidator, first);
+
+			expect(validationCount).toBe(1);
+
+		});
+
+		it("revalidates when branded with different validator", async () => {
+
+			const first = assert(validator, { a: 1 });
+			const second = assert(otherValidator, first);
+
+			expect(second).not.toBe(first);
+
+		});
+
+	});
+
+	describe("with frozen value", () => {
+
+		it("creates a copy preserving all properties", async () => {
+
+			const frozen = Object.freeze({ a: 1, b: 2 });
+			const result = assert(validator, frozen);
+
+			expect(result).toEqual({ a: 1, b: 2 });
+			expect(result).not.toBe(frozen);
+
+		});
+
+		it("preserves non-enumerable properties", async () => {
+
+			const obj = {};
+			Object.defineProperty(obj, "hidden", { value: 42, enumerable: false });
+			const frozen = Object.freeze(obj);
+
+			const result = assert(validator, frozen);
+			const descriptor = Object.getOwnPropertyDescriptor(result, "hidden");
+
+			expect(descriptor?.value).toBe(42);
+
+		});
+
+		it("preserves symbol properties", async () => {
+
+			const sym = Symbol("test");
+			const obj: Record<symbol | string, unknown> = { a: 1 };
+			obj[sym] = "symbol-value";
+			const frozen = Object.freeze(obj);
+
+			const result = assert(validator, frozen) as Record<symbol | string, unknown>;
+
+			expect(result[sym]).toBe("symbol-value");
+
+		});
+
+	});
+
+	describe("with sealed value", () => {
+
+		it("creates a copy preserving all properties", async () => {
+
+			const sealed = Object.seal({ a: 1, b: 2 });
+			const result = assert(validator, sealed);
+
+			expect(result).toEqual({ a: 1, b: 2 });
+			expect(result).not.toBe(sealed);
+
+		});
+
+	});
+
+})

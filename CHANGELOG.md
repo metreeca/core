@@ -13,6 +13,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `asBoolean`, `asNumber`, `asString`, `asArray`, `asObject` validating cast functions
 - Optional `is` guard/predicate parameter to `isArray`/`asArray` for element validation
 - Optional `is` guard/predicate parameter to `isObject`/`asObject` for `[key, value]` entry validation
+- `assert` memoized validation function for plain objects
 
 ### Changed
 

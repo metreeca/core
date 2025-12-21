@@ -78,6 +78,14 @@ import { isArray, isObject } from "./json.js";
  */
 const Immutable = Symbol("immutable");
 
+/**
+ * Brand symbol linking objects to their validating function.
+ *
+ * Used by {@link assert} to skip redundant validation when the object
+ * was already validated by the same validator.
+ */
+const Validated = Symbol("Validated");
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -99,9 +107,7 @@ const Immutable = Symbol("immutable");
  *
  * @returns `true` if `x` and `y` are deeply equal; `false` otherwise
  *
- * @throws RangeError - Stack overflow when `x` or `y` contains circular references
- *
- * @remarks
+ * @throws {RangeError} Stack overflow when `x` or `y` contains circular references
  */
 export function equals(x: unknown, y: unknown, equal: (x: unknown, y: unknown) => boolean=Object.is): boolean {
 
@@ -139,7 +145,7 @@ export function equals(x: unknown, y: unknown, equal: (x: unknown, y: unknown) =
  *
  * @returns A deeply immutable clone of `value`
  *
- * @throws RangeError - Stack overflow when `value` contains circular references
+ * @throws {RangeError} Stack overflow when `value` contains circular references
  *
  * @remarks
  *
@@ -230,6 +236,72 @@ export function immutable<T>(value: T): T {
 			return Object.freeze(accumulator) as T;
 
 		}
+
+	}
+
+}
+
+/**
+ * Asserts that a value conforms to a validated type.
+ *
+ * Applies a validator function to ensure `value` matches the expected type, throwing on invalid input. Validators may
+ * recursively call `assert` to deep-validate complex nested objects. For plain objects, memoizes validation results by
+ * branding the object with the validator function, so subsequent calls with the same validator return immediately
+ * without re-validation. Non-object values are validated on every call.
+ *
+ * > [!CAUTION]
+ * > **Circular references are not supported**. Do not pass objects with cycles.
+ *
+ * > [!IMPORTANT]
+ * > **Validators must have stable identity**. Use module-level named functions or `const` lambdas.
+ *
+ * @typeParam V The input value type accepted by the validator
+ * @typeParam T The type being asserted
+ *
+ * @param validator A function that validates `value` and throws on invalid input
+ * @param value The value to validate
+ *
+ * @returns The validated value (branded and immutable if a plain object)
+ *
+ * @throws {RangeError} Stack overflow when `value` contains circular references
+ * @throws Propagates any exception thrown by `validator`
+ */
+export function assert<V, T>(validator: (value: V) => T, value: unknown): T {
+
+	if ( isObject(value) ) {
+
+		return value[Validated] === validator
+			? value as T
+			: brand(validator(value as V));
+
+	} else {
+
+		return validator(value as V);
+
+	}
+
+
+	function brand(validated: T): T {
+
+		const target = Object.isExtensible(validated)
+			? validated
+			: copy(validated as object);
+
+		return immutable(Object.defineProperty(target, Validated, {
+			value: validator,
+			enumerable: false,
+			configurable: true
+		})) as T;
+
+	}
+
+	function copy(source: object): object {
+
+		return Object.defineProperties({}, Object.fromEntries(
+			Reflect.ownKeys(source)
+				.filter(key => key !== Validated)
+				.map(key => [key, Object.getOwnPropertyDescriptor(source, key)!])
+		));
 
 	}
 
