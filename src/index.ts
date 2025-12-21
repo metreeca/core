@@ -59,6 +59,20 @@
  * @module index
  */
 
+
+/**
+ * Regular expression for validating ECMAScript {@link Identifier} names.
+ *
+ * Matches strings following ECMAScript IdentifierName syntax with full Unicode support.
+ *
+ * @see {@link https://tc39.es/ecma262/#prod-IdentifierName ECMAScript IdentifierName}
+ * @see {@link https://www.unicode.org/reports/tr31/ UAX #31: Unicode Identifiers and Syntax}
+ */
+export const IdentifierPattern = /^[_$\p{ID_Start}][$\u200C\u200D\p{ID_Continue}]*$/u;
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /**
  * ECMAScript Identifier.
  *
@@ -112,8 +126,7 @@ export type Lazy<T> =
  * @returns `true` if the value is a valid ECMAScript IdentifierName
  */
 export function isIdentifier(value: unknown): value is Identifier {
-	return typeof value === "string" && value.length > 0
-		&& /^[_$\p{ID_Start}][$\u200C\u200D\p{ID_Continue}]*$/u.test(value);
+	return typeof value === "string" && IdentifierPattern.test(value);
 }
 
 /**

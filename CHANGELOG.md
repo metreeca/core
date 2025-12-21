@@ -14,6 +14,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Optional `is` guard/predicate parameter to `isArray`/`asArray` for element validation
 - Optional `is` guard/predicate parameter to `isObject`/`asObject` for `[key, value]` entry validation
 - `assert` memoized validation function for plain objects
+- `IdentifierPattern` regex constant for ECMAScript identifier validation
 
 ### Changed
 
