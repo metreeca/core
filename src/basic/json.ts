@@ -15,32 +15,28 @@
  */
 
 /**
- * Type guards for JSON values.
+ * Type guards and validating casts for JSON values.
  *
- * Provides predicates to validate and narrow values to JSON-compatible types,
- * supporting safe operations on serializable data.
+ * Provides predicates to validate and narrow values to JSON-compatible types, and validating casts that return the
+ * value or throw on type mismatch.
  *
  * ```typescript
- * import { isBoolean, isNumber, isString, isScalar, isObject, isArray, isEmpty, isJSON } from '@metreeca/core';
+ * import { isValue, isScalar, isBoolean, isNumber, isString, isArray, isObject, isEmpty } from '@metreeca/core';
+ * import { asBoolean, asNumber, asString, asArray, asObject } from '@metreeca/core';
  *
+ * // type guards - return boolean
  * isValue({ a: [1, 2], b: "test" }); // true
  * isValue({ a: new Date() }); // false
- *
  * isScalar(42); // true
- * isScalar([1, 2]); // false
+ * isArray([1, 2, 3], isNumber); // true - with element validation
+ * isObject({ a: 1 }, isNumber); // true - with value validation
  *
- * isBoolean(true); // true
- * isNumber(42); // true (excludes NaN, Infinity)
- * isString('hello'); // true
- *
- * isArray([1, 2, 3], isNumber); // true
- * isArray([1, 'two'], isNumber); // false
- *
- * isObject({ a: 1 }); // true
- * isObject(new Date()); // false
- *
- * isEmpty([]); // true
- * isEmpty({ a: 1 }); // false
+ * // validating casts - return value or throw TypeError
+ * asBoolean(true); // true
+ * asNumber(42); // 42
+ * asString('hello'); // 'hello'
+ * asArray([1, 2], isNumber); // [1, 2] - with element validation
+ * asObject({ a: 1 }, isNumber); // { a: 1 } - with value validation
  * ```
  *
  * @see [RFC 8259 - The JavaScript Object Notation (JSON) Data Interchange
@@ -48,6 +44,9 @@
  *
  * @module json
  */
+
+
+import { error } from "./report.js";
 
 
 /**
@@ -121,7 +120,9 @@ export function isScalar(value: unknown): value is boolean | number | string {
  * @returns `true` if the value is `null`
  */
 export function isNull(value: unknown): value is null {
+
 	return value === null;
+
 }
 
 /**
@@ -132,7 +133,9 @@ export function isNull(value: unknown): value is null {
  * @returns `true` if the value is a boolean
  */
 export function isBoolean(value: unknown): value is boolean {
+
 	return typeof value === "boolean";
+
 }
 
 /**
@@ -143,7 +146,9 @@ export function isBoolean(value: unknown): value is boolean {
  * @returns `true` if the value is a finite number
  */
 export function isNumber(value: unknown): value is number {
+
 	return Number.isFinite(value);
+
 }
 
 /**
@@ -154,7 +159,9 @@ export function isNumber(value: unknown): value is number {
  * @returns `true` if the value is a string
  */
 export function isString(value: unknown): value is string {
+
 	return typeof value === "string";
+
 }
 
 /**
@@ -172,8 +179,14 @@ export function isString(value: unknown): value is string {
  * The type parameter `T` is intentionally not restricted to JSON values, allowing this function to serve as a
  * general-purpose array guard beyond JSON validation.
  */
-export function isArray<T = unknown>(value: unknown, is?: (value: unknown) => value is T): value is T[] {
-	return Array.isArray(value) && (is === undefined || value.every(is));
+export function isArray<T = unknown>(
+	value: unknown,
+	is?: (value: unknown) => value is T
+): value is T[] {
+
+	return Array.isArray(value)
+		&& (is === undefined || value.every(is));
+
 }
 
 /**
@@ -191,24 +204,31 @@ export function isArray<T = unknown>(value: unknown, is?: (value: unknown) => va
  * @typeParam V The type of property values
  *
  * @param value The value to check
+ * @param is Optional type guard to validate property values
  *
- * @returns `true` if the value is a plain object
+ * @returns `true` if the value is a plain object. Empty objects return `true` even when a value type guard is provided.
  *
  * @remarks
  *
  * The type parameters `K` and `V` are intentionally not restricted to JSON-compatible types, allowing this
  * function to serve as a general-purpose plain object guard beyond JSON validation.
  */
-export function isObject<K extends PropertyKey = PropertyKey, V = unknown>(value: unknown): value is Record<K, V> {
+export function isObject<K extends PropertyKey = PropertyKey, V = unknown>(
+	value: unknown,
+	is?: (value: unknown) => value is V
+): value is Record<K, V> {
+
 	if ( value === undefined || value === null || typeof value !== "object" ) {
 
 		return false;
 
 	} else {
 
-		return Object.getPrototypeOf(value) === Object.prototype;
+		return Object.getPrototypeOf(value) === Object.prototype
+			&& (is === undefined || Object.values(value).every(is));
 
 	}
+
 }
 
 
@@ -220,7 +240,97 @@ export function isObject<K extends PropertyKey = PropertyKey, V = unknown>(value
  * @returns `true` if the value is an empty array or an empty plain object
  */
 export function isEmpty(value: unknown): value is Record<PropertyKey, never> | [] {
+
 	return isArray(value) ? value.length === 0
 		: isObject(value) ? Object.keys(value).length === 0
 			: false;
+
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Validates and returns a boolean value.
+ *
+ * @param value The value to validate
+ *
+ * @returns The value if it is a boolean
+ *
+ * @throws TypeError If the value is not a boolean
+ */
+export function asBoolean(value: unknown): boolean {
+
+	return isBoolean(value) ? value : error(new TypeError("expected boolean"));
+
+}
+
+/**
+ * Validates and returns a finite number.
+ *
+ * @param value The value to validate
+ *
+ * @returns The value if it is a finite number
+ *
+ * @throws TypeError If the value is not a finite number
+ */
+export function asNumber(value: unknown): number {
+
+	return isNumber(value) ? value : error(new TypeError("expected finite number"));
+
+}
+
+/**
+ * Validates and returns a string value.
+ *
+ * @param value The value to validate
+ *
+ * @returns The value if it is a string
+ *
+ * @throws TypeError If the value is not a string
+ */
+export function asString(value: unknown): string {
+
+	return isString(value) ? value : error(new TypeError("expected string"));
+
+}
+
+/**
+ * Validates and returns an array.
+ *
+ * @typeParam T The type of array elements
+ *
+ * @param value The value to validate
+ * @param is Optional type guard to validate array elements
+ *
+ * @returns The value if it is an array
+ *
+ * @throws TypeError If the value is not an array or if any element fails the type guard
+ */
+export function asArray<T = unknown>(value: unknown, is?: (value: unknown) => value is T): T[] {
+
+	return isArray(value, is) ? value : error(new TypeError("expected array"));
+
+}
+
+/**
+ * Validates and returns a plain object.
+ *
+ * @typeParam K The type of property keys
+ * @typeParam V The type of property values
+ *
+ * @param value The value to validate
+ * @param is Optional type guard to validate property values
+ *
+ * @returns The value if it is a plain object
+ *
+ * @throws TypeError If the value is not a plain object or if any property value fails the type guard
+ */
+export function asObject<K extends PropertyKey = PropertyKey, V = unknown>(
+	value: unknown,
+	is?: (value: unknown) => value is V
+): Record<K, V> {
+
+	return isObject(value, is) ? value : error(new TypeError("expected object"));
+
 }

@@ -10,6 +10,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - `"hierarchical"` variant for URI/IRI validation (absolute with authority, usable as resolution base)
+- `asBoolean`, `asNumber`, `asString`, `asArray`, `asObject` validating cast functions
+- Optional `is` parameter to `isObject` for property value validation
 
 ## [0.9.17](https://github.com/metreeca/core/compare/v0.9.16...v0.9.17) - 2025-12-17
 

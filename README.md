@@ -20,21 +20,21 @@ npm install @metreeca/core
 
 # Usage
 
-| Module                                                                           | Description                                   |
-|----------------------------------------------------------------------------------|-----------------------------------------------|
-| [@metreeca/core](https://metreeca.github.io/core/modules.html)                   | Core utility types and type guards |
-| **Basic Operations**                                                             |                                               |
-| [@metreeca/core/json](https://metreeca.github.io/core/modules/json.html)         | Type guards for JSON values                   |
-| [@metreeca/core/nested](https://metreeca.github.io/core/modules/nested.html)     | Deep operations on nested objects and arrays  |
-| [@metreeca/core/report](https://metreeca.github.io/core/modules/report.html)     | Error handling and execution reporting        |
-| [@metreeca/core/async](https://metreeca.github.io/core/modules/async.html)       | Primitives for asynchronous operations        |
-| **Network Operations**                                                           |                                               |
-| [@metreeca/core/resource](https://metreeca.github.io/core/modules/resource.html) | Resource identifiers and HTTP utilities       |
-| [@metreeca/core/language](https://metreeca.github.io/core/modules/language.html) | Language tags and ranges                      |
-| **Functional Patterns**                                                          |                                               |
-| [@metreeca/core/order](https://metreeca.github.io/core/modules/order.html)       | Composable comparison functions for sorting   |
-| [@metreeca/core/relay](https://metreeca.github.io/core/modules/relay.html)       | Type-safe relay for discriminated unions      |
-| [@metreeca/core/state](https://metreeca.github.io/core/modules/state.html)       | Type-safe immutable state manager             |
+| Module                                                                           | Description                                  |
+|----------------------------------------------------------------------------------|----------------------------------------------|
+| [@metreeca/core](https://metreeca.github.io/core/modules.html)                   | Core utility types and type guards           |
+| **Basic Operations**                                                             |                                              |
+| [@metreeca/core/json](https://metreeca.github.io/core/modules/json.html)         | Type guards and validating casts for JSON values                 |
+| [@metreeca/core/nested](https://metreeca.github.io/core/modules/nested.html)     | Deep operations on nested objects and arrays |
+| [@metreeca/core/report](https://metreeca.github.io/core/modules/report.html)     | Error handling and execution reporting       |
+| [@metreeca/core/async](https://metreeca.github.io/core/modules/async.html)       | Primitives for asynchronous operations       |
+| **Network Operations**                                                           |                                              |
+| [@metreeca/core/resource](https://metreeca.github.io/core/modules/resource.html) | Resource identifiers and HTTP utilities      |
+| [@metreeca/core/language](https://metreeca.github.io/core/modules/language.html) | Language tags and ranges                     |
+| **Functional Patterns**                                                          |                                              |
+| [@metreeca/core/order](https://metreeca.github.io/core/modules/order.html)       | Composable comparison functions for sorting  |
+| [@metreeca/core/relay](https://metreeca.github.io/core/modules/relay.html)       | Type-safe relay for discriminated unions     |
+| [@metreeca/core/state](https://metreeca.github.io/core/modules/state.html)       | Type-safe immutable state manager            |
 
 # Support
 
