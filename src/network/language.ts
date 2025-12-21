@@ -24,7 +24,7 @@
  * **Language Tags**
  *
  * ```typescript
- * import { isTag, asTag } from "@metreeca/core";
+ * import { isTag, asTag } from "@metreeca/core/language";
  *
  * if (isTag(value)) {
  *   // value is typed as Tag
@@ -38,7 +38,7 @@
  * **Language Ranges**
  *
  * ```typescript
- * import { isTagRange, asTagRange } from "@metreeca/core";
+ * import { isTagRange, asTagRange } from "@metreeca/core/language";
  *
  * if (isTagRange(value)) {
  *   // value is typed as TagRange
@@ -52,7 +52,7 @@
  * **Matching**
  *
  * ```typescript
- * import { matchTag, asTag, asTagRange } from "@metreeca/core";
+ * import { matchTag, asTag, asTagRange } from "@metreeca/core/language";
  *
  * matchTag(asTag("de-CH"), asTagRange("de-*"));  // true - Swiss German matches German range
  * ```
@@ -266,7 +266,7 @@ export function asTagRange(value: string): TagRange {
  * @example
  *
  * ```typescript
- * import { matchTag, asTag, asTagRange } from "@metreeca/core";
+ * import { matchTag, asTag, asTagRange } from "@metreeca/core/language";
  *
  * matchTag(asTag("de-DE"), asTagRange("de-*-DE"));        // true
  * matchTag(asTag("de-Latn-DE"), asTagRange("de-*-DE"));   // true

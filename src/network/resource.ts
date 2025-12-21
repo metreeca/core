@@ -23,7 +23,7 @@
  * **Type Guards**
  *
  * ```typescript
- * import { isURI, isIRI } from "@metreeca/core";
+ * import { isURI, isIRI } from "@metreeca/core/resource";
  *
  * const value = "http://example.org/resource";
  *
@@ -39,7 +39,7 @@
  * **Identifier Factories**
  *
  * ```typescript
- * import { asURI, asIRI } from "@metreeca/core";
+ * import { asURI, asIRI } from "@metreeca/core/resource";
  *
  * // Absolute identifiers
  *
@@ -64,7 +64,7 @@
  * **Reference Operations**
  *
  * ```typescript
- * import { resolve, relativize, internalize, asURI } from "@metreeca/core";
+ * import { resolve, relativize, internalize, asURI } from "@metreeca/core/resource";
  *
  * const base = asURI("http://example.com/a/b/c");
  *
@@ -85,7 +85,7 @@
  * **Namespace Factories**
  *
  * ```typescript
- * import { createNamespace } from "@metreeca/core";
+ * import { createNamespace } from "@metreeca/core/resource";
  *
  * // Closed namespace with predefined terms
  *
@@ -110,7 +110,7 @@
  * **HTTP Error Handling**
  *
  * ```typescript
- * import { Problem } from "@metreeca/core";
+ * import { Problem } from "@metreeca/core/resource";
  *
  * const problem: Problem = {
  *   status: 404,
@@ -124,7 +124,7 @@
  * **Fetch Utilities**
  *
  * ```typescript
- * import { createFetch } from "@metreeca/core";
+ * import { createFetch } from "@metreeca/core/resource";
  *
  * const guard = createFetch(fetch);
  *

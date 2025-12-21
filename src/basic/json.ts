@@ -21,8 +21,8 @@
  * value or throw on type mismatch.
  *
  * ```typescript
- * import { isValue, isScalar, isBoolean, isNumber, isString, isArray, isObject, isEmpty } from '@metreeca/core';
- * import { asBoolean, asNumber, asString, asArray, asObject } from '@metreeca/core';
+ * import { isValue, isScalar, isNull, isBoolean, isNumber, isString, isArray, isObject, isEmpty } from '@metreeca/core/json';
+ * import { asBoolean, asNumber, asString, asArray, asObject } from '@metreeca/core/json';
  *
  * // type guards - return boolean
  * isValue({ a: [1, 2], b: "test" }); // true
