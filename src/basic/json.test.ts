@@ -261,9 +261,24 @@ describe("isObject()", () => {
 		expect(isObject(123)).toBeFalsy();
 	});
 
-	it("should validate values with type guard", async () => {
-		expect(isObject({ a: 1, b: 2 }, isNumber)).toBeTruthy();
-		expect(isObject({ a: 1, b: "two" }, isNumber)).toBeFalsy();
+	it("should validate entries with entry guard", async () => {
+
+		const isStringNumber = (entry: [unknown, unknown]): entry is [string, number] =>
+			isString(entry[0]) && isNumber(entry[1]);
+
+		expect(isObject({ a: 1, b: 2 }, isStringNumber)).toBeTruthy();
+		expect(isObject({ a: 1, b: "two" }, isStringNumber)).toBeFalsy();
+
+	});
+
+	it("should validate keys with entry guard", async () => {
+
+		const isABNumber = (entry: [unknown, unknown]): entry is ["a" | "b", number] =>
+			(entry[0] === "a" || entry[0] === "b") && isNumber(entry[1]);
+
+		expect(isObject({ a: 1, b: 2 }, isABNumber)).toBeTruthy();
+		expect(isObject({ a: 1, c: 2 }, isABNumber)).toBeFalsy();
+
 	});
 
 });
@@ -392,9 +407,24 @@ describe("asObject()", () => {
 		expect(asObject({ a: 1 })).toEqual({ a: 1 });
 	});
 
-	it("should validate values with type guard", async () => {
-		expect(asObject({ a: 1, b: 2 }, isNumber)).toEqual({ a: 1, b: 2 });
-		expect(() => asObject({ a: 1, b: "two" }, isNumber)).toThrow(TypeError);
+	it("should validate entries with entry guard", async () => {
+
+		const isStringNumber = (entry: [unknown, unknown]): entry is [string, number] =>
+			isString(entry[0]) && isNumber(entry[1]);
+
+		expect(asObject({ a: 1, b: 2 }, isStringNumber)).toEqual({ a: 1, b: 2 });
+		expect(() => asObject({ a: 1, b: "two" }, isStringNumber)).toThrow(TypeError);
+
+	});
+
+	it("should validate keys with entry guard", async () => {
+
+		const isABNumber = (entry: [unknown, unknown]): entry is ["a" | "b", number] =>
+			(entry[0] === "a" || entry[0] === "b") && isNumber(entry[1]);
+
+		expect(asObject({ a: 1, b: 2 }, isABNumber)).toEqual({ a: 1, b: 2 });
+		expect(() => asObject({ a: 1, c: 2 }, isABNumber)).toThrow(TypeError);
+
 	});
 
 	it("should throw for non-objects", async () => {

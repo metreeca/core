@@ -28,15 +28,19 @@
  * isValue({ a: [1, 2], b: "test" }); // true
  * isValue({ a: new Date() }); // false
  * isScalar(42); // true
- * isArray([1, 2, 3], isNumber); // true - with element validation
- * isObject({ a: 1 }, isNumber); // true - with value validation
+ * isArray([1, 2, 3], isNumber); // true - with element guard
+ * isObject({ a: 1 }, isEntry); // true - with entry guard
  *
  * // validating casts - return value or throw TypeError
  * asBoolean(true); // true
  * asNumber(42); // 42
  * asString('hello'); // 'hello'
- * asArray([1, 2], isNumber); // [1, 2] - with element validation
- * asObject({ a: 1 }, isNumber); // { a: 1 } - with value validation
+ * asArray([1, 2], isNumber); // [1, 2] - with element guard
+ * asObject({ a: 1 }, isEntry); // { a: 1 } - with entry guard
+ *
+ * // entry guard validates [key, value] tuples
+ * const isEntry = (e: [unknown, unknown]): e is [string, number] =>
+ *   isString(e[0]) && isNumber(e[1]);
  * ```
  *
  * @see [RFC 8259 - The JavaScript Object Notation (JSON) Data Interchange
@@ -170,9 +174,9 @@ export function isString(value: unknown): value is string {
  * @typeParam T The type of array elements
  *
  * @param value The value to check
- * @param is Optional type guard to validate array elements
+ * @param is Optional type guard to validate elements
  *
- * @returns `true` if the value is an array. Empty arrays return `true` even when an element type guard is provided.
+ * @returns `true` if the value is an array. Empty arrays return `true` even when a guard is provided.
  *
  * @remarks
  *
@@ -204,9 +208,9 @@ export function isArray<T = unknown>(
  * @typeParam V The type of property values
  *
  * @param value The value to check
- * @param is Optional type guard to validate property values
+ * @param is Optional type guard to validate `[key, value]` entry tuples
  *
- * @returns `true` if the value is a plain object. Empty objects return `true` even when a value type guard is provided.
+ * @returns `true` if the value is a plain object. Empty objects return `true` even when a guard is provided.
  *
  * @remarks
  *
@@ -215,7 +219,7 @@ export function isArray<T = unknown>(
  */
 export function isObject<K extends PropertyKey = PropertyKey, V = unknown>(
 	value: unknown,
-	is?: (value: unknown) => value is V
+	is?: (entry: [unknown, unknown]) => entry is [K, V]
 ): value is Record<K, V> {
 
 	if ( value === undefined || value === null || typeof value !== "object" ) {
@@ -225,7 +229,7 @@ export function isObject<K extends PropertyKey = PropertyKey, V = unknown>(
 	} else {
 
 		return Object.getPrototypeOf(value) === Object.prototype
-			&& (is === undefined || Object.values(value).every(is));
+			&& (is === undefined || Object.entries(value).every(is));
 
 	}
 
@@ -301,13 +305,16 @@ export function asString(value: unknown): string {
  * @typeParam T The type of array elements
  *
  * @param value The value to validate
- * @param is Optional type guard to validate array elements
+ * @param is Optional type guard to validate elements
  *
  * @returns The value if it is an array
  *
- * @throws TypeError If the value is not an array or if any element fails the type guard
+ * @throws TypeError If the value is not an array or if any element fails the guard
  */
-export function asArray<T = unknown>(value: unknown, is?: (value: unknown) => value is T): T[] {
+export function asArray<T = unknown>(
+	value: unknown,
+	is?: (value: unknown) => value is T
+): T[] {
 
 	return isArray(value, is) ? value : error(new TypeError("expected array"));
 
@@ -320,15 +327,15 @@ export function asArray<T = unknown>(value: unknown, is?: (value: unknown) => va
  * @typeParam V The type of property values
  *
  * @param value The value to validate
- * @param is Optional type guard to validate property values
+ * @param is Optional type guard to validate `[key, value]` entry tuples
  *
  * @returns The value if it is a plain object
  *
- * @throws TypeError If the value is not a plain object or if any property value fails the type guard
+ * @throws TypeError If the value is not a plain object or if any entry fails the guard
  */
 export function asObject<K extends PropertyKey = PropertyKey, V = unknown>(
 	value: unknown,
-	is?: (value: unknown) => value is V
+	is?: (entry: [unknown, unknown]) => entry is [K, V]
 ): Record<K, V> {
 
 	return isObject(value, is) ? value : error(new TypeError("expected object"));
