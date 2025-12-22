@@ -84,7 +84,7 @@ const Immutable = Symbol("immutable");
  * Used by {@link assert} to skip redundant validation when the object
  * was already validated by the same validator.
  */
-const Validated = Symbol("Validated");
+const Asserted = Symbol("Asserted");
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -265,12 +265,17 @@ export function immutable<T>(value: T): T {
  *
  * @throws {RangeError} Stack overflow when `value` contains circular references
  * @throws Propagates any exception thrown by `validator`
+ *
+ * @remarks
+ *
+ * - This function is idempotent: calling it multiple times on the same value with the same validator returns the same
+ *   reference after the first call, making it safe and efficient to use defensively.
  */
 export function assert<V, T>(validator: (value: V) => T, value: unknown): T {
 
 	if ( isObject(value) ) {
 
-		return value[Validated] === validator
+		return value[Asserted] === validator
 			? value as T
 			: brand(validator(value as V));
 
@@ -287,7 +292,7 @@ export function assert<V, T>(validator: (value: V) => T, value: unknown): T {
 			? validated
 			: copy(validated as object);
 
-		return immutable(Object.defineProperty(target, Validated, {
+		return immutable(Object.defineProperty(target, Asserted, {
 			value: validator,
 			enumerable: false,
 			configurable: true
@@ -299,7 +304,7 @@ export function assert<V, T>(validator: (value: V) => T, value: unknown): T {
 
 		return Object.defineProperties({}, Object.fromEntries(
 			Reflect.ownKeys(source)
-				.filter(key => key !== Validated)
+				.filter(key => key !== Asserted)
 				.map(key => [key, Object.getOwnPropertyDescriptor(source, key)!])
 		));
 
