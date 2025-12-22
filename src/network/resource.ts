@@ -405,11 +405,12 @@ export function isURI(value: unknown, variant: Variant = "absolute"): value is U
  * Validates URIs according to RFC 3986, restricting identifiers to ASCII characters only.
  * For non-absolute variants, normalizes paths by removing `.` segments and resolving `..` segments.
  *
- * @param value The string to convert to a URI
+ * @param value The value to convert to a URI
  * @param variant The identifier variant to validate against (default: `"absolute"`)
  *
  * @returns The validated and normalized URI
  *
+ * @throws TypeError If the value is not a string
  * @throws RangeError If the value is not a valid ASCII-only URI for the specified variant,
  *   or if `..` segments would climb above the root
  *
@@ -417,7 +418,11 @@ export function isURI(value: unknown, variant: Variant = "absolute"): value is U
  * @see {@link URI}
  * @see {@link Variant}
  */
-export function asURI(value: string, variant: Variant = "absolute"): URI {
+export function asURI(value: unknown, variant: Variant = "absolute"): URI {
+
+	if ( !isString(value) ) {
+		throw new TypeError("expected string");
+	}
 
 	return (ASCIIPattern.test(value) ? normalize(value, variant) : undefined) ?? invalid(value, variant);
 
@@ -463,18 +468,23 @@ export function isIRI(value: unknown, variant: Variant = "absolute"): value is I
  *
  * For non-absolute variants, normalizes paths by removing `.` segments and resolving `..` segments.
  *
- * @param value The string to convert to an IRI
+ * @param value The value to convert to an IRI
  * @param variant The identifier variant to validate against (default: `"absolute"`)
  *
  * @returns The validated and normalized IRI
  *
+ * @throws TypeError If the value is not a string
  * @throws RangeError If the value is not a valid IRI for the specified variant,
  *   or if `..` segments would climb above the root
  *
  * @see {@link isIRI} for validation rules
  * @see {@link Variant}
  */
-export function asIRI(value: string, variant: Variant = "absolute"): IRI {
+export function asIRI(value: unknown, variant: Variant = "absolute"): IRI {
+
+	if ( !isString(value) ) {
+		throw new TypeError("expected string");
+	}
 
 	return normalize(value, variant) ?? invalid(value, variant);
 

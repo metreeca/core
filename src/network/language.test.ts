@@ -126,6 +126,14 @@ describe("tag()", () => {
 		expect(() => asTag("invalid tag")).toThrow("invalid language tag <invalid tag>");
 	});
 
+	it("should throw TypeError for non-string values", async () => {
+		expect(() => asTag(null as unknown as string)).toThrow(TypeError);
+		expect(() => asTag(undefined as unknown as string)).toThrow(TypeError);
+		expect(() => asTag(123 as unknown as string)).toThrow(TypeError);
+		expect(() => asTag({} as unknown as string)).toThrow(TypeError);
+		expect(() => asTag([] as unknown as string)).toThrow(TypeError);
+	});
+
 });
 
 
@@ -172,6 +180,14 @@ describe("range()", () => {
 
 	it("should throw RangeError with descriptive message", () => {
 		expect(() => asTagRange("invalid range")).toThrow("invalid language range <invalid range>");
+	});
+
+	it("should throw TypeError for non-string values", async () => {
+		expect(() => asTagRange(null as unknown as string)).toThrow(TypeError);
+		expect(() => asTagRange(undefined as unknown as string)).toThrow(TypeError);
+		expect(() => asTagRange(123 as unknown as string)).toThrow(TypeError);
+		expect(() => asTagRange({} as unknown as string)).toThrow(TypeError);
+		expect(() => asTagRange([] as unknown as string)).toThrow(TypeError);
 	});
 
 });

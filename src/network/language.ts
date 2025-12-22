@@ -178,16 +178,21 @@ export function isTag(value: unknown): value is Tag {
  *
  * Validates language tags according to BCP 47/RFC 5646.
  *
- * @param value The string to convert to a language tag
+ * @param value The value to convert to a language tag
  *
  * @returns The validated language tag
  *
+ * @throws TypeError If the value is not a string
  * @throws RangeError If the value is not a valid BCP 47 language tag
  *
  * @see {@link isTag} for validation rules
  * @see {@link Tag}
  */
-export function asTag(value: string): Tag {
+export function asTag(value: unknown): Tag {
+
+	if ( !isString(value) ) {
+		throw new TypeError("expected string");
+	}
 
 	if ( !isTag(value) ) {
 		throw new RangeError(`invalid language tag <${value}>`);
@@ -219,16 +224,21 @@ export function isTagRange(value: unknown): value is TagRange {
  * Validates extended language ranges according to RFC 4647 § 2.2.
  * An extended language range allows `*` as a wildcard for any subtag (e.g., `en-*`, `*-CH`).
  *
- * @param value The string to convert to a language range
+ * @param value The value to convert to a language range
  *
  * @returns The validated language range
  *
+ * @throws TypeError If the value is not a string
  * @throws RangeError If the value is not a valid language range
  *
  * @see {@link isTagRange} for validation rules
  * @see {@link TagRange}
  */
-export function asTagRange(value: string): TagRange {
+export function asTagRange(value: unknown): TagRange {
+
+	if ( !isString(value) ) {
+		throw new TypeError("expected string");
+	}
 
 	if ( !isTagRange(value) ) {
 		throw new RangeError(`invalid language range <${value}>`);

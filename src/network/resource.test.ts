@@ -241,6 +241,14 @@ describe("uri", () => {
 		expect(asURI("../a/../b", "relative")).toBe("../a/../b");
 	});
 
+	it("should throw TypeError for non-string values", async () => {
+		expect(() => asURI(null as unknown as string)).toThrow(TypeError);
+		expect(() => asURI(undefined as unknown as string)).toThrow(TypeError);
+		expect(() => asURI(123 as unknown as string)).toThrow(TypeError);
+		expect(() => asURI({} as unknown as string)).toThrow(TypeError);
+		expect(() => asURI([] as unknown as string)).toThrow(TypeError);
+	});
+
 });
 
 
@@ -341,6 +349,14 @@ describe("iri", () => {
 		expect(asIRI("../path", "relative")).toBe("../path");
 		expect(asIRI("../../path", "relative")).toBe("../../path");
 		expect(asIRI("../a/../b", "relative")).toBe("../a/../b");
+	});
+
+	it("should throw TypeError for non-string values", async () => {
+		expect(() => asIRI(null as unknown as string)).toThrow(TypeError);
+		expect(() => asIRI(undefined as unknown as string)).toThrow(TypeError);
+		expect(() => asIRI(123 as unknown as string)).toThrow(TypeError);
+		expect(() => asIRI({} as unknown as string)).toThrow(TypeError);
+		expect(() => asIRI([] as unknown as string)).toThrow(TypeError);
 	});
 
 });
