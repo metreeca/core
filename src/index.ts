@@ -130,6 +130,35 @@ export function isIdentifier(value: unknown): value is Identifier {
 }
 
 /**
+ * Creates a validated identifier from a value.
+ *
+ * @param value The value to convert to an identifier
+ *
+ * @returns The validated identifier
+ *
+ * @throws TypeError If the value is not a string
+ * @throws RangeError If the value is not a valid ECMAScript IdentifierName
+ *
+ * @see {@link isIdentifier} for validation rules
+ * @see {@link Identifier}
+ */
+export function asIdentifier(value: unknown): Identifier {
+
+	if ( typeof value !== "string" ) {
+		throw new TypeError("expected string");
+	}
+
+	if ( !isIdentifier(value) ) {
+		throw new RangeError(`invalid identifier <${value}>`);
+	}
+
+	return value;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
  * Checks if a value is not `undefined` or `null`.
  *
  * @typeParam T The type when the value is defined

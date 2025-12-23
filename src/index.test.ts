@@ -17,6 +17,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+	asIdentifier,
 	isAsyncIterable,
 	isDefined,
 	isError,
@@ -110,6 +111,32 @@ describe("isIdentifier()", () => {
 		expect(isIdentifier({})).toBeFalsy();
 		expect(isIdentifier([])).toBeFalsy();
 		expect(isIdentifier(Symbol("foo"))).toBeFalsy();
+	});
+
+});
+
+describe("asIdentifier()", () => {
+
+	it("should return valid identifiers unchanged", async () => {
+		expect(asIdentifier("foo")).toBe("foo");
+		expect(asIdentifier("$")).toBe("$");
+		expect(asIdentifier("_private")).toBe("_private");
+		expect(asIdentifier("camelCase")).toBe("camelCase");
+	});
+
+	it("should throw RangeError for invalid identifiers", async () => {
+		expect(() => asIdentifier("")).toThrow(RangeError);
+		expect(() => asIdentifier("123")).toThrow(RangeError);
+		expect(() => asIdentifier("foo bar")).toThrow(RangeError);
+		expect(() => asIdentifier("foo-bar")).toThrow(RangeError);
+	});
+
+	it("should throw TypeError for non-string values", async () => {
+		expect(() => asIdentifier(null as unknown as string)).toThrow(TypeError);
+		expect(() => asIdentifier(undefined as unknown as string)).toThrow(TypeError);
+		expect(() => asIdentifier(123 as unknown as string)).toThrow(TypeError);
+		expect(() => asIdentifier({} as unknown as string)).toThrow(TypeError);
+		expect(() => asIdentifier([] as unknown as string)).toThrow(TypeError);
 	});
 
 });

@@ -10,6 +10,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - `"hierarchical"` variant for URI/IRI validation (absolute with authority, usable as resolution base)
+- `asIdentifier` validating cast function for ECMAScript identifiers
 - `asBoolean`, `asNumber`, `asString`, `asArray`, `asObject` validating cast functions
 - Optional `is` guard/predicate parameter to `isArray`/`asArray` for element validation
 - Optional `is` guard/predicate parameter to `isObject`/`asObject` for `[key, value]` entry validation
