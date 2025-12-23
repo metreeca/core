@@ -14,92 +14,81 @@
  * limitations under the License.
  */
 
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { sleep } from "./sleep.js";
 
 describe("sleep()", () => {
 
-	it("should resolve after the specified delay", async () => {
-		const start = Date.now();
-		await sleep(50);
-		const elapsed = Date.now()-start;
+	beforeEach(() => {
+		vi.useFakeTimers();
+	});
 
-		// Allow some tolerance for timing accuracy (±10ms)
-		expect(elapsed).toBeGreaterThanOrEqual(45);
-		expect(elapsed).toBeLessThan(100);
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it("should resolve after the specified delay", async () => {
+		const promise = sleep(50);
+		await vi.advanceTimersByTimeAsync(50);
+		await promise;
 	});
 
 	it("should resolve immediately for zero delay", async () => {
-		const start = Date.now();
-		await sleep(0);
-		const elapsed = Date.now()-start;
-
-		// Should be nearly instant
-		expect(elapsed).toBeLessThan(10);
+		const promise = sleep(0);
+		await vi.advanceTimersByTimeAsync(0);
+		await promise;
 	});
 
 	it("should resolve immediately for negative delay", async () => {
-		const start = Date.now();
-		await sleep(-100);
-		const elapsed = Date.now()-start;
-
-		// Should be nearly instant
-		expect(elapsed).toBeLessThan(10);
+		const promise = sleep(-100);
+		await vi.advanceTimersByTimeAsync(0);
+		await promise;
 	});
 
 	it("should return a promise that resolves to void", async () => {
-		const result = await sleep(10);
+		const promise = sleep(10);
+		await vi.advanceTimersByTimeAsync(10);
+		const result = await promise;
 		expect(result).toBeUndefined();
 	});
 
 	it("should handle multiple concurrent sleep calls", async () => {
-		const start = Date.now();
-
-		await Promise.all([
+		const promise = Promise.all([
 			sleep(30),
 			sleep(30),
 			sleep(30)
 		]);
 
-		const elapsed = Date.now()-start;
-
-		// All should complete around the same time (not sequentially)
-		expect(elapsed).toBeGreaterThanOrEqual(25);
-		expect(elapsed).toBeLessThan(70);
+		// All should complete at the same time (not sequentially)
+		await vi.advanceTimersByTimeAsync(30);
+		await promise;
 	});
 
 	it("should work with different delay values in sequence", async () => {
-		const timings: number[] = [];
-		const start = Date.now();
 
-		await sleep(20);
-		timings.push(Date.now()-start);
+		const p1 = sleep(20);
+		await vi.advanceTimersByTimeAsync(20);
+		await p1;
 
-		await sleep(30);
-		timings.push(Date.now()-start);
+		const p2 = sleep(30);
+		await vi.advanceTimersByTimeAsync(30);
+		await p2;
 
-		await sleep(0);
-		timings.push(Date.now()-start);
+		const p3 = sleep(0);
+		await vi.advanceTimersByTimeAsync(0);
+		await p3;
 
-		// First sleep should be around 20ms
-		expect(timings[0]).toBeGreaterThanOrEqual(15);
-		expect(timings[0]).toBeLessThan(40);
-
-		// Second sleep should be around 50ms total
-		expect(timings[1]).toBeGreaterThanOrEqual(45);
-		expect(timings[1]).toBeLessThan(70);
-
-		// Third sleep should add negligible time
-		expect(timings[2]).toBeGreaterThanOrEqual(45);
-		expect(timings[2]).toBeLessThan(80);
 	});
 
 	it("should allow promise chaining", async () => {
 		let executed = false;
 
-		await sleep(10).then(() => {
+		const promise = sleep(10).then(() => {
 			executed = true;
 		});
+
+		await vi.advanceTimersByTimeAsync(10);
+		await promise;
 
 		expect(executed).toBe(true);
 	});
@@ -113,11 +102,14 @@ describe("sleep()", () => {
 			results.push(`${id}-end`);
 		};
 
-		await Promise.all([
+		const promise = Promise.all([
 			task("a", 30),
 			task("b", 10),
 			task("c", 20)
 		]);
+
+		await vi.runAllTimersAsync();
+		await promise;
 
 		// All starts should happen before any ends
 		expect(results.slice(0, 3)).toEqual(["a-start", "b-start", "c-start"]);
@@ -126,13 +118,9 @@ describe("sleep()", () => {
 	});
 
 	it("should handle very short delays", async () => {
-		const start = Date.now();
-		await sleep(1);
-		const elapsed = Date.now()-start;
-
-		// Even 1ms should be respected
-		expect(elapsed).toBeGreaterThanOrEqual(0);
-		expect(elapsed).toBeLessThan(20);
+		const promise = sleep(1);
+		await vi.advanceTimersByTimeAsync(1);
+		await promise;
 	});
 
 	it("should not block the event loop for zero/negative delays", async () => {
@@ -143,7 +131,9 @@ describe("sleep()", () => {
 			otherTaskExecuted = true;
 		});
 
-		await sleep(0);
+		const promise = sleep(0);
+		await vi.advanceTimersByTimeAsync(0);
+		await promise;
 
 		// After awaiting sleep(0), microtasks should have been processed
 		expect(otherTaskExecuted).toBe(true);

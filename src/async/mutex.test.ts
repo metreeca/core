@@ -14,14 +14,22 @@
  * limitations under the License.
  */
 
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMutex } from "./mutex.js";
 
 describe("Mutex", () => {
 
+	beforeEach(() => {
+		vi.useFakeTimers();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
 	describe("Mutex()", () => {
 
-		it("should create a mutex", () => {
+		it("should create a mutex", async () => {
 			const mutex = createMutex();
 			expect(mutex).toBeDefined();
 			expect(mutex.execute).toBeDefined();
@@ -39,10 +47,12 @@ describe("Mutex", () => {
 
 		it("should execute an asynchronous task", async () => {
 			const mutex = createMutex();
-			const result = await mutex.execute(async () => {
+			const promise = mutex.execute(async () => {
 				await new Promise(resolve => setTimeout(resolve, 10));
 				return "done";
 			});
+			await vi.runAllTimersAsync();
+			const result = await promise;
 			expect(result).toBe("done");
 		});
 
@@ -50,7 +60,7 @@ describe("Mutex", () => {
 			const mutex = createMutex();
 			const order: number[] = [];
 
-			await Promise.all([
+			const promise = Promise.all([
 				mutex.execute(async () => {
 					await new Promise(resolve => setTimeout(resolve, 30));
 					order.push(1);
@@ -63,6 +73,9 @@ describe("Mutex", () => {
 					order.push(3);
 				})
 			]);
+
+			await vi.runAllTimersAsync();
+			await promise;
 
 			// Despite task 2 having shorter duration, order should be 1, 2, 3
 			expect(order).toEqual([1, 2, 3]);
@@ -121,11 +134,14 @@ describe("Mutex", () => {
 				executing = false;
 			};
 
-			await Promise.all([
+			const promise = Promise.all([
 				mutex.execute(task),
 				mutex.execute(task),
 				mutex.execute(task)
 			]);
+
+			await vi.runAllTimersAsync();
+			await promise;
 
 			expect(concurrencyViolation).toBe(false);
 		});
@@ -142,7 +158,9 @@ describe("Mutex", () => {
 				})
 			);
 
-			await Promise.all(promises);
+			const promise = Promise.all(promises);
+			await vi.runAllTimersAsync();
+			await promise;
 
 			expect(results).toEqual([1, 2, 3, 4, 5]);
 		});
@@ -187,7 +205,7 @@ describe("Mutex", () => {
 			const mutex = createMutex();
 
 			// This will deadlock in a naive implementation
-			const result = await mutex.execute(async () => {
+			const outerPromise = mutex.execute(async () => {
 				// Attempting to acquire the same mutex again
 				const innerPromise = mutex.execute(() => "inner");
 				const timeoutPromise = new Promise(resolve =>
@@ -196,6 +214,9 @@ describe("Mutex", () => {
 
 				return Promise.race([innerPromise, timeoutPromise]);
 			});
+
+			await vi.advanceTimersByTimeAsync(50);
+			const result = await outerPromise;
 
 			// Should timeout because the inner task is waiting for the outer to complete
 			expect(result).toBe("timeout");

@@ -17,6 +17,9 @@
 import { describe, expect, it } from "vitest";
 import { createThrottle } from "./throttle.js";
 
+// note: fake timers (vi.useFakeTimers) are not used here because the throttle
+// implementation uses setTimeout internally for rate limiting; freezing time
+// breaks its core delay logic and causes tests to hang
 
 describe("Throttle", () => {
 
@@ -344,7 +347,7 @@ describe("Throttle", () => {
 
 			// Third task should be blocked while dirty = true and queue > 0
 			const queuePromise = throttle.queue(true);
-			const timeoutPromise = new Promise(resolve => setTimeout(resolve, 30));
+			const timeoutPromise = new Promise(resolve => setTimeout(resolve, 100));
 
 			const result = await Promise.race([
 				queuePromise.then(() => "completed"),
