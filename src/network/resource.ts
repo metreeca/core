@@ -386,14 +386,14 @@ export interface Problem {
  * Validates URIs according to RFC 3986, restricting identifiers to ASCII characters only.
  *
  * @param value The value to validate as a URI
- * @param variant The identifier variant to validate against (default: `"absolute"`)
+ * @param variant The identifier variant to validate against (default: `"relative"`)
  *
  * @returns `true` if the value is a valid ASCII-only URI matching the specified variant
  *
  * @see {@link URI}
  * @see {@link Variant}
  */
-export function isURI(value: unknown, variant: Variant = "absolute"): value is URI {
+export function isURI(value: unknown, variant: Variant = "relative"): value is URI {
 
 	return isString(value) && ASCIIPattern.test(value) && normalize(value, variant) !== undefined;
 
@@ -445,7 +445,7 @@ export function asURI(value: unknown, variant: Variant = "absolute"): URI {
  * whitespace, and `< > " { } | \ ^ `` ` (backtick)
  *
  * @param value The value to validate as an IRI
- * @param variant The identifier variant to validate against (default: `"absolute"`)
+ * @param variant The identifier variant to validate against (default: `"relative"`)
  *
  * @returns `true` if the value is a string conforming to IRI syntax rules for the specified variant
  *
@@ -457,7 +457,7 @@ export function asURI(value: unknown, variant: Variant = "absolute"): URI {
  * @see {@link IRI}
  * @see {@link Variant}
  */
-export function isIRI(value: unknown, variant: Variant = "absolute"): value is IRI {
+export function isIRI(value: unknown, variant: Variant = "relative"): value is IRI {
 
 	return normalize(value, variant) !== undefined;
 
@@ -469,7 +469,7 @@ export function isIRI(value: unknown, variant: Variant = "absolute"): value is I
  * For non-absolute variants, normalizes paths by removing `.` segments and resolving `..` segments.
  *
  * @param value The value to convert to an IRI
- * @param variant The identifier variant to validate against (default: `"absolute"`)
+ * @param variant The identifier variant to validate against (default: `"relative"`)
  *
  * @returns The validated and normalized IRI
  *
@@ -480,7 +480,7 @@ export function isIRI(value: unknown, variant: Variant = "absolute"): value is I
  * @see {@link isIRI} for validation rules
  * @see {@link Variant}
  */
-export function asIRI(value: unknown, variant: Variant = "absolute"): IRI {
+export function asIRI(value: unknown, variant: Variant = "relative"): IRI {
 
 	if ( !isString(value) ) {
 		throw new TypeError("expected string");

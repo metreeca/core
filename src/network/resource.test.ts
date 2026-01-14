@@ -126,20 +126,20 @@ describe("isURI", () => {
 
 	it("should return true for valid absolute ASCII-only URIs", () => {
 		uris.absolute.valid.forEach(value => {
-			expect(isURI(value)).toBe(true);
+			expect(isURI(value, "absolute")).toBe(true);
 		});
 	});
 
 	it("should return false for invalid absolute URIs", () => {
 		uris.absolute.invalid.forEach(({ value }) => {
-			expect(isURI(value)).toBe(false);
+			expect(isURI(value, "absolute")).toBe(false);
 		});
 	});
 
 	it("should return false for URIs with Unicode characters", () => {
-		expect(isURI("http://example.com/资源")).toBe(false);
-		expect(isURI("http://example.com/café")).toBe(false);
-		expect(isURI("urn:example:数据")).toBe(false);
+		expect(isURI("http://example.com/资源", "absolute")).toBe(false);
+		expect(isURI("http://example.com/café", "absolute")).toBe(false);
+		expect(isURI("urn:example:数据", "absolute")).toBe(false);
 	});
 
 	it("should return true for valid relative ASCII-only URIs with relative variant", () => {
@@ -154,29 +154,66 @@ describe("isURI", () => {
 		});
 	});
 
-	it("should return false for non-absolute URIs without relative option", () => {
-		// Only test paths without scheme - absolute URIs are valid with default "absolute" variant
+	it("should return false for non-absolute URIs with absolute variant", () => {
+		// Only test paths without scheme - absolute URIs are valid with "absolute" variant
 		const relativePaths = uris.relative.valid.filter(v => !v.includes("://"));
 		relativePaths.forEach(value => {
-			expect(isURI(value)).toBe(false);
+			expect(isURI(value, "absolute")).toBe(false);
 		});
 	});
 
 	it("should return true for ASCII URIs that are also valid IRIs", () => {
 		uris.absolute.valid.forEach(value => {
-			expect(isURI(value)).toBe(true);
-			expect(isIRI(value)).toBe(true);
+			expect(isURI(value, "absolute")).toBe(true);
+			expect(isIRI(value, "absolute")).toBe(true);
 		});
 	});
 
 });
 
-describe("uri", () => {
+describe("isIRI()", () => {
+
+	it("should return true for valid absolute IRIs", () => {
+		iris.absolute.valid.forEach(value => {
+			expect(isIRI(value, "absolute")).toBe(true);
+		});
+	});
+
+	it("should return false for invalid absolute IRIs", () => {
+		iris.absolute.invalid.forEach(({ value }) => {
+			expect(isIRI(value, "absolute")).toBe(false);
+		});
+	});
+
+	it("should return true for valid relative IRIs with relative variant", () => {
+		iris.relative.valid.forEach(value => {
+			expect(isIRI(value, "relative")).toBe(true);
+		});
+	});
+
+	it("should return false for invalid relative IRIs with relative variant", () => {
+		iris.relative.invalid.forEach(({ value }) => {
+			expect(isIRI(value, "relative")).toBe(false);
+		});
+	});
+
+	it("should return false for non-absolute IRIs with absolute variant", () => {
+		// Only test paths without scheme - absolute URIs are valid with "absolute" variant
+		const relativePaths = iris.relative.valid.filter(v => !v.includes("://") && !v.startsWith("urn:"));
+		relativePaths.forEach(value => {
+			expect(isIRI(value, "absolute")).toBe(false);
+		});
+	});
+
+});
+
+
+describe("asURI()", () => {
 
 	it("should create branded URI from valid absolute ASCII-only strings", () => {
 		uris.absolute.valid.forEach(value => {
-			expect(() => asURI(value)).not.toThrow();
-			const result = asURI(value);
+			expect(() => asURI(value, "absolute")).not.toThrow();
+			const result = asURI(value, "absolute");
 			expect(typeof result).toBe("string");
 			expect(result).toBe(value);
 		});
@@ -184,14 +221,14 @@ describe("uri", () => {
 
 	it("should throw RangeError for invalid absolute URIs", () => {
 		uris.absolute.invalid.forEach(({ value }) => {
-			expect(() => asURI(value)).toThrow(RangeError);
+			expect(() => asURI(value, "absolute")).toThrow(RangeError);
 		});
 	});
 
 	it("should throw RangeError for URIs with Unicode characters", () => {
-		expect(() => asURI("http://example.com/资源")).toThrow(RangeError);
-		expect(() => asURI("http://example.com/café")).toThrow(RangeError);
-		expect(() => asURI("urn:example:数据")).toThrow(RangeError);
+		expect(() => asURI("http://example.com/资源", "absolute")).toThrow(RangeError);
+		expect(() => asURI("http://example.com/café", "absolute")).toThrow(RangeError);
+		expect(() => asURI("urn:example:数据", "absolute")).toThrow(RangeError);
 	});
 
 	it("should create branded URI from valid relative ASCII-only strings with relative variant", () => {
@@ -209,11 +246,11 @@ describe("uri", () => {
 		});
 	});
 
-	it("should throw RangeError for non-absolute URIs without relative option", () => {
-		// Only test actual relative paths (no scheme) - absolute URIs are valid with default "absolute" variant
+	it("should throw RangeError for non-absolute URIs with absolute variant", () => {
+		// Only test actual relative paths (no scheme) - absolute URIs are valid with "absolute" variant
 		const relativePaths = uris.relative.valid.filter(v => !v.includes("://"));
 		relativePaths.forEach(value => {
-			expect(() => asURI(value)).toThrow(RangeError);
+			expect(() => asURI(value, "absolute")).toThrow(RangeError);
 		});
 	});
 
@@ -231,8 +268,8 @@ describe("uri", () => {
 	it("should clip excessive .. segments at root", () => {
 		expect(asURI("/../path", "internal")).toBe("/path");
 		expect(asURI("/a/../../path", "internal")).toBe("/path");
-		expect(asURI("http://example.com/../path")).toBe("http://example.com/path");
-		expect(asURI("http://example.com/a/../../path")).toBe("http://example.com/path");
+		expect(asURI("http://example.com/../path", "absolute")).toBe("http://example.com/path");
+		expect(asURI("http://example.com/a/../../path", "absolute")).toBe("http://example.com/path");
 	});
 
 	it("should preserve leading .. in relative paths for later resolution", () => {
@@ -292,8 +329,8 @@ describe("iri", () => {
 
 	it("should create branded IRI from valid absolute strings", () => {
 		iris.absolute.valid.forEach(value => {
-			expect(() => asIRI(value)).not.toThrow();
-			const result = asIRI(value);
+			expect(() => asIRI(value, "absolute")).not.toThrow();
+			const result = asIRI(value, "absolute");
 			expect(typeof result).toBe("string");
 			expect(result).toBe(value);
 		});
@@ -301,7 +338,7 @@ describe("iri", () => {
 
 	it("should throw RangeError for invalid absolute IRIs", () => {
 		iris.absolute.invalid.forEach(({ value }) => {
-			expect(() => asIRI(value)).toThrow(RangeError);
+			expect(() => asIRI(value, "absolute")).toThrow(RangeError);
 		});
 	});
 
@@ -319,11 +356,11 @@ describe("iri", () => {
 		});
 	});
 
-	it("should throw RangeError for non-absolute IRIs without relative option", () => {
-		// Only test actual relative paths (no scheme) - absolute URIs are valid with default "absolute" variant
+	it("should throw RangeError for non-absolute IRIs with absolute variant", () => {
+		// Only test actual relative paths (no scheme) - absolute URIs are valid with "absolute" variant
 		const relativePaths = iris.relative.valid.filter(v => !v.includes("://") && !v.startsWith("urn:"));
 		relativePaths.forEach(value => {
-			expect(() => asIRI(value)).toThrow(RangeError);
+			expect(() => asIRI(value, "absolute")).toThrow(RangeError);
 		});
 	});
 
@@ -341,8 +378,8 @@ describe("iri", () => {
 	it("should clip excessive .. segments at root", () => {
 		expect(asIRI("/../path", "internal")).toBe("/path");
 		expect(asIRI("/a/../../path", "internal")).toBe("/path");
-		expect(asIRI("http://example.com/../path")).toBe("http://example.com/path");
-		expect(asIRI("http://example.com/a/../../path")).toBe("http://example.com/path");
+		expect(asIRI("http://example.com/../path", "absolute")).toBe("http://example.com/path");
+		expect(asIRI("http://example.com/a/../../path", "absolute")).toBe("http://example.com/path");
 	});
 
 	it("should preserve leading .. in relative paths for later resolution", () => {
