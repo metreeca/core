@@ -74,18 +74,53 @@ import { isNumber, isString } from "./json.js";
 
 
 /**
+ * Validates a value against a type guard and returns it.
+ *
+ * Applies the guard to the value: if it passes, returns the value; otherwise, throws a `TypeError`. When no custom
+ * message is provided, generates a descriptive message from the guard function name (e.g., `isNonEmptyString` produces
+ * "expected non empty string").
+ *
+ * @param value The value to validate
+ * @param guard The type guard function to apply
+ * @param message Optional custom error message; defaults to a message derived from the guard function name
+ *
+ * @returns The validated value
+ *
+ * @throws {TypeError} When the guard returns `false`
+ */
+export function assert<T>(value: unknown, guard: (v: unknown) => v is T, message?: string): T {
+
+	return guard(value) ? value : error(new TypeError(message ?? defaultMessage(guard)));
+
+
+	function defaultMessage(guard: Function): string {
+		if ( /^is\p{Uppercase}/u.test(guard.name) ) {
+
+			return `expected ${(guard.name.slice(2)
+				.replace(/(\p{Uppercase})(\p{Uppercase}\p{Lowercase})/gu, "$1 $2")
+				.replace(/(\p{Lowercase})(\p{Uppercase})/gu, "$1 $2")
+				.toLowerCase())}`;
+
+		} else {
+
+			return "assertion failed";
+
+		}
+	}
+
+}
+
+/**
  * Throws an error in expression contexts.
  *
  * Enables error throwing in functional style code where expressions are required,
  * such as ternary operators, arrow functions, or array methods.
  *
- * @typeParam V The expected return type for type compatibility (never actually returns)
+ * @typeParam T The expected return type for type compatibility (never actually returns)
  *
  * @param cause The error message string or Error instance to throw
  *
- * @throws The provided error or a new Error with the provided message
- *
- * @returns Never returns (always throws)
+ * @throws {Error} The provided error, or a new Error wrapping the provided message
  *
  * @example
  *
@@ -103,7 +138,7 @@ import { isNumber, isString } from "./json.js";
  * const items = data.map(item => item.value ?? error("Missing value"));
  * ```
  */
-export function error<V>(cause: string | Error): V {
+export function error<T>(cause: string | Error): T {
 	throw isString(cause) ? new Error(cause) : cause;
 }
 
