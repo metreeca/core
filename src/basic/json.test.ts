@@ -16,7 +16,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { asArray, asBoolean, asNumber, asObject, asString, isArray, isBoolean, isEmpty, isNull, isNumber, isObject, isScalar, isString, isValue } from "./json.js";
+import { isArray, isBoolean, isEmpty, isNull, isNumber, isObject, isScalar, isString, isValue } from "./json.js";
 
 
 describe("isValue()", () => {
@@ -310,134 +310,6 @@ describe("isEmpty()", () => {
 
 	it("should return false for non-plain objects", () => {
 		expect(isEmpty(new Date())).toBeFalsy();
-	});
-
-});
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-describe("asBoolean()", () => {
-
-	it("should return the value for booleans", async () => {
-		expect(asBoolean(true)).toBe(true);
-		expect(asBoolean(false)).toBe(false);
-	});
-
-	it("should throw for non-booleans", async () => {
-		expect(() => asBoolean(1)).toThrow(TypeError);
-		expect(() => asBoolean("true")).toThrow(TypeError);
-		expect(() => asBoolean(null)).toThrow(TypeError);
-		expect(() => asBoolean(undefined)).toThrow(TypeError);
-		expect(() => asBoolean({})).toThrow(TypeError);
-		expect(() => asBoolean([])).toThrow(TypeError);
-	});
-
-});
-
-describe("asNumber()", () => {
-
-	it("should return the value for finite numbers", async () => {
-		expect(asNumber(0)).toBe(0);
-		expect(asNumber(123)).toBe(123);
-		expect(asNumber(-456.78)).toBe(-456.78);
-	});
-
-	it("should throw for non-finite numbers", async () => {
-		expect(() => asNumber(NaN)).toThrow(TypeError);
-		expect(() => asNumber(Infinity)).toThrow(TypeError);
-		expect(() => asNumber(-Infinity)).toThrow(TypeError);
-	});
-
-	it("should throw for non-numbers", async () => {
-		expect(() => asNumber("123")).toThrow(TypeError);
-		expect(() => asNumber(null)).toThrow(TypeError);
-		expect(() => asNumber(undefined)).toThrow(TypeError);
-		expect(() => asNumber(true)).toThrow(TypeError);
-		expect(() => asNumber({})).toThrow(TypeError);
-		expect(() => asNumber([])).toThrow(TypeError);
-	});
-
-});
-
-describe("asString()", () => {
-
-	it("should return the value for strings", async () => {
-		expect(asString("")).toBe("");
-		expect(asString("test")).toBe("test");
-	});
-
-	it("should throw for non-strings", async () => {
-		expect(() => asString(123)).toThrow(TypeError);
-		expect(() => asString(null)).toThrow(TypeError);
-		expect(() => asString(undefined)).toThrow(TypeError);
-		expect(() => asString(true)).toThrow(TypeError);
-		expect(() => asString({})).toThrow(TypeError);
-		expect(() => asString([])).toThrow(TypeError);
-	});
-
-});
-
-describe("asArray()", () => {
-
-	it("should return the value for arrays", async () => {
-		expect(asArray([])).toEqual([]);
-		expect(asArray([1, 2, 3])).toEqual([1, 2, 3]);
-	});
-
-	it("should validate elements with type guard", async () => {
-		expect(asArray([1, 2, 3], isNumber)).toEqual([1, 2, 3]);
-		expect(() => asArray([1, "two", 3], isNumber)).toThrow(TypeError);
-	});
-
-	it("should throw for non-arrays", async () => {
-		expect(() => asArray(null)).toThrow(TypeError);
-		expect(() => asArray(undefined)).toThrow(TypeError);
-		expect(() => asArray({})).toThrow(TypeError);
-		expect(() => asArray("array")).toThrow(TypeError);
-		expect(() => asArray(123)).toThrow(TypeError);
-	});
-
-});
-
-describe("asObject()", () => {
-
-	it("should return the value for plain objects", async () => {
-		expect(asObject({})).toEqual({});
-		expect(asObject({ a: 1 })).toEqual({ a: 1 });
-	});
-
-	it("should validate entries with entry guard", async () => {
-
-		const isStringNumber = (entry: [unknown, unknown]): entry is [string, number] =>
-			isString(entry[0]) && isNumber(entry[1]);
-
-		expect(asObject({ a: 1, b: 2 }, isStringNumber)).toEqual({ a: 1, b: 2 });
-		expect(() => asObject({ a: 1, b: "two" }, isStringNumber)).toThrow(TypeError);
-
-	});
-
-	it("should validate keys with entry guard", async () => {
-
-		const isABNumber = (entry: [unknown, unknown]): entry is ["a" | "b", number] =>
-			(entry[0] === "a" || entry[0] === "b") && isNumber(entry[1]);
-
-		expect(asObject({ a: 1, b: 2 }, isABNumber)).toEqual({ a: 1, b: 2 });
-		expect(() => asObject({ a: 1, c: 2 }, isABNumber)).toThrow(TypeError);
-
-	});
-
-	it("should throw for non-objects", async () => {
-		expect(() => asObject(null)).toThrow(TypeError);
-		expect(() => asObject(undefined)).toThrow(TypeError);
-		expect(() => asObject([])).toThrow(TypeError);
-		expect(() => asObject("object")).toThrow(TypeError);
-		expect(() => asObject(123)).toThrow(TypeError);
-	});
-
-	it("should throw for non-plain objects", async () => {
-		expect(() => asObject(new Date())).toThrow(TypeError);
-		expect(() => asObject(new RegExp(""))).toThrow(TypeError);
 	});
 
 });

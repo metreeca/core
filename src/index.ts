@@ -17,46 +17,9 @@
 /**
  * Core utility types and type guards.
  *
- * ```typescript
- * import {
- *   isDefined,
- *   isFunction,
- *   isError,
- *   isPromise,
- *   isIterable,
- *   isAsyncIterable
- * } from '@metreeca/core';
+ * Provides primitive type guards for runtime type checking with compile-time narrowing.
  *
- * if (isDefined(value)) {
- *   return value.property; // value is narrowed to exclude undefined and null
- * }
- *
- * if (isFunction(value)) {
- *   value(); // value is narrowed to Function type
- * }
- *
- * if (isError(value)) {
- *   console.error(value.message); // value is narrowed to Error
- * }
- *
- * if (isPromise(value)) {
- *   await value; // value is narrowed to Promise type
- * }
- *
- * if (isIterable(value)) {
- *   for (const item of value) { // value implements iterable protocol
- *     process(item);
- *   }
- * }
- *
- * if (isAsyncIterable(value)) {
- *   for await (const item of value) { // value implements async iterable protocol
- *     await process(item);
- *   }
- * }
- * ```
- *
- * @module index
+ * @module
  */
 
 
@@ -121,46 +84,6 @@ export type Lazy<T> =
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Checks if a value is a valid {@link Identifier}.
- *
- * @param value The value to check
- *
- * @returns `true` if the value is a valid ECMAScript IdentifierName
- */
-export function isIdentifier(value: unknown): value is Identifier {
-	return typeof value === "string" && IdentifierPattern.test(value);
-}
-
-/**
- * Creates a validated identifier from a value.
- *
- * @param value The value to convert to an identifier
- *
- * @returns The validated identifier
- *
- * @throws TypeError If the value is not a string
- * @throws RangeError If the value is not a valid ECMAScript IdentifierName
- *
- * @see {@link isIdentifier} for validation rules
- * @see {@link Identifier}
- */
-export function asIdentifier(value: unknown): Identifier {
-
-	if ( typeof value !== "string" ) {
-		throw new TypeError("expected string");
-	}
-
-	if ( !isIdentifier(value) ) {
-		throw new RangeError(`invalid identifier <${value}>`);
-	}
-
-	return value;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
  * Checks if a value is not `undefined` or `null`.
  *
  * @typeParam T The type when the value is defined
@@ -171,6 +94,17 @@ export function asIdentifier(value: unknown): Identifier {
  */
 export function isDefined<T>(value: undefined | null | T): value is T {
 	return value !== undefined && value !== null;
+}
+
+/**
+ * Checks if a value is a valid {@link Identifier}.
+ *
+ * @param value The value to check
+ *
+ * @returns `true` if the value is a valid ECMAScript IdentifierName
+ */
+export function isIdentifier(value: unknown): value is Identifier {
+	return typeof value === "string" && IdentifierPattern.test(value);
 }
 
 /**

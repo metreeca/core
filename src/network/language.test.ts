@@ -105,7 +105,32 @@ describe("isTag()", () => {
 
 });
 
-describe("tag()", () => {
+describe("isRange()", () => {
+
+	it("should return true for valid language ranges", () => {
+		ranges.valid.forEach(value => {
+			expect(isTagRange(value)).toBe(true);
+		});
+	});
+
+	it("should return false for invalid language ranges", () => {
+		ranges.invalid.forEach(({ value }) => {
+			expect(isTagRange(value)).toBe(false);
+		});
+	});
+
+	it("should return false for non-string values", () => {
+		expect(isTagRange(null)).toBe(false);
+		expect(isTagRange(undefined)).toBe(false);
+		expect(isTagRange(123)).toBe(false);
+		expect(isTagRange({})).toBe(false);
+		expect(isTagRange([])).toBe(false);
+	});
+
+});
+
+
+describe("asTag()", () => {
 
 	it("should create branded laguage tags from valid strings", () => {
 		tags.valid.forEach(value => {
@@ -136,32 +161,7 @@ describe("tag()", () => {
 
 });
 
-
-describe("isRange()", () => {
-
-	it("should return true for valid language ranges", () => {
-		ranges.valid.forEach(value => {
-			expect(isTagRange(value)).toBe(true);
-		});
-	});
-
-	it("should return false for invalid language ranges", () => {
-		ranges.invalid.forEach(({ value }) => {
-			expect(isTagRange(value)).toBe(false);
-		});
-	});
-
-	it("should return false for non-string values", () => {
-		expect(isTagRange(null)).toBe(false);
-		expect(isTagRange(undefined)).toBe(false);
-		expect(isTagRange(123)).toBe(false);
-		expect(isTagRange({})).toBe(false);
-		expect(isTagRange([])).toBe(false);
-	});
-
-});
-
-describe("range()", () => {
+describe("asTagRange()", () => {
 
 	it("should create branded language ranges from valid strings", () => {
 		ranges.valid.forEach(value => {

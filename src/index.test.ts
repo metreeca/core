@@ -17,19 +17,38 @@
 import { describe, expect, it } from "vitest";
 
 import {
-	asIdentifier,
 	isAsyncIterable,
+	isDate,
 	isDefined,
 	isError,
 	isFunction,
-	isRegExp,
-	isDate,
 	isIdentifier,
 	isIterable,
 	isPromise,
+	isRegExp,
 	isSymbol
 } from "./index.js";
 
+
+describe("isDefined()", () => {
+
+	it("should return false for undefined", () => {
+		expect(isDefined(undefined)).toBeFalsy();
+	});
+
+	it("should return false for null", () => {
+		expect(isDefined(null)).toBeFalsy();
+	});
+
+	it("should return true for defined values", () => {
+		expect(isDefined(0)).toBeTruthy();
+		expect(isDefined("")).toBeTruthy();
+		expect(isDefined(false)).toBeTruthy();
+		expect(isDefined({})).toBeTruthy();
+		expect(isDefined([])).toBeTruthy();
+	});
+
+});
 
 describe("isIdentifier()", () => {
 
@@ -111,52 +130,6 @@ describe("isIdentifier()", () => {
 		expect(isIdentifier({})).toBeFalsy();
 		expect(isIdentifier([])).toBeFalsy();
 		expect(isIdentifier(Symbol("foo"))).toBeFalsy();
-	});
-
-});
-
-describe("asIdentifier()", () => {
-
-	it("should return valid identifiers unchanged", async () => {
-		expect(asIdentifier("foo")).toBe("foo");
-		expect(asIdentifier("$")).toBe("$");
-		expect(asIdentifier("_private")).toBe("_private");
-		expect(asIdentifier("camelCase")).toBe("camelCase");
-	});
-
-	it("should throw RangeError for invalid identifiers", async () => {
-		expect(() => asIdentifier("")).toThrow(RangeError);
-		expect(() => asIdentifier("123")).toThrow(RangeError);
-		expect(() => asIdentifier("foo bar")).toThrow(RangeError);
-		expect(() => asIdentifier("foo-bar")).toThrow(RangeError);
-	});
-
-	it("should throw TypeError for non-string values", async () => {
-		expect(() => asIdentifier(null as unknown as string)).toThrow(TypeError);
-		expect(() => asIdentifier(undefined as unknown as string)).toThrow(TypeError);
-		expect(() => asIdentifier(123 as unknown as string)).toThrow(TypeError);
-		expect(() => asIdentifier({} as unknown as string)).toThrow(TypeError);
-		expect(() => asIdentifier([] as unknown as string)).toThrow(TypeError);
-	});
-
-});
-
-describe("isDefined()", () => {
-
-	it("should return false for undefined", () => {
-		expect(isDefined(undefined)).toBeFalsy();
-	});
-
-	it("should return false for null", () => {
-		expect(isDefined(null)).toBeFalsy();
-	});
-
-	it("should return true for defined values", () => {
-		expect(isDefined(0)).toBeTruthy();
-		expect(isDefined("")).toBeTruthy();
-		expect(isDefined(false)).toBeTruthy();
-		expect(isDefined({})).toBeTruthy();
-		expect(isDefined([])).toBeTruthy();
 	});
 
 });

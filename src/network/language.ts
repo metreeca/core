@@ -174,35 +174,6 @@ export function isTag(value: unknown): value is Tag {
 }
 
 /**
- * Creates a validated language tag from a string.
- *
- * Validates language tags according to BCP 47/RFC 5646.
- *
- * @param value The value to convert to a language tag
- *
- * @returns The validated language tag
- *
- * @throws TypeError If the value is not a string
- * @throws RangeError If the value is not a valid BCP 47 language tag
- *
- * @see {@link isTag} for validation rules
- * @see {@link Tag}
- */
-export function asTag(value: unknown): Tag {
-
-	if ( !isString(value) ) {
-		throw new TypeError("expected string");
-	}
-
-	if ( !isTag(value) ) {
-		throw new RangeError(`invalid language tag <${value}>`);
-	}
-
-	return value;
-}
-
-
-/**
  * Checks if a value is a valid language range.
  *
  * Validates extended language ranges according to RFC 4647 § 2.2.
@@ -216,6 +187,36 @@ export function asTag(value: unknown): Tag {
  */
 export function isTagRange(value: unknown): value is TagRange {
 	return isString(value) && value.length > 0 && TagRangePattern.test(value);
+}
+
+
+/**
+ * Creates a validated language tag from a string.
+ *
+ * Validates language tags according to BCP 47/RFC 5646.
+ *
+ * @param value The value to convert to a language tag
+ *
+ * @returns The validated language tag
+ *
+ * @throws TypeError If the value is not a string
+ * @throws RangeError If the value is not a valid BCP 47 language tag
+ *
+ * @see {@link isTag} for validation rules
+ * @see {@link Tag}
+ * @see {@link TagRange}
+ */
+export function asTag(value: string): Tag {
+
+	if ( !isString(value) ) {
+		throw new TypeError("expected string");
+	}
+
+	if ( !isTag(value) ) {
+		throw new RangeError(`invalid language tag <${value}>`);
+	}
+
+	return value;
 }
 
 /**
@@ -232,9 +233,10 @@ export function isTagRange(value: unknown): value is TagRange {
  * @throws RangeError If the value is not a valid language range
  *
  * @see {@link isTagRange} for validation rules
+ * @see {@link Tag}
  * @see {@link TagRange}
  */
-export function asTagRange(value: unknown): TagRange {
+export function asTagRange(value: string): TagRange {
 
 	if ( !isString(value) ) {
 		throw new TypeError("expected string");

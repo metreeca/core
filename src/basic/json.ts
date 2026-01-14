@@ -43,12 +43,10 @@
  *   isString(e[0]) && isNumber(e[1]);
  * ```
  *
- * @see [RFC 8259 - The JavaScript Object Notation (JSON) Data Interchange
- *     Format](https://datatracker.ietf.org/doc/html/rfc8259)
+ * @see [RFC 8259 - The JavaScript Object Notation (JSON) Data Interchange Format](https://datatracker.ietf.org/doc/html/rfc8259)
  *
  * @module json
  */
-
 
 import { error } from "./error.js";
 
@@ -248,96 +246,5 @@ export function isEmpty(value: unknown): value is Record<PropertyKey, never> | [
 	return isArray(value) ? value.length === 0
 		: isObject(value) ? Object.keys(value).length === 0
 			: false;
-
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * Validates and returns a boolean value.
- *
- * @param value The value to validate
- *
- * @returns The value if it is a boolean
- *
- * @throws TypeError If the value is not a boolean
- */
-export function asBoolean(value: unknown): boolean {
-
-	return isBoolean(value) ? value : error(new TypeError("expected boolean"));
-
-}
-
-/**
- * Validates and returns a finite number.
- *
- * @param value The value to validate
- *
- * @returns The value if it is a finite number
- *
- * @throws TypeError If the value is not a finite number
- */
-export function asNumber(value: unknown): number {
-
-	return isNumber(value) ? value : error(new TypeError("expected finite number"));
-
-}
-
-/**
- * Validates and returns a string value.
- *
- * @param value The value to validate
- *
- * @returns The value if it is a string
- *
- * @throws TypeError If the value is not a string
- */
-export function asString(value: unknown): string {
-
-	return isString(value) ? value : error(new TypeError("expected string"));
-
-}
-
-/**
- * Validates and returns an array.
- *
- * @typeParam T The type of array elements
- *
- * @param value The value to validate
- * @param is Optional type guard or predicate to validate elements
- *
- * @returns The value if it is an array
- *
- * @throws TypeError If the value is not an array or if any element fails the guard
- */
-export function asArray<T = unknown>(
-	value: unknown,
-	is?: ((value: unknown) => value is T) | ((value: unknown) => boolean)
-): T[] {
-
-	return isArray(value, is) ? value : error(new TypeError("expected array"));
-
-}
-
-/**
- * Validates and returns a plain object.
- *
- * @typeParam K The type of property keys
- * @typeParam V The type of property values
- *
- * @param value The value to validate
- * @param is Optional type guard or predicate to validate `[key, value]` entry tuples
- *
- * @returns The value if it is a plain object
- *
- * @throws TypeError If the value is not a plain object or if any entry fails the guard
- */
-export function asObject<K extends PropertyKey = PropertyKey, V = unknown>(
-	value: unknown,
-	is?: ((entry: [unknown, unknown]) => entry is [K, V]) | ((entry: [unknown, unknown]) => boolean)
-): Record<K, V> {
-
-	return isObject(value, is) ? value : error(new TypeError("expected object"));
 
 }
