@@ -75,7 +75,7 @@ import { isString } from "../basic/json.js";
  * @see {@link https://www.rfc-editor.org/info/bcp47 BCP 47 - Tags for Identifying Languages}
  * @see {@link https://www.rfc-editor.org/rfc/rfc5646.html RFC 5646 - Tags for Identifying Languages}
  */
-export const TagPattern = (() => {
+ const TagPattern = (() => {
 
 	const language = "(?:[a-z]{2,3}(?:-[a-z]{3}){0,3}|[a-z]{4}|[a-z]{5,8})"; // 2-3 + extlang / 4 / 5-8 letters
 	const script = "(?:-[a-z]{4})?"; // optional 4-letter script
@@ -98,7 +98,7 @@ export const TagPattern = (() => {
  * @see {@link https://www.rfc-editor.org/info/bcp47 BCP 47 - Tags for Identifying Languages}
  * @see {@link https://www.rfc-editor.org/rfc/rfc4647.html RFC 4647 - Matching of Language Tags}
  */
-export const TagRangePattern = /^(?:[a-z]{1,8}|\*)(?:-(?:[a-z0-9]{1,8}|\*))*$/i;
+ const TagRangePattern = /^(?:[a-z]{1,8}|\*)(?:-(?:[a-z0-9]{1,8}|\*))*$/i;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

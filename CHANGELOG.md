@@ -10,6 +10,16 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - `"hierarchical"` variant for URI/IRI validation (absolute with authority, usable as resolution base)
+- Optional `is` predicate parameter to `isArray` for element validation; receives `(value, index)`
+- Tuple template validation for `isArray` with exact length matching
+- Optional `is` parameter to `isObject` supporting predicate `(value, key)` or template validation
+- `key` symbol for open template validation in `isObject`
+- `any` wildcard guard for accepting any value in templates without validation
+- `Guard` type for template-based validation rules: literal values, literal arrays, predicates
+- `union` function to create combined type guards matching any of provided guards
+- `intersection` function to create refined type guards matching all provided guards
+- `Union<G>` and `Intersection<G>` type helpers for guard type extraction
+- `assert` validation function in `error` module
 - `asIdentifier` validating cast function for ECMAScript identifiers
 - `asBoolean`, `asNumber`, `asString`, `asArray`, `asObject` validating cast functions
 - Optional `is` guard/predicate parameter to `isArray`/`asArray` for element validation
