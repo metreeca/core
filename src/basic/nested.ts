@@ -66,8 +66,7 @@
  * @module
  */
 
-import { isFunction } from "../index.js";
-import { isArray, isObject } from "./json.js";
+import { isArray, isFunction, isObject } from "../index.js";
 
 
 /**

@@ -15,18 +15,29 @@
  */
 
 import { describe, expect, it } from "vitest";
-
 import {
+	any,
+	intersection,
+	isArray,
 	isAsyncIterable,
+	isBoolean,
 	isDate,
 	isDefined,
 	isError,
 	isFunction,
 	isIdentifier,
 	isIterable,
+	isNull,
+	isNumber,
+	isObject,
 	isPromise,
 	isRegExp,
-	isSymbol
+	isScalar,
+	isString,
+	isSymbol,
+	isValue,
+	key,
+	union
 } from "./index.js";
 
 
@@ -265,6 +276,495 @@ describe("isAsyncIterable()", () => {
 		expect(isAsyncIterable([])).toBeFalsy();
 		expect(isAsyncIterable({})).toBeFalsy();
 		expect(isAsyncIterable(null)).toBeFalsy();
+	});
+
+});
+
+
+describe("isValue()", () => {
+
+	it("should return true for null", () => {
+		expect(isValue(null)).toBeTruthy();
+	});
+
+	it("should return true for booleans", () => {
+		expect(isValue(true)).toBeTruthy();
+		expect(isValue(false)).toBeTruthy();
+	});
+
+	it("should return true for finite numbers", () => {
+		expect(isValue(0)).toBeTruthy();
+		expect(isValue(123)).toBeTruthy();
+		expect(isValue(-456.78)).toBeTruthy();
+	});
+
+	it("should return false for non-finite numbers", () => {
+		expect(isValue(NaN)).toBeFalsy();
+		expect(isValue(Infinity)).toBeFalsy();
+		expect(isValue(-Infinity)).toBeFalsy();
+	});
+
+	it("should return true for strings", () => {
+		expect(isValue("")).toBeTruthy();
+		expect(isValue("test")).toBeTruthy();
+	});
+
+	it("should return true for JSON arrays", () => {
+		expect(isValue([])).toBeTruthy();
+		expect(isValue([1, 2, 3])).toBeTruthy();
+		expect(isValue(["a", "b", "c"])).toBeTruthy();
+		expect(isValue([1, "two", true, null])).toBeTruthy();
+	});
+
+	it("should return false for arrays with non-JSON values", () => {
+		expect(isValue([undefined])).toBeFalsy();
+		expect(isValue([1, undefined])).toBeFalsy();
+		expect(isValue([Symbol()])).toBeFalsy();
+		expect(isValue([() => {}])).toBeFalsy();
+	});
+
+	it("should return true for JSON objects", () => {
+		expect(isValue({})).toBeTruthy();
+		expect(isValue({ a: 1 })).toBeTruthy();
+		expect(isValue({ a: 1, b: "two", c: true, d: null })).toBeTruthy();
+	});
+
+	it("should return false for objects with non-JSON values", () => {
+		expect(isValue({ a: undefined })).toBeFalsy();
+		expect(isValue({ a: 1, b: undefined })).toBeFalsy();
+		expect(isValue({ a: Symbol() })).toBeFalsy();
+		expect(isValue({ a: () => {} })).toBeFalsy();
+	});
+
+	it("should return true for nested JSON structures", () => {
+		expect(isValue({ a: [1, 2, 3], b: { c: "test" } })).toBeTruthy();
+		expect(isValue([{ a: 1 }, { b: 2 }])).toBeTruthy();
+	});
+
+	it("should return false for non-plain objects", () => {
+		expect(isValue(new Date())).toBeFalsy();
+		expect(isValue(new RegExp(""))).toBeFalsy();
+		expect(isValue(new Error())).toBeFalsy();
+	});
+
+	it("should return false for non-JSON primitives", () => {
+		expect(isValue(undefined)).toBeFalsy();
+		expect(isValue(Symbol())).toBeFalsy();
+		expect(isValue(() => {})).toBeFalsy();
+	});
+
+});
+
+describe("isScalar()", () => {
+
+	it("should return true for booleans", () => {
+		expect(isScalar(true)).toBeTruthy();
+		expect(isScalar(false)).toBeTruthy();
+	});
+
+	it("should return true for finite numbers", () => {
+		expect(isScalar(0)).toBeTruthy();
+		expect(isScalar(123)).toBeTruthy();
+		expect(isScalar(-456.78)).toBeTruthy();
+	});
+
+	it("should return false for non-finite numbers", () => {
+		expect(isScalar(NaN)).toBeFalsy();
+		expect(isScalar(Infinity)).toBeFalsy();
+		expect(isScalar(-Infinity)).toBeFalsy();
+	});
+
+	it("should return true for strings", () => {
+		expect(isScalar("")).toBeTruthy();
+		expect(isScalar("test")).toBeTruthy();
+	});
+
+	it("should return false for null", () => {
+		expect(isScalar(null)).toBeFalsy();
+	});
+
+	it("should return false for undefined", () => {
+		expect(isScalar(undefined)).toBeFalsy();
+	});
+
+	it("should return false for arrays", () => {
+		expect(isScalar([])).toBeFalsy();
+		expect(isScalar([1, 2, 3])).toBeFalsy();
+	});
+
+	it("should return false for objects", () => {
+		expect(isScalar({})).toBeFalsy();
+		expect(isScalar({ a: 1 })).toBeFalsy();
+	});
+
+	it("should return false for symbols", () => {
+		expect(isScalar(Symbol())).toBeFalsy();
+	});
+
+	it("should return false for functions", () => {
+		expect(isScalar(() => {})).toBeFalsy();
+	});
+
+});
+
+describe("isNull()", () => {
+
+	it("should return true for null", () => {
+		expect(isNull(null)).toBeTruthy();
+	});
+
+	it("should return false for non-null values", () => {
+		expect(isNull(undefined)).toBeFalsy();
+		expect(isNull(0)).toBeFalsy();
+		expect(isNull("")).toBeFalsy();
+		expect(isNull(false)).toBeFalsy();
+		expect(isNull({})).toBeFalsy();
+		expect(isNull([])).toBeFalsy();
+	});
+
+});
+
+describe("isBoolean()", () => {
+
+	it("should return true for booleans", () => {
+		expect(isBoolean(true)).toBeTruthy();
+		expect(isBoolean(false)).toBeTruthy();
+	});
+
+	it("should return false for non-booleans", () => {
+		expect(isBoolean(1)).toBeFalsy();
+		expect(isBoolean("true")).toBeFalsy();
+		expect(isBoolean(null)).toBeFalsy();
+	});
+
+});
+
+describe("isNumber()", () => {
+
+	it("should return true for finite numbers", () => {
+		expect(isNumber(0)).toBeTruthy();
+		expect(isNumber(123)).toBeTruthy();
+		expect(isNumber(-456.78)).toBeTruthy();
+	});
+
+	it("should return false for non-finite numbers", () => {
+		expect(isNumber(NaN)).toBeFalsy();
+		expect(isNumber(Infinity)).toBeFalsy();
+		expect(isNumber(-Infinity)).toBeFalsy();
+	});
+
+	it("should return false for non-numbers", () => {
+		expect(isNumber("123")).toBeFalsy();
+		expect(isNumber(null)).toBeFalsy();
+	});
+
+});
+
+describe("isString()", () => {
+
+	it("should return true for strings", () => {
+		expect(isString("")).toBeTruthy();
+		expect(isString("test")).toBeTruthy();
+	});
+
+	it("should return false for non-strings", () => {
+		expect(isString(123)).toBeFalsy();
+		expect(isString(null)).toBeFalsy();
+		expect(isString({})).toBeFalsy();
+	});
+
+});
+
+describe("isArray()", () => {
+
+	it("should return true for arrays", () => {
+		expect(isArray([])).toBeTruthy();
+		expect(isArray([1, 2, 3])).toBeTruthy();
+	});
+
+	it("should validate elements with type guard", () => {
+		expect(isArray([1, 2, 3], isNumber)).toBeTruthy();
+		expect(isArray([1, "2", 3], isNumber)).toBeFalsy();
+	});
+
+	it("should return false for non-arrays", () => {
+		expect(isArray({})).toBeFalsy();
+		expect(isArray("array")).toBeFalsy();
+		expect(isArray(null)).toBeFalsy();
+	});
+
+	it("should validate tuple with template", () => {
+
+		const template = [isString, isNumber];
+
+		expect(isArray(["hello", 42], template)).toBeTruthy();
+		expect(isArray([42, "hello"], template)).toBeFalsy();
+
+	});
+
+	it("should validate tuple length matches template", () => {
+
+		const template = [isString, isNumber];
+
+		expect(isArray(["hello"], template)).toBeFalsy();
+		expect(isArray(["hello", 42, true], template)).toBeFalsy();
+
+	});
+
+	it("should validate tuple with literal values", () => {
+
+		const template = ["fixed", isNumber];
+
+		expect(isArray(["fixed", 42], template)).toBeTruthy();
+		expect(isArray(["other", 42], template)).toBeFalsy();
+
+	});
+
+	it("should validate tuple with optional elements using union", () => {
+
+		const template = [isString, union(undefined, isNumber)];
+
+		expect(isArray(["hello", 42], template)).toBeTruthy();
+		expect(isArray(["hello", undefined], template)).toBeTruthy();
+		expect(isArray(["hello", "world"], template)).toBeFalsy();
+
+	});
+
+	it("should validate empty array with empty template", () => {
+		expect(isArray([], [])).toBeTruthy();
+		expect(isArray([1], [])).toBeFalsy();
+	});
+
+	it("should validate tuple with literal set", () => {
+
+		const template = [isString, ["a", "b", "c"]] as const;
+
+		expect(isArray(["hello", "a"], template)).toBeTruthy();
+		expect(isArray(["hello", "b"], template)).toBeTruthy();
+		expect(isArray(["hello", "c"], template)).toBeTruthy();
+		expect(isArray(["hello", "d"], template)).toBeFalsy();
+
+	});
+
+	it("should validate tuple with any guard", () => {
+
+		const template = [isString, any] as const;
+
+		expect(isArray(["hello", 1], template)).toBeTruthy();
+		expect(isArray(["hello", "any"], template)).toBeTruthy();
+		expect(isArray(["hello", null], template)).toBeTruthy();
+		expect(isArray([42, 1], template)).toBeFalsy();
+
+	});
+
+});
+
+describe("isObject()", () => {
+
+	it("should return true for plain objects", () => {
+		expect(isObject({})).toBeTruthy();
+		expect(isObject({ uno: 1 })).toBeTruthy();
+	});
+
+	it("should return false for objects with null prototype", () => {
+		expect(isObject(Object.create(null))).toBeFalsy();
+	});
+
+	it("should return false for arrays", () => {
+		expect(isObject([])).toBeFalsy();
+	});
+
+	it("should return false for built-in objects", () => {
+		expect(isObject(new Date())).toBeFalsy();
+		expect(isObject(new RegExp(""))).toBeFalsy();
+		expect(isObject(new Error())).toBeFalsy();
+	});
+
+	it("should return false for primitives", () => {
+		expect(isObject(null)).toBeFalsy();
+		expect(isObject(undefined)).toBeFalsy();
+		expect(isObject("string")).toBeFalsy();
+		expect(isObject(123)).toBeFalsy();
+	});
+
+	it("should validate values with predicate", async () => {
+
+		const isNumberValue = (value: unknown) => isNumber(value);
+
+		expect(isObject({ a: 1, b: 2 }, isNumberValue)).toBeTruthy();
+		expect(isObject({ a: 1, b: "two" }, isNumberValue)).toBeFalsy();
+
+	});
+
+	it("should validate keys with predicate", async () => {
+
+		const isABNumber = (value: unknown, k: string) =>
+			(k === "a" || k === "b") && isNumber(value);
+
+		expect(isObject({ a: 1, b: 2 }, isABNumber)).toBeTruthy();
+		expect(isObject({ a: 1, c: 2 }, isABNumber)).toBeFalsy();
+
+	});
+
+	it("should validate with closed template using literal values", () => {
+
+		expect(isObject({ kind: "circle" }, { kind: "circle" })).toBeTruthy();
+		expect(isObject({ kind: "square" }, { kind: "circle" })).toBeFalsy();
+		expect(isObject({ kind: "circle", extra: 1 }, { kind: "circle" })).toBeFalsy();
+
+	});
+
+	it("should validate with closed template using predicates", () => {
+
+		expect(isObject({ x: 1, y: 2 }, { x: isNumber, y: isNumber })).toBeTruthy();
+		expect(isObject({ x: 1, y: "two" }, { x: isNumber, y: isNumber })).toBeFalsy();
+		expect(isObject({ x: 1 }, { x: isNumber, y: isNumber })).toBeFalsy();
+		expect(isObject({ x: 1, y: 2, z: 3 }, { x: isNumber, y: isNumber })).toBeFalsy();
+
+	});
+
+	it("should validate with closed template using mixed literals and predicates", () => {
+
+		const template = { kind: "circle", x: isNumber, y: isNumber, radius: isNumber };
+
+		expect(isObject({ kind: "circle", x: 0, y: 0, radius: 10 }, template)).toBeTruthy();
+		expect(isObject({ kind: "square", x: 0, y: 0, radius: 10 }, template)).toBeFalsy();
+		expect(isObject({ kind: "circle", x: 0, y: 0 }, template)).toBeFalsy();
+
+	});
+
+	it("should validate with closed template using any guard", () => {
+
+		const template = { kind: "circle", data: any };
+
+		expect(isObject({ kind: "circle", data: 1 }, template)).toBeTruthy();
+		expect(isObject({ kind: "circle", data: "any" }, template)).toBeTruthy();
+		expect(isObject({ kind: "circle", data: null }, template)).toBeTruthy();
+		expect(isObject({ kind: "square", data: 1 }, template)).toBeFalsy();
+
+	});
+
+	it("should validate with closed template using literal set", () => {
+
+		const template = { kind: ["circle", "square"] as const, x: isNumber, y: isNumber };
+
+		expect(isObject({ kind: "circle", x: 0, y: 0 }, template)).toBeTruthy();
+		expect(isObject({ kind: "square", x: 0, y: 0 }, template)).toBeTruthy();
+		expect(isObject({ kind: "triangle", x: 0, y: 0 }, template)).toBeFalsy();
+
+	});
+
+	it("should validate with open template using predicate wildcard", () => {
+
+		const template = { kind: "circle", [key]: isNumber };
+
+		expect(isObject({ kind: "circle" }, template)).toBeTruthy();
+		expect(isObject({ kind: "circle", x: 1, y: 2 }, template)).toBeTruthy();
+		expect(isObject({ kind: "circle", x: "one" }, template)).toBeFalsy();
+
+	});
+
+	it("should validate with open template using any wildcard", () => {
+
+		const template = { kind: "circle", [key]: any };
+
+		expect(isObject({ kind: "circle" }, template)).toBeTruthy();
+		expect(isObject({ kind: "circle", x: 1, y: "two", z: null }, template)).toBeTruthy();
+		expect(isObject({ kind: "square", x: 1 }, template)).toBeFalsy();
+
+	});
+
+	it("should validate with open template using literal set wildcard", () => {
+
+		const template = { kind: "circle", [key]: ["a", "b"] as const };
+
+		expect(isObject({ kind: "circle" }, template)).toBeTruthy();
+		expect(isObject({ kind: "circle", x: "a", y: "b" }, template)).toBeTruthy();
+		expect(isObject({ kind: "circle", x: "c" }, template)).toBeFalsy();
+
+	});
+
+	it("should validate optional fields using union(undefined, predicate)", () => {
+
+		const template = { name: isString, age: union(undefined, isNumber) };
+
+		expect(isObject({ name: "Alice", age: 30 }, template)).toBeTruthy();
+		expect(isObject({ name: "Bob" }, template)).toBeTruthy();
+		expect(isObject({ name: "Charlie", age: "thirty" }, template)).toBeFalsy();
+
+	});
+
+	it("should validate empty object with empty template", () => {
+		expect(isObject({}, {})).toBeTruthy();
+		expect(isObject({ a: 1 }, {})).toBeFalsy();
+	});
+
+});
+
+
+describe("union()", () => {
+
+	it("should match any guard predicate", () => {
+
+		const isStringOrNumber = union(isString, isNumber);
+
+		expect(isStringOrNumber("hello")).toBeTruthy();
+		expect(isStringOrNumber(42)).toBeTruthy();
+		expect(isStringOrNumber(true)).toBeFalsy();
+		expect(isStringOrNumber(null)).toBeFalsy();
+
+	});
+
+	it("should match literal values", () => {
+
+		const isStatus = union("pending", "done");
+
+		expect(isStatus("pending")).toBeTruthy();
+		expect(isStatus("done")).toBeTruthy();
+		expect(isStatus("other")).toBeFalsy();
+
+	});
+
+	it("should match mixed predicates and literals", () => {
+
+		const isIdOrNull = union(isNumber, null);
+
+		expect(isIdOrNull(123)).toBeTruthy();
+		expect(isIdOrNull(null)).toBeTruthy();
+		expect(isIdOrNull("string")).toBeFalsy();
+
+	});
+
+});
+
+describe("intersection()", () => {
+
+	it("should match all guard predicates", () => {
+
+		const isNonEmptyString = intersection(isString, (v: unknown) => typeof v === "string" && v.length > 0);
+
+		expect(isNonEmptyString("hello")).toBeTruthy();
+		expect(isNonEmptyString("")).toBeFalsy();
+		expect(isNonEmptyString(42)).toBeFalsy();
+
+	});
+
+	it("should match all literal values (same value)", () => {
+
+		const isExact = intersection("test", "test");
+
+		expect(isExact("test")).toBeTruthy();
+		expect(isExact("other")).toBeFalsy();
+
+	});
+
+	it("should fail when literals differ", () => {
+
+		const isImpossible = intersection("a", "b");
+
+		expect(isImpossible("a")).toBeFalsy();
+		expect(isImpossible("b")).toBeFalsy();
+
 	});
 
 });

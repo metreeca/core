@@ -64,7 +64,8 @@
  * @see {@link https://www.rfc-editor.org/rfc/rfc4647.html RFC 4647 - Matching of Language Tags}
  */
 
-import { isString } from "../basic/json.js";
+
+import { isString } from "../index.js";
 
 
 /**

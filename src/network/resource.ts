@@ -144,9 +144,9 @@
  * @see {@link https://datatracker.ietf.org/doc/html/rfc7807 RFC 7807 - Problem Details for HTTP APIs}
  */
 
-import { isString, type Value } from "../basic/json.js";
 import { immutable } from "../basic/nested.js";
 import { error } from "../basic/error.js";
+import { isString, type Value } from "../index.js";
 
 
 /**

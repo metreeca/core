@@ -42,6 +42,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - Rename `report` module to `error`
+- Consolidate `json` module into main index module; import from `@metreeca/core` instead of `@metreeca/core/json`
 - Change default `variant` parameter from `"absolute"` to `"relative"` for `isURI`, `isIRI`, `asURI`, `asIRI`
 - Change `isObject` type parameter from `<K, V>` to `<T extends Record<PropertyKey, unknown>>`
 - Change `asTag`, `asTagRange`, `asURI`, `asIRI` to accept `unknown` values (throws `TypeError` for non-strings)

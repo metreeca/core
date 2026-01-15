@@ -15,8 +15,8 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { isString } from "../index.js";
 import { assert, error, message, time } from "./error.js";
-import { isString } from "./json.js";
 
 
 describe("assert()", () => {
