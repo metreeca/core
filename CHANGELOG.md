@@ -14,6 +14,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Tuple template validation for `isArray` with exact length matching
 - Optional `is` parameter to `isObject` supporting predicate `(value, key)` or template validation
 - `key` symbol for open template validation in `isObject`
+- `any` wildcard guard for accepting any value in templates without validation
+- `Guard` type for template-based validation rules: literal values, literal arrays, predicates
 - `union` function to create combined type guards matching any of provided guards
 - `intersection` function to create refined type guards matching all provided guards
 - `Union<G>` and `Intersection<G>` type helpers for guard type extraction

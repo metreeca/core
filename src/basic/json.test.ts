@@ -17,7 +17,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-	intersection, isArray, isBoolean, isNull, isNumber, isObject, isScalar, isString, isValue, key, union
+	any, intersection, isArray, isBoolean, isNull, isNumber, isObject, isScalar, isString, isValue, key, union
 } from "./json.js";
 
 
@@ -275,6 +275,28 @@ describe("isArray()", () => {
 		expect(isArray([1], [])).toBeFalsy();
 	});
 
+	it("should validate tuple with literal set", () => {
+
+		const template = [isString, ["a", "b", "c"]] as const;
+
+		expect(isArray(["hello", "a"], template)).toBeTruthy();
+		expect(isArray(["hello", "b"], template)).toBeTruthy();
+		expect(isArray(["hello", "c"], template)).toBeTruthy();
+		expect(isArray(["hello", "d"], template)).toBeFalsy();
+
+	});
+
+	it("should validate tuple with any guard", () => {
+
+		const template = [isString, any] as const;
+
+		expect(isArray(["hello", 1], template)).toBeTruthy();
+		expect(isArray(["hello", "any"], template)).toBeTruthy();
+		expect(isArray(["hello", null], template)).toBeTruthy();
+		expect(isArray([42, 1], template)).toBeFalsy();
+
+	});
+
 });
 
 describe("isObject()", () => {
@@ -351,6 +373,27 @@ describe("isObject()", () => {
 
 	});
 
+	it("should validate with closed template using any guard", () => {
+
+		const template = { kind: "circle", data: any };
+
+		expect(isObject({ kind: "circle", data: 1 }, template)).toBeTruthy();
+		expect(isObject({ kind: "circle", data: "any" }, template)).toBeTruthy();
+		expect(isObject({ kind: "circle", data: null }, template)).toBeTruthy();
+		expect(isObject({ kind: "square", data: 1 }, template)).toBeFalsy();
+
+	});
+
+	it("should validate with closed template using literal set", () => {
+
+		const template = { kind: ["circle", "square"] as const, x: isNumber, y: isNumber };
+
+		expect(isObject({ kind: "circle", x: 0, y: 0 }, template)).toBeTruthy();
+		expect(isObject({ kind: "square", x: 0, y: 0 }, template)).toBeTruthy();
+		expect(isObject({ kind: "triangle", x: 0, y: 0 }, template)).toBeFalsy();
+
+	});
+
 	it("should validate with open template using predicate wildcard", () => {
 
 		const template = { kind: "circle", [key]: isNumber };
@@ -361,13 +404,23 @@ describe("isObject()", () => {
 
 	});
 
-	it("should validate with open template using true wildcard", () => {
+	it("should validate with open template using any wildcard", () => {
 
-		const template = { kind: "circle", [key]: true  };
+		const template = { kind: "circle", [key]: any };
 
 		expect(isObject({ kind: "circle" }, template)).toBeTruthy();
 		expect(isObject({ kind: "circle", x: 1, y: "two", z: null }, template)).toBeTruthy();
 		expect(isObject({ kind: "square", x: 1 }, template)).toBeFalsy();
+
+	});
+
+	it("should validate with open template using literal set wildcard", () => {
+
+		const template = { kind: "circle", [key]: ["a", "b"] as const };
+
+		expect(isObject({ kind: "circle" }, template)).toBeTruthy();
+		expect(isObject({ kind: "circle", x: "a", y: "b" }, template)).toBeTruthy();
+		expect(isObject({ kind: "circle", x: "c" }, template)).toBeFalsy();
 
 	});
 
