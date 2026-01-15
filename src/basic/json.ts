@@ -21,10 +21,10 @@
  * value or throw on type mismatch.
  *
  * ```typescript
- * import { isValue, isBoolean, isNumber, isString, isArray, isObject, key, union } from '@metreeca/core/json';
- *
  * isValue({ a: [1, 2], b: "test" }); // true
+ * isScalar("hello"); // true (boolean, number, or string)
  *
+ * isNull(null); // true
  * isBoolean(true); // true
  * isNumber(42); // true
  * isString("hello"); // true
@@ -32,15 +32,17 @@
  * isArray([1, 2, 3]); // true
  * isArray([1, 2, 3], isNumber); // with element predicate
  * isArray(["hello", 42], [isString, isNumber]); // with tuple template
+ * isArray([], []); // empty array check
  *
  * isObject({ a: 1 }); // true
  * isObject({ a: 1 }, (v) => isNumber(v)); // with entry predicate
  * isObject({ a: 1 }, { a: isNumber }); // with closed template
  * isObject({ a: 1 }, { a: isNumber, [key]: true }); // with open template
  * isObject({ a: 1 }, { a: isNumber, b: union(undefined, isString) }); // with optional field
+ * isObject({}, {}); // empty object check
  *
  * union(isString, isNumber); // combined type guard
- * intersection(isString, (v) => v.length > 0); // refined type guard
+ * intersection(isNumber, (v: number) => v > 0); // refined type guard
  * ```
  *
  * @see [RFC 8259 - The JavaScript Object Notation (JSON) Data Interchange
@@ -56,7 +58,7 @@
  * When used as a key in a template object, specifies the predicate for properties not explicitly listed.
  * Templates without this symbol are closed and reject extra properties.
  */
-export const key: unique symbol = Symbol("key");
+export const key: unique symbol = Symbol("*");
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -241,9 +243,9 @@ export function isArray<T = unknown>(
 
 			: typeof is === "function" ? value.every(is)
 
-				: value.length === is.length && is.every((t, i) =>
+				: value.length === is.length && (is.length === 0 || is.every((t, i) =>
 				typeof t === "function" ? t(value[i]) : value[i] === t
-			)
+			))
 
 	);
 
@@ -308,17 +310,26 @@ export function isObject<T extends Record<PropertyKey, unknown> = Record<Propert
 
 		} else if ( is !== undefined ) {
 
-			const wildcard = is[key] ?? false;
+			const keys = Object.keys(is);
+			const wild = is[key] ?? false;
 
-			return Object.entries(is).every(([k, t]) => { // template → value
+			if ( !wild && keys.length === 0 ) { // closed empty template: value must be empty
 
-				return typeof t === "function" ? t(value[k]) : value[k] === t;
+				return Object.keys(value).length === 0;
 
-			}) && Object.entries(value).every(([k, v]) => { // value → template
+			} else {
 
-				return k in is || (typeof wildcard === "function" ? wildcard(v) : wildcard);
+				return keys.every(k => { // template → value
 
-			});
+					return typeof is[k] === "function" ? is[k](value[k]) : value[k] === is[k];
+
+				}) && Object.keys(value).every(k => { // value → template
+
+					return k in is || (typeof wild === "function" ? wild(value[k]) : wild);
+
+				});
+
+			}
 
 		} else {
 
@@ -327,22 +338,6 @@ export function isObject<T extends Record<PropertyKey, unknown> = Record<Propert
 		}
 
 	}
-
-}
-
-
-/**
- * Checks if a value is an empty plain object or an empty array.
- *
- * @param value The value to check
- *
- * @returns `true` if the value is an empty array or an empty plain object
- */
-export function isEmpty(value: unknown): value is Record<PropertyKey, never> | [] {
-
-	return isArray(value) ? value.length === 0
-		: isObject(value) ? Object.keys(value).length === 0
-			: false;
 
 }
 

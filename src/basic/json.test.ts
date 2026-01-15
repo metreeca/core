@@ -16,7 +16,9 @@
 
 import { describe, expect, it } from "vitest";
 
-import { intersection, isArray, isBoolean, isEmpty, isNull, isNumber, isObject, isScalar, isString, isValue, key, union } from "./json.js";
+import {
+	intersection, isArray, isBoolean, isNull, isNumber, isObject, isScalar, isString, isValue, key, union
+} from "./json.js";
 
 
 describe("isValue()", () => {
@@ -268,6 +270,11 @@ describe("isArray()", () => {
 
 	});
 
+	it("should validate empty array with empty template", () => {
+		expect(isArray([], [])).toBeTruthy();
+		expect(isArray([1], [])).toBeFalsy();
+	});
+
 });
 
 describe("isObject()", () => {
@@ -374,35 +381,9 @@ describe("isObject()", () => {
 
 	});
 
-});
-
-describe("isEmpty()", () => {
-
-	it("should return true for empty objects", () => {
-		expect(isEmpty({})).toBeTruthy();
-	});
-
-	it("should return true for empty arrays", () => {
-		expect(isEmpty([])).toBeTruthy();
-	});
-
-	it("should return false for non-empty objects", () => {
-		expect(isEmpty({ uno: 1 })).toBeFalsy();
-	});
-
-	it("should return false for non-empty arrays", () => {
-		expect(isEmpty([1])).toBeFalsy();
-	});
-
-	it("should return false for primitives", () => {
-		expect(isEmpty(0)).toBeFalsy();
-		expect(isEmpty("")).toBeFalsy();
-		expect(isEmpty(null)).toBeFalsy();
-		expect(isEmpty(undefined)).toBeFalsy();
-	});
-
-	it("should return false for non-plain objects", () => {
-		expect(isEmpty(new Date())).toBeFalsy();
+	it("should validate empty object with empty template", () => {
+		expect(isObject({}, {})).toBeTruthy();
+		expect(isObject({ a: 1 }, {})).toBeFalsy();
 	});
 
 });
