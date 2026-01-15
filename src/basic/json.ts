@@ -1,5 +1,5 @@
 /*
- * Copyright © 2025 Metreeca srl
+ * Copyright © 2026 Metreeca srl
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,35 +21,45 @@
  * value or throw on type mismatch.
  *
  * ```typescript
- * import { isValue, isScalar, isNull, isBoolean, isNumber, isString, isArray, isObject, isEmpty } from '@metreeca/core/json';
- * import { asBoolean, asNumber, asString, asArray, asObject } from '@metreeca/core/json';
+ * import { isValue, isBoolean, isNumber, isString, isArray, isObject, key, union } from '@metreeca/core/json';
  *
- * // type guards - return boolean
  * isValue({ a: [1, 2], b: "test" }); // true
- * isValue({ a: new Date() }); // false
- * isScalar(42); // true
- * isArray([1, 2, 3], isNumber); // true - with element guard
- * isObject({ a: 1 }, isEntry); // true - with entry guard
  *
- * // validating casts - return value or throw TypeError
- * asBoolean(true); // true
- * asNumber(42); // 42
- * asString('hello'); // 'hello'
- * asArray([1, 2], isNumber); // [1, 2] - with element guard
- * asObject({ a: 1 }, isEntry); // { a: 1 } - with entry guard
+ * isBoolean(true); // true
+ * isNumber(42); // true
+ * isString("hello"); // true
  *
- * // entry guard validates [key, value] tuples
- * const isEntry = (e: [unknown, unknown]): e is [string, number] =>
- *   isString(e[0]) && isNumber(e[1]);
+ * isArray([1, 2, 3]); // true
+ * isArray([1, 2, 3], isNumber); // with element predicate
+ * isArray(["hello", 42], [isString, isNumber]); // with tuple template
+ *
+ * isObject({ a: 1 }); // true
+ * isObject({ a: 1 }, (v) => isNumber(v)); // with entry predicate
+ * isObject({ a: 1 }, { a: isNumber }); // with closed template
+ * isObject({ a: 1 }, { a: isNumber, [key]: true }); // with open template
+ * isObject({ a: 1 }, { a: isNumber, b: union(undefined, isString) }); // with optional field
+ *
+ * union(isString, isNumber); // combined type guard
+ * intersection(isString, (v) => v.length > 0); // refined type guard
  * ```
  *
- * @see [RFC 8259 - The JavaScript Object Notation (JSON) Data Interchange Format](https://datatracker.ietf.org/doc/html/rfc8259)
+ * @see [RFC 8259 - The JavaScript Object Notation (JSON) Data Interchange
+ *     Format](https://datatracker.ietf.org/doc/html/rfc8259)
  *
  * @module json
  */
 
-import { error } from "./error.js";
 
+/**
+ * Wildcard symbol for open template validation in {@link isObject}.
+ *
+ * When used as a key in a template object, specifies the predicate for properties not explicitly listed.
+ * Templates without this symbol are closed and reject extra properties.
+ */
+export const key: unique symbol = Symbol("key");
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Immutable JSON value.
@@ -81,6 +91,29 @@ export type Object =
 	{ readonly [name: string]: Value };
 
 
+/**
+ * Extracts the union of guarded types from an array of guards.
+ *
+ * For type guard functions, extracts the guarded type; for literal values, uses the value type.
+ *
+ * @typeParam G - Array of type guards or literal values
+ */
+export type Union<G extends unknown[]> =
+	G[number] extends (value: unknown) => value is infer T ? T : G[number];
+
+/**
+ * Extracts the intersection of guarded types from an array of guards.
+ *
+ * For type guard functions, extracts the guarded type; for literal values, uses the value type.
+ *
+ * @typeParam G - Array of type guards or literal values
+ */
+export type Intersection<G extends unknown[]> =
+	(G[number] extends (v: unknown) => v is infer T ? T : G[number]) extends infer U
+		? (U extends U ? (k: U) => void : never) extends (k: infer I) => void ? I : never
+		: never;
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -95,11 +128,14 @@ export type Object =
  * @returns `true` if the value is a valid JSON structure
  */
 export function isValue(value: unknown): value is Value {
-	return value === null ? true
-		: isBoolean(value) || isNumber(value) || isString(value) ? true
-			: Array.isArray(value) ? value.every(isValue)
-				: isObject(value) ? Object.values(value).every(isValue)
-					: false;
+
+	return isNull(value)
+		|| isBoolean(value)
+		|| isNumber(value)
+		|| isString(value)
+		|| isArray(value, isValue)
+		|| isObject(value, isValue);
+
 }
 
 /**
@@ -110,7 +146,11 @@ export function isValue(value: unknown): value is Value {
  * @returns `true` if the value is a boolean, number, or string
  */
 export function isScalar(value: unknown): value is boolean | number | string {
-	return isBoolean(value) || isNumber(value) || isString(value);
+
+	return isBoolean(value)
+		|| isNumber(value)
+		|| isString(value);
+
 }
 
 
@@ -169,25 +209,43 @@ export function isString(value: unknown): value is string {
 /**
  * Checks if a value is an array.
  *
+ * Supports two validation modes:
+ *
+ * - **Element predicate**: validates all elements with a single predicate function
+ * - **Tuple template**: validates each element against a corresponding guard or literal value
+ *
  * @typeParam T The type of array elements
  *
  * @param value The value to check
- * @param is Optional type guard or predicate to validate elements
+ * @param is Optional element predicate or tuple template:
+ *   - As function: validates all elements; receives the element value and its index
+ *   - As array: validates as tuple; each element must match the corresponding guard or literal
  *
- * @returns `true` if the value is an array. Empty arrays return `true` even when a guard is provided.
+ * @returns `true` if the value is an array matching the validation criteria
  *
  * @remarks
  *
  * The type parameter `T` is intentionally not restricted to JSON values, allowing this function to serve as a
  * general-purpose array guard beyond JSON validation.
+ *
+ * Tuple templates require exact length match. Use `union(undefined, predicate)` for optional elements.
  */
 export function isArray<T = unknown>(
 	value: unknown,
-	is?: ((value: unknown) => value is T) | ((value: unknown) => boolean)
+	is?: ((value: T, index: number) => boolean) | readonly (unknown | ((value: unknown) => boolean))[]
 ): value is T[] {
 
-	return Array.isArray(value)
-		&& (is === undefined || value.every(is));
+	return Array.isArray(value) && (
+
+		is === undefined ? true
+
+			: typeof is === "function" ? value.every(is)
+
+				: value.length === is.length && is.every((t, i) =>
+				typeof t === "function" ? t(value[i]) : value[i] === t
+			)
+
+	);
 
 }
 
@@ -198,36 +256,75 @@ export function isArray<T = unknown>(
  * with `Object.prototype` as its direct prototype. This excludes built-in objects like
  * Date, RegExp, Array, Buffer, DOM elements, and objects created with custom constructors.
  *
- * This strict definition ensures safe operations like deep cloning, serialization,
- * and property enumeration that assume simple key-value structure without special
- * behavior or internal state.
+ * Supports two validation modes:
  *
- * @typeParam K The type of property keys
- * @typeParam V The type of property values
+ * - **Predicate**: A `(value, key) => boolean` function called for each entry
+ * - **Template**: An object specifying validation rules per property:
+ *   - Literal values matched with `===`
+ *   - Functions called as predicates
+ *
+ * Templates are closed by default: extra properties not in the template are rejected.
+ * Use the {@link key} symbol as wildcard to create open templates where extra properties
+ * are validated by the wildcard value (`true` to accept, `false` to reject, or a predicate).
+ *
+ * ```typescript
+ * isObject(value, { kind: "circle", x: isNumber, y: isNumber }); // closed
+ * isObject(value, { kind: "circle", [key]: true }); // open, accept any extra
+ * isObject(value, { kind: "circle", [key]: isNumber }); // open, extras must be numbers
+ * ```
+ *
+ * @typeParam T The expected object type, defaults to `Record<PropertyKey, unknown>`
  *
  * @param value The value to check
- * @param is Optional type guard or predicate to validate `[key, value]` entry tuples
+ * @param is Optional predicate or template to validate entries
  *
- * @returns `true` if the value is a plain object. Empty objects return `true` even when a guard is provided.
+ * @returns `true` if the value is a plain object matching the validation. Empty objects return `true`.
  *
  * @remarks
  *
- * The type parameters `K` and `V` are intentionally not restricted to JSON-compatible types, allowing this
+ * The type parameter `T` is intentionally not restricted to JSON-compatible types, allowing this
  * function to serve as a general-purpose plain object guard beyond JSON validation.
  */
-export function isObject<K extends PropertyKey = PropertyKey, V = unknown>(
+export function isObject<T extends Record<PropertyKey, unknown> = Record<PropertyKey, unknown>>(
 	value: unknown,
-	is?: ((entry: [unknown, unknown]) => entry is [K, V]) | ((entry: [unknown, unknown]) => boolean)
-): value is Record<K, V> {
+	is?: ((value: T[string], key: string) => boolean) | {
+		[key: string]: unknown | ((value: unknown) => boolean);
+		[key]?: boolean | ((value: unknown) => boolean)
+	}
+): value is T {
 
-	if ( value === undefined || value === null || typeof value !== "object" ) {
+	return value !== undefined
+		&& value !== null
+		&& typeof value === "object"
+		&& Object.getPrototypeOf(value) === Object.prototype
+		&& matches(value as Record<string, unknown>);
 
-		return false;
 
-	} else {
+	function matches(value: Record<string, unknown>): boolean {
 
-		return Object.getPrototypeOf(value) === Object.prototype
-			&& (is === undefined || Object.entries(value).every(is));
+		if ( typeof is === "function" ) {
+
+			return Object.entries(value).every(([k, v]) => is(v as T[string], k));
+
+		} else if ( is !== undefined ) {
+
+			const wildcard = is[key] ?? false;
+
+			return Object.entries(is).every(([k, t]) => { // template → value
+
+				return typeof t === "function" ? t(value[k]) : value[k] === t;
+
+			}) && Object.entries(value).every(([k, v]) => { // value → template
+
+				return k in is || (typeof wildcard === "function" ? wildcard(v) : wildcard);
+
+			});
+
+		} else {
+
+			return true;
+
+		}
 
 	}
 
@@ -246,5 +343,54 @@ export function isEmpty(value: unknown): value is Record<PropertyKey, never> | [
 	return isArray(value) ? value.length === 0
 		: isObject(value) ? Object.keys(value).length === 0
 			: false;
+
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Creates a type guard that matches any of the provided guards.
+ *
+ * Guards can be type guard functions or literal values for equality checking.
+ *
+ * @example
+ * ```typescript
+ * const isStringOrNumber = union(isString, isNumber);
+ * const isStatus = union("pending", "done");
+ * const isOptionalNumber = union(undefined, isNumber);
+ * ```
+ *
+ * @param guards - Type guards or literal values to match
+ *
+ * @returns A type guard matching the union of all guard types
+ */
+export function union<const G extends unknown[]>(...guards: G): (value: unknown) => value is Union<G> {
+
+	return (value: unknown): value is Union<G> => guards.some(guard =>
+		typeof guard === "function" ? guard(value) : value === guard
+	);
+
+}
+
+/**
+ * Creates a type guard that matches all the provided guards.
+ *
+ * Guards can be type guard functions or literal values for equality checking.
+ *
+ * @example
+ * ```typescript
+ * const isNonEmptyString = intersection(isString, (v) => v.length > 0);
+ * ```
+ *
+ * @param guards - Type guards or literal values to match
+ *
+ * @returns A type guard matching the intersection of all guard types
+ */
+export function intersection<const G extends unknown[]>(...guards: G): (value: unknown) => value is Intersection<G> {
+
+	return (value: unknown): value is Intersection<G> => guards.every(guard =>
+		typeof guard === "function" ? guard(value) : value === guard
+	);
 
 }

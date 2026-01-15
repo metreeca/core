@@ -10,8 +10,13 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - `"hierarchical"` variant for URI/IRI validation (absolute with authority, usable as resolution base)
-- Optional `is` guard/predicate parameter to `isArray` for element validation
-- Optional `is` guard/predicate parameter to `isObject` for `[key, value]` entry validation
+- Optional `is` predicate parameter to `isArray` for element validation; receives `(value, index)`
+- Tuple template validation for `isArray` with exact length matching
+- Optional `is` parameter to `isObject` supporting predicate `(value, key)` or template validation
+- `key` symbol for open template validation in `isObject`
+- `union` function to create combined type guards matching any of provided guards
+- `intersection` function to create refined type guards matching all provided guards
+- `Union<G>` and `Intersection<G>` type helpers for guard type extraction
 - `assert` validation function in `error` module
 - Optional `is` predicate parameter to `isArray` for element validation; receives `(value, index)`
 - Tuple template validation for `isArray` with exact length matching
@@ -36,6 +41,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Rename `report` module to `error`
 - Change default `variant` parameter from `"absolute"` to `"relative"` for `isURI`, `isIRI`, `asURI`, `asIRI`
+- Change `isObject` type parameter from `<K, V>` to `<T extends Record<PropertyKey, unknown>>`
 - Change `asTag`, `asTagRange`, `asURI`, `asIRI` to accept `unknown` values (throws `TypeError` for non-strings)
 
 ## [0.9.17](https://github.com/metreeca/core/compare/v0.9.16...v0.9.17) - 2025-12-17
