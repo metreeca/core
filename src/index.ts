@@ -48,7 +48,14 @@
  * isObject({ a: 1 }, { a: isNumber }); // with closed template
  * isObject({ a: 1 }, { a: isNumber, [key]: () => true }); // with open template
  * isObject({ a: 1 }, { a: isNumber, b: v => isOptional(v, isString) }); // with optional field
+ * isObject({ kind: "circle" }, { kind: v => isLiteral(v, ["circle", "square"]) }); // with literal field
  * isObject({}, {}); // empty object check
+ *
+ * isOptional(undefined, isString); // true
+ * isOptional("hello", isString); // true
+ *
+ * isLiteral("foo", "foo"); // true
+ * isLiteral("foo", ["foo", "bar", "baz"]); // true (matches any)
  * ```
  *
  * @module index
@@ -433,7 +440,7 @@ export function isArray<T = unknown>(
  * @param value The value to check
  * @param is Optional predicate or template to validate entries
  *
- * @returns `true` if the value is a plain object matching the validation. Empty objects return `true`.
+ * @returns `true` if the value is a plain object matching the validation.
  *
  * @remarks
  *
@@ -505,5 +512,23 @@ export function isObject<T extends Record<PropertyKey, unknown> = Record<Propert
 export function isOptional<T>(value: unknown, is: (value: unknown) => value is T): value is undefined | T {
 
 	return value === undefined || is(value);
+
+}
+
+/**
+ * Checks if a value matches one of the specified literal values.
+ *
+ * @typeParam T The literal type (boolean, number, or string)
+ *
+ * @param value The value to check
+ * @param values A single literal value or an array of literal values to match against
+ *
+ * @returns `true` if the value strictly equals one of the specified literals
+ */
+export function isLiteral<T extends boolean | number | string>(value: unknown, values: Some<T>): value is T {
+
+	return Array.isArray(values)
+		? values.includes(value)
+		: value === values;
 
 }

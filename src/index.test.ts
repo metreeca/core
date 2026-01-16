@@ -25,6 +25,7 @@ import {
 	isFunction,
 	isIdentifier,
 	isIterable,
+	isLiteral,
 	isNull,
 	isNumber,
 	isObject,
@@ -698,6 +699,77 @@ describe("isOptional()", () => {
 		expect(isOptional(-5, isPositive)).toBeFalsy();
 		expect(isOptional(0, isPositive)).toBeFalsy();
 
+	});
+
+});
+
+describe("isLiteral()", () => {
+
+	it("should return true for matching string literal", () => {
+		expect(isLiteral("foo", "foo")).toBeTruthy();
+		expect(isLiteral("bar", "bar")).toBeTruthy();
+	});
+
+	it("should return false for non-matching string literal", () => {
+		expect(isLiteral("foo", "bar")).toBeFalsy();
+		expect(isLiteral("FOO", "foo")).toBeFalsy();
+	});
+
+	it("should return true for matching number literal", () => {
+		expect(isLiteral(42, 42)).toBeTruthy();
+		expect(isLiteral(0, 0)).toBeTruthy();
+		expect(isLiteral(-1, -1)).toBeTruthy();
+	});
+
+	it("should return false for non-matching number literal", () => {
+		expect(isLiteral(42, 43)).toBeFalsy();
+		expect(isLiteral(0, 1)).toBeFalsy();
+	});
+
+	it("should return true for matching boolean literal", () => {
+		expect(isLiteral(true, true)).toBeTruthy();
+		expect(isLiteral(false, false)).toBeTruthy();
+	});
+
+	it("should return false for non-matching boolean literal", () => {
+		expect(isLiteral(true, false)).toBeFalsy();
+		expect(isLiteral(false, true)).toBeFalsy();
+	});
+
+	it("should return true when value matches one of array values", () => {
+		expect(isLiteral("foo", ["foo", "bar", "baz"])).toBeTruthy();
+		expect(isLiteral("bar", ["foo", "bar", "baz"])).toBeTruthy();
+		expect(isLiteral("baz", ["foo", "bar", "baz"])).toBeTruthy();
+	});
+
+	it("should return false when value does not match any array value", () => {
+		expect(isLiteral("qux", ["foo", "bar", "baz"])).toBeFalsy();
+		expect(isLiteral("FOO", ["foo", "bar", "baz"])).toBeFalsy();
+	});
+
+	it("should return true for matching number in array", () => {
+		expect(isLiteral(1, [1, 2, 3])).toBeTruthy();
+		expect(isLiteral(2, [1, 2, 3])).toBeTruthy();
+		expect(isLiteral(3, [1, 2, 3])).toBeTruthy();
+	});
+
+	it("should return false for non-matching number in array", () => {
+		expect(isLiteral(4, [1, 2, 3])).toBeFalsy();
+		expect(isLiteral(0, [1, 2, 3])).toBeFalsy();
+	});
+
+	it("should return false for wrong types", () => {
+		expect(isLiteral(null, "foo")).toBeFalsy();
+		expect(isLiteral(undefined, "foo")).toBeFalsy();
+		expect(isLiteral({}, "foo")).toBeFalsy();
+		expect(isLiteral([], "foo")).toBeFalsy();
+		expect(isLiteral("42", 42)).toBeFalsy();
+		expect(isLiteral(42, "42")).toBeFalsy();
+	});
+
+	it("should use strict equality", () => {
+		expect(isLiteral(1, [1])).toBeTruthy();
+		expect(isLiteral("1", [1] as unknown as string[])).toBeFalsy();
 	});
 
 });
