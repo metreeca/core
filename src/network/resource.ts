@@ -388,7 +388,7 @@ export interface Problem {
  * @param value The value to validate as a URI
  * @param variant The identifier variant to validate against (default: `"relative"`)
  *
- * @returns `true` if the value is a valid ASCII-only URI matching the specified variant
+ * @returns `true` if the value is a valid ASCII-only URI matching the specified variant; `false` otherwise
  *
  * @see {@link URI}
  * @see {@link Variant}
@@ -417,7 +417,7 @@ export function isURI(value: unknown, variant: Variant = "relative"): value is U
  * @param value The value to validate as an IRI
  * @param variant The identifier variant to validate against (default: `"relative"`)
  *
- * @returns `true` if the value is a string conforming to IRI syntax rules for the specified variant
+ * @returns `true` if the value is a string conforming to IRI syntax rules for the specified variant; `false` otherwise
  *
  * @remarks
  *

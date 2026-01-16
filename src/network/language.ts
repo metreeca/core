@@ -166,7 +166,7 @@ export type TagRange = string
  *
  * @param value The value to validate as a language tag
  *
- * @returns `true` if the value is a non-empty string matching the BCP 47 pattern
+ * @returns `true` if the value is a non-empty string matching the BCP 47 pattern; `false` otherwise
  *
  * @see {@link Tag}
  */
@@ -182,7 +182,7 @@ export function isTag(value: unknown): value is Tag {
  *
  * @param value The value to validate as a language range
  *
- * @returns `true` if the value matches the extended language range pattern
+ * @returns `true` if the value matches the extended language range pattern; `false` otherwise
  *
  * @see {@link TagRange}
  */
@@ -265,7 +265,7 @@ export function asTagRange(value: string): TagRange {
  * @param tag The language tag to test
  * @param range The language range to match against
  *
- * @returns `true` if the tag matches the range pattern
+ * @returns `true` if the tag matches the range pattern; `false` otherwise
  *
  * @example
  *
