@@ -169,12 +169,26 @@ export type Lazy<T> =
 
 /**
  * A type guard function.
+ *
+ * Defines the signature for functions that perform runtime type checking while providing compile-time type narrowing.
+ * When the function returns `true`, TypeScript narrows the value to type `T` in subsequent code.
+ *
+ * @typeParam T The type that the guard narrows to, defaults to `unknown`
+ *
+ * @see {@link Guarded} to extract the guarded type from an array of guards
  */
 export type Guard<T = unknown> =
 	(value: unknown) => value is T;
 
 /**
  * Extracts the guarded type from an array of type guards.
+ *
+ * Given an array of {@link Guard} functions, infers the union of all types they guard.
+ * Useful for deriving the result type of union validation with {@link isAny}.
+ *
+ * @typeParam G The array type containing type guards
+ *
+ * @see {@link isAny} for validating values against multiple guards
  */
 export type Guarded<G> =
 	G extends readonly Guard<infer T>[] ? T : never;
@@ -187,7 +201,7 @@ export type Guarded<G> =
  *
  * @param value The value to check
  *
- * @returns `true` if the value is not `undefined`
+ * @returns True if the value is not `undefined`
  */
 export function isDefined(value: unknown): boolean {
 	return value !== undefined;
@@ -198,7 +212,7 @@ export function isDefined(value: unknown): boolean {
  *
  * @param value The value to check
  *
- * @returns `true` if the value is a valid ECMAScript IdentifierName
+ * @returns True if the value is a valid ECMAScript IdentifierName
  */
 export function isIdentifier(value: unknown): value is Identifier {
 	return typeof value === "string" && IdentifierPattern.test(value);
@@ -209,7 +223,7 @@ export function isIdentifier(value: unknown): value is Identifier {
  *
  * @param value The value to check
  *
- * @returns `true` if the value is a symbol
+ * @returns True if the value is a symbol
  */
 export function isSymbol(value: unknown): value is Symbol {
 	return typeof value === "symbol";
@@ -220,7 +234,7 @@ export function isSymbol(value: unknown): value is Symbol {
  *
  * @param value The value to check
  *
- * @returns `true` if the value is a function
+ * @returns True if the value is a function
  */
 export function isFunction(value: unknown): value is Function {
 	return typeof value === "function";
@@ -231,7 +245,7 @@ export function isFunction(value: unknown): value is Function {
  *
  * @param value The value to check
  *
- * @returns `true` if the value is an Error instance
+ * @returns True if the value is an Error instance
  */
 export function isError(value: unknown): value is Error {
 	return value instanceof Error;
@@ -242,7 +256,7 @@ export function isError(value: unknown): value is Error {
  *
  * @param value The value to check
  *
- * @returns `true` if the value is a RegExp instance
+ * @returns True if the value is a RegExp instance
  */
 export function isRegExp(value: unknown): value is RegExp {
 	return value instanceof RegExp;
@@ -253,7 +267,7 @@ export function isRegExp(value: unknown): value is RegExp {
  *
  * @param value The value to check
  *
- * @returns `true` if the value is a Date instance
+ * @returns True if the value is a Date instance
  */
 export function isDate(value: unknown): value is Date {
 	return value instanceof Date;
@@ -266,7 +280,7 @@ export function isDate(value: unknown): value is Date {
  *
  * @param value The value to check
  *
- * @returns `true` if the value is a thenable object (has a `then` method)
+ * @returns True if the value is a thenable object (has a `then` method)
  */
 export function isPromise<T = unknown>(value: unknown): value is Promise<T> {
 	return value != null && typeof value === "object" && "then" in value && isFunction(value.then);
@@ -279,7 +293,7 @@ export function isPromise<T = unknown>(value: unknown): value is Promise<T> {
  *
  * @param value The value to check
  *
- * @returns `true` if the value implements the iterable protocol (has a `[Symbol.iterator]` method)
+ * @returns True if the value implements the iterable protocol (has a `[Symbol.iterator]` method)
  */
 export function isIterable<T = unknown>(value: unknown): value is Iterable<T> {
 	return value != null && isFunction((value as { [Symbol.iterator]?: unknown })[Symbol.iterator]);
@@ -292,7 +306,7 @@ export function isIterable<T = unknown>(value: unknown): value is Iterable<T> {
  *
  * @param value The value to check
  *
- * @returns `true` if the value implements the async iterable protocol (has a `[Symbol.asyncIterator]` method)
+ * @returns True if the value implements the async iterable protocol (has a `[Symbol.asyncIterator]` method)
  */
 export function isAsyncIterable<T = unknown>(value: unknown): value is AsyncIterable<T> {
 	return value != null && isFunction((value as { [Symbol.asyncIterator]?: unknown })[Symbol.asyncIterator]);
@@ -310,7 +324,7 @@ export function isAsyncIterable<T = unknown>(value: unknown): value is AsyncIter
  *
  * @param value The value to check
  *
- * @returns `true` if the value is a valid JSON structure
+ * @returns True if the value is a valid JSON structure
  */
 export function isValue(value: unknown): value is Value {
 
@@ -328,7 +342,7 @@ export function isValue(value: unknown): value is Value {
  *
  * @param value The value to check
  *
- * @returns `true` if the value is `null`
+ * @returns True if the value is `null`
  */
 export function isNull(value: unknown): value is null {
 
@@ -341,7 +355,7 @@ export function isNull(value: unknown): value is null {
  *
  * @param value The value to check
  *
- * @returns `true` if the value is a boolean
+ * @returns True if the value is a boolean
  */
 export function isBoolean(value: unknown): value is boolean {
 
@@ -354,7 +368,7 @@ export function isBoolean(value: unknown): value is boolean {
  *
  * @param value The value to check
  *
- * @returns `true` if the value is a finite number
+ * @returns True if the value is a finite number
  */
 export function isNumber(value: unknown): value is number {
 
@@ -367,7 +381,7 @@ export function isNumber(value: unknown): value is number {
  *
  * @param value The value to check
  *
- * @returns `true` if the value is a string
+ * @returns True if the value is a string
  */
 export function isString(value: unknown): value is string {
 
@@ -390,7 +404,7 @@ export function isString(value: unknown): value is string {
  *   - As function: validates all elements; receives the element value and its index
  *   - As array: validates as tuple; each element must match the corresponding predicate
  *
- * @returns `true` if the value is an array matching the validation criteria
+ * @returns True if the value is an array matching the validation criteria
  *
  * @remarks
  *
@@ -458,7 +472,7 @@ export function isArray<T = unknown>(
  * @param value The value to check
  * @param is Optional predicate or template to validate entries
  *
- * @returns `true` if the value is a plain object matching the validation.
+ * @returns True if the value is a plain object matching the validation
  *
  * @remarks
  *
@@ -525,7 +539,7 @@ export function isObject<T extends Record<PropertyKey, unknown> = Record<Propert
  * @param value The value to check
  * @param is A type guard function to validate the value if it is not `undefined`
  *
- * @returns `true` if the value is `undefined` or satisfies the type guard
+ * @returns True if the value is `undefined` or satisfies the type guard
  */
 export function isOptional<T>(value: unknown, is: Guard<T>): value is undefined | T {
 
@@ -541,7 +555,7 @@ export function isOptional<T>(value: unknown, is: Guard<T>): value is undefined 
  * @param value The value to check
  * @param values A single literal value or an array of literal values to match against
  *
- * @returns `true` if the value strictly equals one of the specified literals
+ * @returns True if the value strictly equals one of the specified literals
  */
 export function isLiteral<T extends boolean | number | string>(value: unknown, values: Some<T>): value is T {
 
@@ -552,26 +566,33 @@ export function isLiteral<T extends boolean | number | string>(value: unknown, v
 }
 
 /**
- * Checks if a value satisfies any of the provided type guards.
+ * Wildcard type guard that always succeeds.
  *
- * @param value The value to check
- * @param guards Optional array of type guards to validate against
- *
- * @returns `true` if no guards are provided, or if the value satisfies at least one guard
- *
- * @remarks
- *
- * When no guards are provided, always succeeds and narrows to `unknown`.
- * When guards are provided, the value is narrowed to the union of guarded types.
- *
- * Without guards, can be used as a wildcard in {@link isObject} open templates:
+ * Useful as a wildcard predicate in {@link isObject} open templates to accept any extra properties.
  *
  * ```typescript
  * isObject(value, { required: isString, [key]: isAny }); // accept any extra properties
  * ```
+ *
+ * @param value The value to check
+ *
+ * @returns Always `true`
  */
 export function isAny(value: unknown): value is unknown;
+
+/**
+ * Checks if a value satisfies any of the provided type guards.
+ *
+ * @param value The value to check
+ * @param guards Array of type guards to validate against
+ *
+ * @returns True if the value satisfies at least one guard
+ */
 export function isAny<G extends readonly Guard[]>(value: unknown, guards: G): value is Guarded<G>;
+
+/**
+ * Union type guard for validating values against multiple type guards.
+ */
 export function isAny(value: unknown, guards?: readonly ((value: unknown) => boolean)[]): boolean {
 
 	return guards === undefined ? true
