@@ -175,27 +175,13 @@ describe("isIRI()", () => {
 
 	it("should return true for valid absolute IRIs", () => {
 		iris.absolute.valid.forEach(value => {
-			expect(isIRI(value, "absolute")).toBe(true);
-		});
-	});
-
-	it("should return false for invalid absolute IRIs", () => {
-		iris.absolute.invalid.forEach(({ value }) => {
-			expect(isIRI(value, "absolute")).toBe(false);
-		});
-	});
-
-describe("isIRI()", () => {
-
-	it("should return true for valid absolute IRIs", () => {
-		iris.absolute.valid.forEach(value => {
 			expect(isIRI(value)).toBe(true);
 		});
 	});
 
 	it("should return false for invalid absolute IRIs", () => {
 		iris.absolute.invalid.forEach(({ value }) => {
-			expect(isIRI(value)).toBe(false);
+			expect(isIRI(value, "absolute")).toBe(false);
 		});
 	});
 
@@ -211,11 +197,11 @@ describe("isIRI()", () => {
 		});
 	});
 
-	it("should return false for non-absolute IRIs without relative option", () => {
-		// Only test paths without scheme - absolute URIs are valid with default "absolute" variant
+	it("should return false for non-absolute IRIs with absolute variant", () => {
+		// Only test paths without scheme - absolute URIs are valid with "absolute" variant
 		const relativePaths = iris.relative.valid.filter(v => !v.includes("://") && !v.startsWith("urn:"));
 		relativePaths.forEach(value => {
-			expect(isIRI(value)).toBe(false);
+			expect(isIRI(value, "absolute")).toBe(false);
 		});
 	});
 
