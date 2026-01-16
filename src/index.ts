@@ -46,7 +46,7 @@
  * isObject({ a: 1 }); // true
  * isObject({ a: 1 }, isNumber); // with entry predicate
  * isObject({ a: 1 }, { a: isNumber }); // with closed template
- * isObject({ a: 1 }, { a: isNumber, [key]: () => true }); // with open template
+ * isObject({ a: 1 }, { a: isNumber, [key]: isAny}); // with open template
  * isObject({ a: 1 }, { a: isNumber, b: v => isOptional(v, isString) }); // with optional field
  * isObject({ kind: "circle" }, { kind: v => isLiteral(v, ["circle", "square"]) }); // with literal field
  * isObject({}, {}); // empty object check
@@ -562,6 +562,12 @@ export function isLiteral<T extends boolean | number | string>(value: unknown, v
  *
  * When no guards are provided, always succeeds and narrows to `unknown`.
  * When guards are provided, the value is narrowed to the union of guarded types.
+ *
+ * Without guards, can be used as a wildcard in {@link isObject} open templates:
+ *
+ * ```typescript
+ * isObject(value, { required: isString, [key]: isAny }); // accept any extra properties
+ * ```
  */
 export function isAny(value: unknown): value is unknown;
 export function isAny<G extends readonly Guard[]>(value: unknown, guards: G): value is Guarded<G>;
