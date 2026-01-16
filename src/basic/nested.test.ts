@@ -1,5 +1,5 @@
 /*
- * Copyright © 2025 Metreeca srl
+ * Copyright © 2026 Metreeca srl
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,11 +15,10 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { isNumber, isObject, isString } from "../index.js";
 
-import { assert, equals, immutable } from "./nested.js";
+import { equals, immutable } from "./nested.js";
 
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 describe("equals()", () => {
 
@@ -267,7 +266,7 @@ describe("immutable()", () => {
 
 	});
 
-	it("should freeze custom properties on functions", async () => {
+	it("should return functions unchanged (not frozen)", async () => {
 
 		type FnWithConfig = (() => string) & { config: { port: number } };
 
@@ -280,26 +279,9 @@ describe("immutable()", () => {
 		expect((fn as any)()).toBe("hello"); // Function still works
 		expect(fn.config).toEqual({ port: 3000 }); // Property preserved
 
-		// Should not be able to modify custom properties
-		expect(() => (fn as any).config.port = 8080).toThrow();
-		expect(() => (fn as any).config = { port: 8080 }).toThrow();
-
-	});
-
-	it("should deeply freeze nested properties on functions", async () => {
-
-		type FnWithNestedConfig = (() => string) & { config: { server: { host: string } } };
-
-		const value = (() => "hello") as FnWithNestedConfig;
-		value.config = { server: { host: "localhost" } };
-
-		const fn = immutable(value);
-
-		expect(fn.config.server.host).toBe("localhost");
-
-		// Should not be able to modify deeply nested properties
-		expect(() => (fn as any).config.server.host = "example.com").toThrow();
-		expect(() => (fn as any).config.server = { host: "example.com" }).toThrow();
+		// Functions are not frozen - modifications allowed
+		fn.config.port = 8080;
+		expect(fn.config.port).toBe(8080);
 
 	});
 
@@ -671,36 +653,27 @@ describe("immutable()", () => {
 
 		});
 
-		it("should be idempotent for functions with custom properties", async () => {
+		it("should return functions unchanged (no idempotency tracking)", async () => {
 
 			type FnWithConfig = (() => string) & { config: { port: number } };
 
 			const original = (() => "hello") as FnWithConfig;
 			original.config = { port: 3000 };
 
-			const frozen1 = immutable(original);
-			const frozen2 = immutable(frozen1);
+			const result1 = immutable(original);
+			const result2 = immutable(result1);
 
-			// Should return same reference (optimization)
-			expect(frozen2).toBe(frozen1);
+			// Same reference - functions are returned as-is
+			expect(result1).toBe(original);
+			expect(result2).toBe(original);
 
-			// Should preserve function and properties
-			expect((frozen2 as any)()).toBe("hello");
-			expect(frozen2.config).toEqual({ port: 3000 });
+			// Function still works
+			expect((result2 as any)()).toBe("hello");
+			expect(result2.config).toEqual({ port: 3000 });
 
-			// Should still be frozen
-			expect(() => (frozen2 as any).config.port = 8080).toThrow();
-
-			// Verify the Immutable symbol is present on functions (proves idempotency check works)
-			const symbols = Object.getOwnPropertySymbols(frozen1);
-			const immutableSymbol = symbols.find(s => s.toString() === "Symbol(immutable)");
-			expect(immutableSymbol).toBeDefined();
-			expect((frozen1 as any)[immutableSymbol!]).toBe(true);
-
-			// Verify optimization: calling immutable() on already-frozen function should return early
-			// We can test this by checking that immutable() on frozen2 returns immediately
-			const frozen3 = immutable(frozen2);
-			expect(frozen3).toBe(frozen2); // Should still work
+			// Functions are not frozen - modifications allowed
+			result2.config.port = 8080;
+			expect(result2.config.port).toBe(8080);
 
 		});
 
@@ -761,7 +734,7 @@ describe("immutable()", () => {
 
 		});
 
-		it("should handle accessor properties (getters/setters)", async () => {
+		it("should preserve getters but remove setters from accessor properties", async () => {
 
 			const original = {
 				_value: 10,
@@ -771,13 +744,16 @@ describe("immutable()", () => {
 
 			const frozen = immutable(original);
 
-			// Should preserve getter functionality
+			// getter should be preserved and functional
 			expect((frozen as any).value).toBe(10);
 
-			// Check if accessor is preserved
+			// setter should be removed for true immutability
 			const descriptor = Object.getOwnPropertyDescriptor(frozen, "value");
 			expect(descriptor?.get).toBeDefined();
-			expect(descriptor?.set).toBeDefined();
+			expect(descriptor?.set).toBeUndefined();
+
+			// assignment should throw in strict mode (modules are strict by default)
+			expect(() => { (frozen as any).value = 20; }).toThrow(TypeError);
 
 		});
 
@@ -903,104 +879,96 @@ describe("immutable()", () => {
 
 });
 
-describe("assert", () => {
+describe("immutable() with guard", () => {
 
-	const validator = <T>(value: T): T => value;
-	const otherValidator = <T>(value: T): T => value;
+	// type guard that always passes
+	const isAny = (_v: unknown): _v is unknown => true;
+
+	// different guard for testing re-validation
+	const isAnyOther = (_v: unknown): _v is unknown => true;
+
+	describe("validation", () => {
+
+		it("returns value when guard passes", async () => {
+
+			expect(immutable(42, isNumber)).toBe(42);
+			expect(immutable("hello", isString)).toBe("hello");
+
+		});
+
+		it("throws TypeError when guard fails", async () => {
+
+			expect(() => immutable("not a number" as unknown as number, isNumber)).toThrow(TypeError);
+			expect(() => immutable(42 as unknown as string, isString)).toThrow(TypeError);
+
+		});
+
+		it("generates message from guard name", async () => {
+
+			expect(() => immutable(42 as unknown as string, isString)).toThrow("expected string");
+
+		});
+
+	});
 
 	describe("with non-plain-object values", () => {
 
 		it("validates and returns primitives unchanged", async () => {
 
-			expect(assert(validator, 42)).toBe(42);
-			expect(assert(validator, "hello")).toBe("hello");
-			expect(assert(validator, true)).toBe(true);
-
-		});
-
-		it("validates and returns null/undefined unchanged", async () => {
-
-			expect(assert(validator, null)).toBe(null);
-			expect(assert(validator, undefined)).toBe(undefined);
-
-		});
-
-		it("throws if validator throws for primitives", async () => {
-
-			const throwingValidator = (): never => {
-				throw new Error("validation failed");
-			};
-
-			expect(() => assert(throwingValidator, 42)).toThrow();
+			expect(immutable(42, isNumber)).toBe(42);
+			expect(immutable("hello", isString)).toBe("hello");
 
 		});
 
 		it("does not cache primitives", async () => {
 
 			let validationCount = 0;
-			const countingValidator = <T>(value: T): T => {
+			const countingGuard = (v: unknown): v is number => {
 				validationCount++;
-				return value;
+				return typeof v === "number";
 			};
 
-			assert(countingValidator, 42);
-			assert(countingValidator, 42);
+			immutable(42, countingGuard);
+			immutable(42, countingGuard);
 
 			expect(validationCount).toBe(2);
 
 		});
 
-		it("validates and returns arrays without branding", async () => {
+		it("validates and freezes arrays", async () => {
+
+			const isNumberArray = (v: unknown): v is number[] =>
+				Array.isArray(v) && v.every(n => typeof n === "number");
 
 			const arr = [1, 2, 3];
-			const result = assert(validator, arr);
+			const result = immutable(arr, isNumberArray);
 
 			expect(result).toEqual([1, 2, 3]);
-			expect(Object.isFrozen(result)).toBeFalsy();
-
-		});
-
-		it("validates and returns functions without branding", async () => {
-
-			const fn = () => 42;
-			const result = assert(validator, fn);
-
-			expect(result).toBe(fn);
-			expect((result as () => number)()).toBe(42);
+			expect(Object.isFrozen(result)).toBeTruthy();
 
 		});
 
 	});
 
-	describe("with unbranded value", () => {
+	describe("with unbranded plain object", () => {
 
-		it("runs value through validator", async () => {
+		it("runs value through guard", async () => {
 
 			let validated = false;
-			const trackingValidator = <T>(value: T): T => {
+			const trackingGuard = (v: unknown): v is object => {
 				validated = true;
-				return value;
+				return isObject(v);
 			};
 
-			assert(trackingValidator, { a: 1 });
+			immutable({ a: 1 }, trackingGuard);
 
 			expect(validated).toBeTruthy();
 
 		});
 
-		it("throws if validator throws", async () => {
-
-			const throwingValidator = (): never => {
-				throw new Error("validation failed");
-			};
-
-			expect(() => assert(throwingValidator, { a: 1 })).toThrow();
-
-		});
-
 		it("returns immutable object", async () => {
 
-			const result = assert(validator, { a: 1 });
+			const result = immutable({ a: 1 }, isObject);
 
 			expect(Object.isFrozen(result)).toBeTruthy();
 
@@ -1008,38 +976,136 @@ describe("assert", () => {
 
 	});
 
-	describe("with branded value", () => {
+	describe("with branded plain object", () => {
 
-		it("returns same object when branded with same validator", async () => {
+		it("accepts any brand when called without guard", async () => {
 
-			const first = assert(validator, { a: 1 });
-			const second = assert(validator, first);
+			const first = immutable({ a: 1 }, isAny);
+			const second = immutable(first);
 
 			expect(second).toBe(first);
 
 		});
 
-		it("skips validation when branded with same validator", async () => {
+		it("returns same object when branded with same guard", async () => {
+
+			const first = immutable({ a: 1 }, isAny);
+			const second = immutable(first, isAny);
+
+			expect(second).toBe(first);
+
+		});
+
+		it("skips validation when branded with same guard", async () => {
 
 			let validationCount = 0;
-			const countingValidator = <T>(value: T): T => {
+			const countingGuard = (v: unknown): v is object => {
 				validationCount++;
-				return value;
+				return isObject(v);
 			};
 
-			const first = assert(countingValidator, { a: 1 });
-			assert(countingValidator, first);
+			const first = immutable({ a: 1 }, countingGuard);
+			immutable(first, countingGuard);
 
 			expect(validationCount).toBe(1);
 
 		});
 
-		it("revalidates when branded with different validator", async () => {
+		it("revalidates and rebrands when branded with different guard", async () => {
 
-			const first = assert(validator, { a: 1 });
-			const second = assert(otherValidator, first);
+			let validationCount = 0;
+			const countingGuard = (v: unknown): v is object => {
+				validationCount++;
+				return isObject(v);
+			};
 
+			const first = immutable({ a: 1 }, isAny);
+			const second = immutable(first, countingGuard);
+
+			// revalidates
+			expect(validationCount).toBe(1);
+
+			// returns new reference (rebranded copy)
 			expect(second).not.toBe(first);
+			expect(second).toEqual(first);
+
+			// rebranded: calling with new guard returns same reference
+			const third = immutable(second, countingGuard);
+			expect(third).toBe(second);
+			expect(validationCount).toBe(1); // no re-validation
+
+		});
+
+	});
+
+	describe("with branded array", () => {
+
+		it("accepts any brand when called without guard", async () => {
+
+			const first = immutable([1, 2, 3], isAny);
+			const second = immutable(first);
+
+			expect(second).toBe(first);
+
+		});
+
+		it("revalidates and rebrands when branded with different guard", async () => {
+
+			let validationCount = 0;
+			const countingGuard = (v: unknown): v is unknown[] => {
+				validationCount++;
+				return Array.isArray(v);
+			};
+
+			const first = immutable([1, 2, 3], isAny);
+			const second = immutable(first, countingGuard);
+
+			// revalidates
+			expect(validationCount).toBe(1);
+
+			// returns new reference (rebranded copy)
+			expect(second).not.toBe(first);
+			expect(second).toEqual(first);
+			expect(Object.isFrozen(second)).toBeTruthy();
+
+			// rebranded: calling with new guard returns same reference
+			const third = immutable(second, countingGuard);
+			expect(third).toBe(second);
+			expect(validationCount).toBe(1); // no re-validation
+
+		});
+
+	});
+
+	describe("with function", () => {
+
+		it("returns function unchanged", async () => {
+
+			const fn = () => 42;
+			const first = immutable(fn, isAny);
+			const second = immutable(first, isAnyOther);
+
+			// same reference - functions are returned as-is
+			expect(first).toBe(fn);
+			expect(second).toBe(fn);
+
+		});
+
+		it("validates on each call (no memoization)", async () => {
+
+			let validationCount = 0;
+			const countingGuard = (v: unknown): v is Function => {
+				validationCount++;
+				return typeof v === "function";
+			};
+
+			const fn = () => 42;
+
+			immutable(fn, countingGuard);
+			immutable(fn, countingGuard);
+
+			// functions are validated each time (not branded)
+			expect(validationCount).toBe(2);
 
 		});
 
@@ -1050,7 +1116,7 @@ describe("assert", () => {
 		it("creates a copy preserving all properties", async () => {
 
 			const frozen = Object.freeze({ a: 1, b: 2 });
-			const result = assert(validator, frozen);
+			const result = immutable(frozen, isAny);
 
 			expect(result).toEqual({ a: 1, b: 2 });
 			expect(result).not.toBe(frozen);
@@ -1063,7 +1129,7 @@ describe("assert", () => {
 			Object.defineProperty(obj, "hidden", { value: 42, enumerable: false });
 			const frozen = Object.freeze(obj);
 
-			const result = assert(validator, frozen);
+			const result = immutable(frozen, isAny);
 			const descriptor = Object.getOwnPropertyDescriptor(result, "hidden");
 
 			expect(descriptor?.value).toBe(42);
@@ -1077,7 +1143,7 @@ describe("assert", () => {
 			obj[sym] = "symbol-value";
 			const frozen = Object.freeze(obj);
 
-			const result = assert(validator, frozen) as Record<symbol | string, unknown>;
+			const result = immutable(frozen, isAny) as Record<symbol | string, unknown>;
 
 			expect(result[sym]).toBe("symbol-value");
 
@@ -1090,7 +1156,7 @@ describe("assert", () => {
 		it("creates a copy preserving all properties", async () => {
 
 			const sealed = Object.seal({ a: 1, b: 2 });
-			const result = assert(validator, sealed);
+			const result = immutable(sealed, isAny);
 
 			expect(result).toEqual({ a: 1, b: 2 });
 			expect(result).not.toBe(sealed);

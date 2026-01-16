@@ -25,7 +25,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `asBoolean`, `asNumber`, `asString`, `asArray`, `asObject` validating cast functions
 - Optional `is` predicate parameter to `isArray`/`asArray` for element validation
 - Optional `is` predicate parameter to `isObject`/`asObject` for entry validation
-- `assert` memoized validation function for plain objects
+- Optional `guard` parameter to `immutable` for type guard validation with memoization
 - `IdentifierPattern` regex constant for ECMAScript identifier validation
 - `TagPattern` regex constant for BCP 47 language tag validation
 - `TagRangePattern` regex constant for BCP 47 extended language range validation
@@ -38,6 +38,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Change default `variant` parameter from `"absolute"` to `"relative"` for `isURI`, `isIRI`, `asURI`, `asIRI`
 - Change `isObject` type parameter from `<K, V>` to `<T extends Record<PropertyKey, unknown>>`
 - Change `asTag`, `asTagRange`, `asURI`, `asIRI` to accept `unknown` values (throws `TypeError` for non-strings)
+- Change `immutable` to remove setters from accessor properties for true immutability
 
 ### Removed
 

@@ -416,10 +416,10 @@ export function isArray<T = unknown>(
 ): value is T[] {
 
 	return Array.isArray(value)
-		&& matches(value);
+		&& (is === undefined || matches(value));
 
 
-	function matches(value: unknown[]): boolean {
+	function matches(value: readonly unknown[]): boolean {
 
 		if ( typeof is === "function" ) {
 
@@ -483,7 +483,7 @@ export function isObject<T extends Record<PropertyKey, unknown> = Record<Propert
 	return value !== null
 		&& typeof value === "object"
 		&& Object.getPrototypeOf(value) === Object.prototype
-		&& matches(value as Record<string, unknown>);
+		&& (is === undefined || matches(value as Record<string, unknown>));
 
 
 	function matches(value: Record<string, unknown>): boolean {
