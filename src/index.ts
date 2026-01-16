@@ -49,8 +49,10 @@
  * isObject({ a: 1 }, { a: isNumber, [key]: isAny}); // with open template
  * isObject({ a: 1 }, { a: isNumber, b: v => isOptional(v, isString) }); // with optional field
  * isObject({ kind: "circle" }, { kind: v => isLiteral(v, ["circle", "square"]) }); // with literal field
- * isObject({ value: 42 }, { value: v => isAny(v, [isString, isNumber]) }); // with union field
+ * isObject({ value: 42 }, { value: v => isUnion(v, [isString, isNumber]) }); // with union field
  * isObject({}, {}); // empty object check
+ *
+ * isAny("test"); // true (wildcard, always succeeds)
  *
  * isOptional(undefined, isString); // true
  * isOptional("hello", isString); // true
@@ -58,9 +60,8 @@
  * isLiteral("foo", "foo"); // true
  * isLiteral("foo", ["foo", "bar", "baz"]); // true (matches any)
  *
- * isAny("test"); // true (no guards, always succeeds)
- * isAny("test", [isString, isNumber]); // true (matches isString)
- * isAny(42, [isString, isNumber]); // true (matches isNumber)
+ * isUnion("test", [isString, isNumber]); // true (matches isString)
+ * isUnion(42, [isString, isNumber]); // true (matches isNumber)
  * ```
  *
  * @module index
@@ -184,11 +185,11 @@ export type Guard<T = unknown> =
  * Extracts the guarded type from an array of type guards.
  *
  * Given an array of {@link Guard} functions, infers the union of all types they guard.
- * Useful for deriving the result type of union validation with {@link isAny}.
+ * Useful for deriving the result type of union validation with {@link isUnion}.
  *
  * @typeParam G The array type containing type guards
  *
- * @see {@link isAny} for validating values against multiple guards
+ * @see {@link isUnion} for validating values against multiple guards
  */
 export type Guarded<G> =
 	G extends readonly Guard<infer T>[] ? T : never;
@@ -521,6 +522,25 @@ export function isObject<T extends Record<PropertyKey, unknown> = Record<Propert
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * Wildcard type guard that always succeeds.
+ *
+ * Mainly intended as a wildcard predicate in {@link isObject} open templates to accept any extra properties.
+ *
+ * ```typescript
+ * isObject(value, { required: isString, [key]: isAny }); // accept any extra properties
+ * ```
+ *
+ * @param value The value to check
+ *
+ * @returns Always `true`
+ */
+export function isAny(value: unknown): value is unknown {
+
+	return true;
+
+}
+
+/**
  * Checks if a value is either `undefined` or satisfies a type guard.
  *
  * @typeParam T The type validated by the type guard
@@ -555,21 +575,6 @@ export function isLiteral<T extends boolean | number | string>(value: unknown, v
 }
 
 /**
- * Wildcard type guard that always succeeds.
- *
- * Useful as a wildcard predicate in {@link isObject} open templates to accept any extra properties.
- *
- * ```typescript
- * isObject(value, { required: isString, [key]: isAny }); // accept any extra properties
- * ```
- *
- * @param value The value to check
- *
- * @returns Always `true`
- */
-export function isAny(value: unknown): value is unknown;
-
-/**
  * Checks if a value satisfies any of the provided type guards.
  *
  * @param value The value to check
@@ -577,14 +582,8 @@ export function isAny(value: unknown): value is unknown;
  *
  * @returns True if the value satisfies at least one guard; false otherwise
  */
-export function isAny<G extends readonly Guard[]>(value: unknown, guards: G): value is Guarded<G>;
+export function isUnion<G extends readonly Guard[]>(value: unknown, guards: G): value is Guarded<G> {
 
-/**
- * Union type guard for validating values against multiple type guards.
- */
-export function isAny(value: unknown, guards?: readonly ((value: unknown) => boolean)[]): boolean {
-
-	return guards === undefined ? true
-		: guards.some(guard => guard(value));
+	return guards.some(guard => guard(value));
 
 }

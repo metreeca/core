@@ -35,6 +35,7 @@ import {
 	isRegExp,
 	isString,
 	isSymbol,
+	isUnion,
 	isValue,
 	key
 } from "./index.js";
@@ -777,41 +778,41 @@ describe("isLiteral()", () => {
 
 describe("isAny()", () => {
 
-	describe("without guards", () => {
-
-		it("should return true for any value", () => {
-			expect(isAny(undefined)).toBeTruthy();
-			expect(isAny(null)).toBeTruthy();
-			expect(isAny(true)).toBeTruthy();
-			expect(isAny(false)).toBeTruthy();
-			expect(isAny(0)).toBeTruthy();
-			expect(isAny(42)).toBeTruthy();
-			expect(isAny("")).toBeTruthy();
-			expect(isAny("test")).toBeTruthy();
-			expect(isAny({})).toBeTruthy();
-			expect(isAny([])).toBeTruthy();
-			expect(isAny(Symbol())).toBeTruthy();
-			expect(isAny(() => {})).toBeTruthy();
-		});
-
+	it("should return true for any value", () => {
+		expect(isAny(undefined)).toBeTruthy();
+		expect(isAny(null)).toBeTruthy();
+		expect(isAny(true)).toBeTruthy();
+		expect(isAny(false)).toBeTruthy();
+		expect(isAny(0)).toBeTruthy();
+		expect(isAny(42)).toBeTruthy();
+		expect(isAny("")).toBeTruthy();
+		expect(isAny("test")).toBeTruthy();
+		expect(isAny({})).toBeTruthy();
+		expect(isAny([])).toBeTruthy();
+		expect(isAny(Symbol())).toBeTruthy();
+		expect(isAny(() => {})).toBeTruthy();
 	});
 
-	describe("with single guard in array", () => {
+});
+
+describe("isUnion()", () => {
+
+	describe("with single guard", () => {
 
 		it("should return true when value satisfies the guard", () => {
-			expect(isAny("test", [isString])).toBeTruthy();
-			expect(isAny(42, [isNumber])).toBeTruthy();
-			expect(isAny(true, [isBoolean])).toBeTruthy();
-			expect(isAny(null, [isNull])).toBeTruthy();
-			expect(isAny([1, 2], [isArray])).toBeTruthy();
-			expect(isAny({ a: 1 }, [isObject])).toBeTruthy();
+			expect(isUnion("test", [isString])).toBeTruthy();
+			expect(isUnion(42, [isNumber])).toBeTruthy();
+			expect(isUnion(true, [isBoolean])).toBeTruthy();
+			expect(isUnion(null, [isNull])).toBeTruthy();
+			expect(isUnion([1, 2], [isArray])).toBeTruthy();
+			expect(isUnion({ a: 1 }, [isObject])).toBeTruthy();
 		});
 
 		it("should return false when value fails the guard", () => {
-			expect(isAny(42, [isString])).toBeFalsy();
-			expect(isAny("test", [isNumber])).toBeFalsy();
-			expect(isAny(null, [isBoolean])).toBeFalsy();
-			expect(isAny(undefined, [isNull])).toBeFalsy();
+			expect(isUnion(42, [isString])).toBeFalsy();
+			expect(isUnion("test", [isNumber])).toBeFalsy();
+			expect(isUnion(null, [isBoolean])).toBeFalsy();
+			expect(isUnion(undefined, [isNull])).toBeFalsy();
 		});
 
 	});
@@ -819,16 +820,16 @@ describe("isAny()", () => {
 	describe("with multiple guards", () => {
 
 		it("should return true when value satisfies any guard", () => {
-			expect(isAny("test", [isString, isNumber])).toBeTruthy();
-			expect(isAny(42, [isString, isNumber])).toBeTruthy();
-			expect(isAny(true, [isString, isNumber, isBoolean])).toBeTruthy();
+			expect(isUnion("test", [isString, isNumber])).toBeTruthy();
+			expect(isUnion(42, [isString, isNumber])).toBeTruthy();
+			expect(isUnion(true, [isString, isNumber, isBoolean])).toBeTruthy();
 		});
 
 		it("should return false when value fails all guards", () => {
-			expect(isAny(null, [isString, isNumber])).toBeFalsy();
-			expect(isAny(undefined, [isString, isNumber, isBoolean])).toBeFalsy();
-			expect(isAny({}, [isString, isNumber])).toBeFalsy();
-			expect(isAny([], [isString, isNumber])).toBeFalsy();
+			expect(isUnion(null, [isString, isNumber])).toBeFalsy();
+			expect(isUnion(undefined, [isString, isNumber, isBoolean])).toBeFalsy();
+			expect(isUnion({}, [isString, isNumber])).toBeFalsy();
+			expect(isUnion([], [isString, isNumber])).toBeFalsy();
 		});
 
 		it("should short-circuit on first matching guard", () => {
@@ -840,7 +841,7 @@ describe("isAny()", () => {
 				return isNumber(v);
 			};
 
-			isAny(42, [isString, countingGuard, isBoolean]);
+			isUnion(42, [isString, countingGuard, isBoolean]);
 			expect(callCount).toBe(1);
 
 		});
