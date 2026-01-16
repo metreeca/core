@@ -16,8 +16,6 @@
 
 import { describe, expect, it } from "vitest";
 import {
-	any,
-	intersection,
 	isArray,
 	isAsyncIterable,
 	isBoolean,
@@ -35,8 +33,7 @@ import {
 	isString,
 	isSymbol,
 	isValue,
-	key,
-	union
+	key
 } from "./index.js";
 
 
@@ -458,18 +455,18 @@ describe("isArray()", () => {
 
 	});
 
-	it("should validate tuple with literal values", () => {
+	it("should validate tuple with literal predicate", () => {
 
-		const template = ["fixed", isNumber];
+		const template = [(v: unknown) => v === "fixed", isNumber];
 
 		expect(isArray(["fixed", 42], template)).toBeTruthy();
 		expect(isArray(["other", 42], template)).toBeFalsy();
 
 	});
 
-	it("should validate tuple with optional elements using union", () => {
+	it("should validate tuple with optional elements", () => {
 
-		const template = [isString, union(undefined, isNumber)];
+		const template = [isString, (v: unknown) => v === undefined || isNumber(v)];
 
 		expect(isArray(["hello", 42], template)).toBeTruthy();
 		expect(isArray(["hello", undefined], template)).toBeTruthy();
@@ -482,9 +479,10 @@ describe("isArray()", () => {
 		expect(isArray([1], [])).toBeFalsy();
 	});
 
-	it("should validate tuple with literal set", () => {
+	it("should validate tuple with set predicate", () => {
 
-		const template = [isString, ["a", "b", "c"]] as const;
+		const isABC = (v: unknown) => v === "a" || v === "b" || v === "c";
+		const template = [isString, isABC];
 
 		expect(isArray(["hello", "a"], template)).toBeTruthy();
 		expect(isArray(["hello", "b"], template)).toBeTruthy();
@@ -493,9 +491,9 @@ describe("isArray()", () => {
 
 	});
 
-	it("should validate tuple with any guard", () => {
+	it("should validate tuple with wildcard predicate", () => {
 
-		const template = [isString, any] as const;
+		const template = [isString, () => true];
 
 		expect(isArray(["hello", 1], template)).toBeTruthy();
 		expect(isArray(["hello", "any"], template)).toBeTruthy();
@@ -553,11 +551,13 @@ describe("isObject()", () => {
 
 	});
 
-	it("should validate with closed template using literal values", () => {
+	it("should validate with closed template using literal predicate", () => {
 
-		expect(isObject({ kind: "circle" }, { kind: "circle" })).toBeTruthy();
-		expect(isObject({ kind: "square" }, { kind: "circle" })).toBeFalsy();
-		expect(isObject({ kind: "circle", extra: 1 }, { kind: "circle" })).toBeFalsy();
+		const isCircle = (v: unknown) => v === "circle";
+
+		expect(isObject({ kind: "circle" }, { kind: isCircle })).toBeTruthy();
+		expect(isObject({ kind: "square" }, { kind: isCircle })).toBeFalsy();
+		expect(isObject({ kind: "circle", extra: 1 }, { kind: isCircle })).toBeFalsy();
 
 	});
 
@@ -570,9 +570,10 @@ describe("isObject()", () => {
 
 	});
 
-	it("should validate with closed template using mixed literals and predicates", () => {
+	it("should validate with closed template using mixed predicates", () => {
 
-		const template = { kind: "circle", x: isNumber, y: isNumber, radius: isNumber };
+		const isCircle = (v: unknown) => v === "circle";
+		const template = { kind: isCircle, x: isNumber, y: isNumber, radius: isNumber };
 
 		expect(isObject({ kind: "circle", x: 0, y: 0, radius: 10 }, template)).toBeTruthy();
 		expect(isObject({ kind: "square", x: 0, y: 0, radius: 10 }, template)).toBeFalsy();
@@ -580,9 +581,10 @@ describe("isObject()", () => {
 
 	});
 
-	it("should validate with closed template using any guard", () => {
+	it("should validate with closed template using wildcard predicate", () => {
 
-		const template = { kind: "circle", data: any };
+		const isCircle = (v: unknown) => v === "circle";
+		const template = { kind: isCircle, data: () => true };
 
 		expect(isObject({ kind: "circle", data: 1 }, template)).toBeTruthy();
 		expect(isObject({ kind: "circle", data: "any" }, template)).toBeTruthy();
@@ -591,9 +593,10 @@ describe("isObject()", () => {
 
 	});
 
-	it("should validate with closed template using literal set", () => {
+	it("should validate with closed template using set predicate", () => {
 
-		const template = { kind: ["circle", "square"] as const, x: isNumber, y: isNumber };
+		const isCircleOrSquare = (v: unknown) => v === "circle" || v === "square";
+		const template = { kind: isCircleOrSquare, x: isNumber, y: isNumber };
 
 		expect(isObject({ kind: "circle", x: 0, y: 0 }, template)).toBeTruthy();
 		expect(isObject({ kind: "square", x: 0, y: 0 }, template)).toBeTruthy();
@@ -603,7 +606,8 @@ describe("isObject()", () => {
 
 	it("should validate with open template using predicate wildcard", () => {
 
-		const template = { kind: "circle", [key]: isNumber };
+		const isCircle = (v: unknown) => v === "circle";
+		const template = { kind: isCircle, [key]: isNumber };
 
 		expect(isObject({ kind: "circle" }, template)).toBeTruthy();
 		expect(isObject({ kind: "circle", x: 1, y: 2 }, template)).toBeTruthy();
@@ -613,7 +617,8 @@ describe("isObject()", () => {
 
 	it("should validate with open template using any wildcard", () => {
 
-		const template = { kind: "circle", [key]: any };
+		const isCircle = (v: unknown) => v === "circle";
+		const template = { kind: isCircle, [key]: () => true };
 
 		expect(isObject({ kind: "circle" }, template)).toBeTruthy();
 		expect(isObject({ kind: "circle", x: 1, y: "two", z: null }, template)).toBeTruthy();
@@ -621,9 +626,11 @@ describe("isObject()", () => {
 
 	});
 
-	it("should validate with open template using literal set wildcard", () => {
+	it("should validate with open template using set wildcard", () => {
 
-		const template = { kind: "circle", [key]: ["a", "b"] as const };
+		const isCircle = (v: unknown) => v === "circle";
+		const isAB = (v: unknown) => v === "a" || v === "b";
+		const template = { kind: isCircle, [key]: isAB };
 
 		expect(isObject({ kind: "circle" }, template)).toBeTruthy();
 		expect(isObject({ kind: "circle", x: "a", y: "b" }, template)).toBeTruthy();
@@ -631,9 +638,10 @@ describe("isObject()", () => {
 
 	});
 
-	it("should validate optional fields using union(undefined, predicate)", () => {
+	it("should validate optional fields", () => {
 
-		const template = { name: isString, age: union(undefined, isNumber) };
+		const isOptionalNumber = (v: unknown) => v === undefined || isNumber(v);
+		const template = { name: isString, age: isOptionalNumber };
 
 		expect(isObject({ name: "Alice", age: 30 }, template)).toBeTruthy();
 		expect(isObject({ name: "Bob" }, template)).toBeTruthy();
@@ -644,74 +652,6 @@ describe("isObject()", () => {
 	it("should validate empty object with empty template", () => {
 		expect(isObject({}, {})).toBeTruthy();
 		expect(isObject({ a: 1 }, {})).toBeFalsy();
-	});
-
-});
-
-
-describe("union()", () => {
-
-	it("should match any guard predicate", () => {
-
-		const isStringOrNumber = union(isString, isNumber);
-
-		expect(isStringOrNumber("hello")).toBeTruthy();
-		expect(isStringOrNumber(42)).toBeTruthy();
-		expect(isStringOrNumber(true)).toBeFalsy();
-		expect(isStringOrNumber(null)).toBeFalsy();
-
-	});
-
-	it("should match literal values", () => {
-
-		const isStatus = union("pending", "done");
-
-		expect(isStatus("pending")).toBeTruthy();
-		expect(isStatus("done")).toBeTruthy();
-		expect(isStatus("other")).toBeFalsy();
-
-	});
-
-	it("should match mixed predicates and literals", () => {
-
-		const isIdOrNull = union(isNumber, null);
-
-		expect(isIdOrNull(123)).toBeTruthy();
-		expect(isIdOrNull(null)).toBeTruthy();
-		expect(isIdOrNull("string")).toBeFalsy();
-
-	});
-
-});
-
-describe("intersection()", () => {
-
-	it("should match all guard predicates", () => {
-
-		const isNonEmptyString = intersection(isString, (v: unknown) => typeof v === "string" && v.length > 0);
-
-		expect(isNonEmptyString("hello")).toBeTruthy();
-		expect(isNonEmptyString("")).toBeFalsy();
-		expect(isNonEmptyString(42)).toBeFalsy();
-
-	});
-
-	it("should match all literal values (same value)", () => {
-
-		const isExact = intersection("test", "test");
-
-		expect(isExact("test")).toBeTruthy();
-		expect(isExact("other")).toBeFalsy();
-
-	});
-
-	it("should fail when literals differ", () => {
-
-		const isImpossible = intersection("a", "b");
-
-		expect(isImpossible("a")).toBeFalsy();
-		expect(isImpossible("b")).toBeFalsy();
-
 	});
 
 });
