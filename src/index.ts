@@ -56,6 +56,10 @@
  *
  * isLiteral("foo", "foo"); // true
  * isLiteral("foo", ["foo", "bar", "baz"]); // true (matches any)
+ *
+ * isAny("test"); // true (no guards, always succeeds)
+ * isAny("test", [isString, isNumber]); // true (matches isString)
+ * isAny(42, [isString, isNumber]); // true (matches isNumber)
  * ```
  *
  * @module index
@@ -173,7 +177,6 @@ export type Guard<T = unknown> =
  */
 export type Guarded<G> =
 	G extends readonly Guard<infer T>[] ? T : never;
-
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
