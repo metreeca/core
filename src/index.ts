@@ -160,13 +160,11 @@ export type Lazy<T> =
 /**
  * Checks if a value is not `undefined`.
  *
- * @typeParam T The type when the value is defined
- *
  * @param value The value to check
  *
  * @returns `true` if the value is not `undefined`
  */
-export function isDefined<T>(value: undefined | T): value is T {
+export function isDefined(value: unknown): boolean {
 	return value !== undefined;
 }
 
