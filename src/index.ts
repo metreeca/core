@@ -49,6 +49,7 @@
  * isObject({ a: 1 }, { a: isNumber, [key]: isAny}); // with open template
  * isObject({ a: 1 }, { a: isNumber, b: v => isOptional(v, isString) }); // with optional field
  * isObject({ kind: "circle" }, { kind: v => isLiteral(v, ["circle", "square"]) }); // with literal field
+ * isObject({ value: 42 }, { value: v => isAny(v, [isString, isNumber]) }); // with union field
  * isObject({}, {}); // empty object check
  *
  * isOptional(undefined, isString); // true
