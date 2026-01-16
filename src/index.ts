@@ -175,8 +175,6 @@ export type Lazy<T> =
  * When the function returns `true`, TypeScript narrows the value to type `T` in subsequent code.
  *
  * @typeParam T The type that the guard narrows to, defaults to `unknown`
- *
- * @see {@link Guarded} to extract the guarded type from an array of guards
  */
 export type Guard<T = unknown> =
 	(value: unknown) => value is T;
@@ -191,8 +189,23 @@ export type Guard<T = unknown> =
  *
  * @see {@link isUnion} for validating values against multiple guards
  */
-export type Guarded<G> =
+export type Union<G extends readonly Guard[]> =
 	G extends readonly Guard<infer T>[] ? T : never;
+
+/**
+ * Extracts the intersection of guarded types from an array of type guards.
+ *
+ * Given an array of {@link Guard} functions, infers the intersection of all types they guard.
+ * Useful for deriving the result type of intersection validation with {@link isIntersection}.
+ *
+ * @typeParam G The array type containing type guards
+ *
+ * @see {@link isIntersection} for validating values against all guards simultaneously
+ */
+export type Intersection<G extends readonly Guard[]> =
+	Union<G> extends infer U
+		? (U extends unknown ? (x: U) => void : never) extends (x: infer I) => void ? I : never
+		: never;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -582,8 +595,22 @@ export function isLiteral<T extends boolean | number | string>(value: unknown, v
  *
  * @returns True if the value satisfies at least one guard; false otherwise
  */
-export function isUnion<G extends readonly Guard[]>(value: unknown, guards: G): value is Guarded<G> {
+export function isUnion<G extends readonly Guard[]>(value: unknown, guards: G): value is Union<G> {
 
 	return guards.some(guard => guard(value));
+
+}
+
+/**
+ * Checks if a value satisfies all the provided type guards.
+ *
+ * @param value The value to check
+ * @param guards Array of type guards to validate against
+ *
+ * @returns True if the value satisfies all guards; false otherwise
+ */
+export function isIntersection<G extends readonly Guard[]>(value: unknown, guards: G): value is Intersection<G> {
+
+	return guards.every(guard => guard(value));
 
 }

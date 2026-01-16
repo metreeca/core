@@ -91,7 +91,7 @@
  * @module
  */
 
-import { isArray, isObject } from "../index.js";
+import { type Guard, isArray, isObject } from "../index.js";
 import { assert } from "./error.js";
 
 
@@ -175,13 +175,14 @@ export function equals(x: unknown, y: unknown, equal: (x: unknown, y: unknown) =
  *
  * @param value The value to make immutable
  * @param guard Optional type guard function to validate `value`
+ * @param message Optional error message when validation fails
  *
  * @returns A deeply frozen clone of `value`, branded with the guard if provided
  *
  * @throws {TypeError} When the guard returns `false`
  * @throws {RangeError} Stack overflow when `value` contains circular references
  */
-export function immutable<T>(value: T, guard?: (v: unknown) => v is T): T {
+export function immutable<T>(value: T, guard?: Guard<T>, message?: string): T {
 
 	// actual: existing brand stored on value
 	// target: expected brand (explicit guard, existing, or default)
@@ -195,7 +196,7 @@ export function immutable<T>(value: T, guard?: (v: unknown) => v is T): T {
 
 	} else if ( actual !== undefined ) { // already frozen: rebrand and shallow-refreeze if array or object
 
-		const validated = guard ? assert(value, guard) : value;
+		const validated = guard ? assert(value, guard, message) : value;
 
 		return isArray(validated) ? brand([...validated])
 			: isObject(validated) ? brand({ ...validated })
@@ -203,7 +204,7 @@ export function immutable<T>(value: T, guard?: (v: unknown) => v is T): T {
 
 	} else { // brand and deep-freeze if array or object
 
-		const validated = guard ? assert(value, guard) : value;
+		const validated = guard ? assert(value, guard, message) : value;
 
 		return isArray(validated) ? freeze(validated, [])
 			: isObject(validated) ? freeze(validated, {})

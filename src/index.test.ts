@@ -36,6 +36,7 @@ import {
 	isString,
 	isSymbol,
 	isUnion,
+	isIntersection,
 	isValue,
 	key
 } from "./index.js";
@@ -843,6 +844,80 @@ describe("isUnion()", () => {
 
 			isUnion(42, [isString, countingGuard, isBoolean]);
 			expect(callCount).toBe(1);
+
+		});
+
+	});
+
+});
+
+describe("isIntersection()", () => {
+
+	describe("with single guard", () => {
+
+		it("should return true when value satisfies the guard", async () => {
+			expect(isIntersection("test", [isString])).toBeTruthy();
+			expect(isIntersection(42, [isNumber])).toBeTruthy();
+			expect(isIntersection(true, [isBoolean])).toBeTruthy();
+			expect(isIntersection(null, [isNull])).toBeTruthy();
+			expect(isIntersection([1, 2], [isArray])).toBeTruthy();
+			expect(isIntersection({ a: 1 }, [isObject])).toBeTruthy();
+		});
+
+		it("should return false when value fails the guard", async () => {
+			expect(isIntersection(42, [isString])).toBeFalsy();
+			expect(isIntersection("test", [isNumber])).toBeFalsy();
+			expect(isIntersection(null, [isBoolean])).toBeFalsy();
+			expect(isIntersection(undefined, [isNull])).toBeFalsy();
+		});
+
+	});
+
+	describe("with multiple guards", () => {
+
+		it("should return true when value satisfies all guards", async () => {
+
+			const isStringArray = (v: unknown): v is string[] => isArray(v, isString);
+			const isNonEmpty = (v: unknown): v is unknown[] => isArray(v) && v.length > 0;
+
+			expect(isIntersection(["a", "b"], [isStringArray, isNonEmpty])).toBeTruthy();
+
+		});
+
+		it("should return false when value fails any guard", async () => {
+
+			const isStringArray = (v: unknown): v is string[] => isArray(v, isString);
+			const isNonEmpty = (v: unknown): v is unknown[] => isArray(v) && v.length > 0;
+
+			expect(isIntersection([], [isStringArray, isNonEmpty])).toBeFalsy();
+			expect(isIntersection([1, 2], [isStringArray, isNonEmpty])).toBeFalsy();
+
+		});
+
+		it("should return true for object satisfying multiple shape guards", async () => {
+
+			const hasName = (v: unknown): v is { name: string } =>
+				isObject(v) && "name" in v && isString(v.name);
+			const hasAge = (v: unknown): v is { age: number } =>
+				isObject(v) && "age" in v && isNumber(v.age);
+
+			expect(isIntersection({ name: "Alice", age: 30 }, [hasName, hasAge])).toBeTruthy();
+			expect(isIntersection({ name: "Alice" }, [hasName, hasAge])).toBeFalsy();
+			expect(isIntersection({ age: 30 }, [hasName, hasAge])).toBeFalsy();
+
+		});
+
+		it("should short-circuit on first failing guard", async () => {
+
+			let callCount = 0;
+
+			const countingGuard = (v: unknown): v is number => {
+				callCount++;
+				return isNumber(v);
+			};
+
+			isIntersection(42, [isString, countingGuard]);
+			expect(callCount).toBe(0);
 
 		});
 

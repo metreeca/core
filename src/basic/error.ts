@@ -81,7 +81,7 @@
  * @module
  */
 
-import { isError, isNumber, isString } from "../index.js";
+import { type Guard, isError, isNumber, isString } from "../index.js";
 
 
 /**
@@ -99,7 +99,7 @@ import { isError, isNumber, isString } from "../index.js";
  *
  * @throws {TypeError} When the guard returns `false`
  */
-export function assert<T>(value: unknown, guard: (v: unknown) => v is T, message?: string): T {
+export function assert<T>(value: unknown, guard: Guard<T>, message?: string): T {
 
 	return guard(value) ? value : error(new TypeError(message ?? defaultMessage(guard)));
 
