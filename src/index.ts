@@ -375,22 +375,6 @@ export function isValue(value: unknown): value is Value {
 }
 
 /**
- * Checks if a value is a scalar.
- *
- * @param value The value to check
- *
- * @returns `true` if the value is a boolean, number, or string
- */
-export function isScalar(value: unknown): value is boolean | number | string {
-
-	return isBoolean(value)
-		|| isNumber(value)
-		|| isString(value);
-
-}
-
-
-/**
  * Checks if a value is `null`.
  *
  * @param value The value to check
@@ -441,7 +425,6 @@ export function isString(value: unknown): value is string {
 	return typeof value === "string";
 
 }
-
 
 /**
  * Checks if a value is an array.

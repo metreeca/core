@@ -32,7 +32,6 @@ import {
 	isObject,
 	isPromise,
 	isRegExp,
-	isScalar,
 	isString,
 	isSymbol,
 	isValue,
@@ -351,58 +350,6 @@ describe("isValue()", () => {
 		expect(isValue(undefined)).toBeFalsy();
 		expect(isValue(Symbol())).toBeFalsy();
 		expect(isValue(() => {})).toBeFalsy();
-	});
-
-});
-
-describe("isScalar()", () => {
-
-	it("should return true for booleans", () => {
-		expect(isScalar(true)).toBeTruthy();
-		expect(isScalar(false)).toBeTruthy();
-	});
-
-	it("should return true for finite numbers", () => {
-		expect(isScalar(0)).toBeTruthy();
-		expect(isScalar(123)).toBeTruthy();
-		expect(isScalar(-456.78)).toBeTruthy();
-	});
-
-	it("should return false for non-finite numbers", () => {
-		expect(isScalar(NaN)).toBeFalsy();
-		expect(isScalar(Infinity)).toBeFalsy();
-		expect(isScalar(-Infinity)).toBeFalsy();
-	});
-
-	it("should return true for strings", () => {
-		expect(isScalar("")).toBeTruthy();
-		expect(isScalar("test")).toBeTruthy();
-	});
-
-	it("should return false for null", () => {
-		expect(isScalar(null)).toBeFalsy();
-	});
-
-	it("should return false for undefined", () => {
-		expect(isScalar(undefined)).toBeFalsy();
-	});
-
-	it("should return false for arrays", () => {
-		expect(isScalar([])).toBeFalsy();
-		expect(isScalar([1, 2, 3])).toBeFalsy();
-	});
-
-	it("should return false for objects", () => {
-		expect(isScalar({})).toBeFalsy();
-		expect(isScalar({ a: 1 })).toBeFalsy();
-	});
-
-	it("should return false for symbols", () => {
-		expect(isScalar(Symbol())).toBeFalsy();
-	});
-
-	it("should return false for functions", () => {
-		expect(isScalar(() => {})).toBeFalsy();
 	});
 
 });

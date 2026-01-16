@@ -47,6 +47,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Change `isObject` type parameter from `<K, V>` to `<T extends Record<PropertyKey, unknown>>`
 - Change `asTag`, `asTagRange`, `asURI`, `asIRI` to accept `unknown` values (throws `TypeError` for non-strings)
 
+### Removed
+
+- `isScalar` type guard (use `isBoolean(v) || isNumber(v) || isString(v)` instead)
+
 ## [0.9.17](https://github.com/metreeca/core/compare/v0.9.16...v0.9.17) - 2025-12-17
 
 ### Added
