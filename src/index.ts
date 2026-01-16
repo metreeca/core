@@ -1,5 +1,5 @@
 /*
- * Copyright © 2025 Metreeca srl
+ * Copyright © 2026 Metreeca srl
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@
  * Provides primitive type guards for runtime type checking with compile-time narrowing.
  *
  * ```typescript
- * isDefined("value"); // true (not undefined or null)
+ * isDefined("value"); // true
  * isIdentifier("myVar"); // true (valid ECMAScript identifier)
  * isSymbol(Symbol("key")); // true
  * isFunction(() => {}); // true
@@ -158,16 +158,16 @@ export type Lazy<T> =
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Checks if a value is not `undefined` or `null`.
+ * Checks if a value is not `undefined`.
  *
  * @typeParam T The type when the value is defined
  *
  * @param value The value to check
  *
- * @returns `true` if the value is neither `undefined` nor `null`
+ * @returns `true` if the value is not `undefined`
  */
-export function isDefined<T>(value: undefined | null | T): value is T {
-	return value !== undefined && value !== null;
+export function isDefined<T>(value: undefined | T): value is T {
+	return value !== undefined;
 }
 
 /**

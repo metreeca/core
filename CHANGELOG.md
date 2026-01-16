@@ -26,6 +26,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Change `isDefined` to only check for `undefined` (no longer excludes `null`)
 - Rename `report` module to `error`
 - Consolidate `json` module into main index module; import from `@metreeca/core` instead of `@metreeca/core/json`
 - Change default `variant` parameter from `"absolute"` to `"relative"` for `isURI`, `isIRI`, `asURI`, `asIRI`

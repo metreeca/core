@@ -43,8 +43,8 @@ describe("isDefined()", () => {
 		expect(isDefined(undefined)).toBeFalsy();
 	});
 
-	it("should return false for null", () => {
-		expect(isDefined(null)).toBeFalsy();
+	it("should return true for null", () => {
+		expect(isDefined(null)).toBeTruthy();
 	});
 
 	it("should return true for defined values", () => {
