@@ -28,6 +28,7 @@ import {
 	isNull,
 	isNumber,
 	isObject,
+	isOptional,
 	isPromise,
 	isRegExp,
 	isString,
@@ -466,7 +467,7 @@ describe("isArray()", () => {
 
 	it("should validate tuple with optional elements", () => {
 
-		const template = [isString, (v: unknown) => v === undefined || isNumber(v)];
+		const template = [isString, (v: unknown) => isOptional(v, isNumber)];
 
 		expect(isArray(["hello", 42], template)).toBeTruthy();
 		expect(isArray(["hello", undefined], template)).toBeTruthy();
@@ -640,8 +641,7 @@ describe("isObject()", () => {
 
 	it("should validate optional fields", () => {
 
-		const isOptionalNumber = (v: unknown) => v === undefined || isNumber(v);
-		const template = { name: isString, age: isOptionalNumber };
+		const template = { name: isString, age: (v: unknown) => isOptional(v, isNumber) };
 
 		expect(isObject({ name: "Alice", age: 30 }, template)).toBeTruthy();
 		expect(isObject({ name: "Bob" }, template)).toBeTruthy();
@@ -652,6 +652,52 @@ describe("isObject()", () => {
 	it("should validate empty object with empty template", () => {
 		expect(isObject({}, {})).toBeTruthy();
 		expect(isObject({ a: 1 }, {})).toBeFalsy();
+	});
+
+});
+
+
+describe("isOptional()", () => {
+
+	it("should return true for undefined", () => {
+		expect(isOptional(undefined, isString)).toBeTruthy();
+		expect(isOptional(undefined, isNumber)).toBeTruthy();
+		expect(isOptional(undefined, isBoolean)).toBeTruthy();
+	});
+
+	it("should return true when value satisfies type guard", () => {
+		expect(isOptional("test", isString)).toBeTruthy();
+		expect(isOptional(123, isNumber)).toBeTruthy();
+		expect(isOptional(true, isBoolean)).toBeTruthy();
+	});
+
+	it("should return false when value is not undefined and fails type guard", () => {
+		expect(isOptional(123, isString)).toBeFalsy();
+		expect(isOptional("test", isNumber)).toBeFalsy();
+		expect(isOptional(null, isString)).toBeFalsy();
+	});
+
+	it("should return false for null", () => {
+		expect(isOptional(null, isString)).toBeFalsy();
+		expect(isOptional(null, isNumber)).toBeFalsy();
+	});
+
+	it("should work with complex type guards", () => {
+		expect(isOptional({ a: 1 }, isObject)).toBeTruthy();
+		expect(isOptional([1, 2, 3], isArray)).toBeTruthy();
+		expect(isOptional(undefined, isObject)).toBeTruthy();
+		expect(isOptional("string", isObject)).toBeFalsy();
+	});
+
+	it("should work with custom type guards", () => {
+
+		const isPositive = (v: unknown): v is number => isNumber(v) && v > 0;
+
+		expect(isOptional(5, isPositive)).toBeTruthy();
+		expect(isOptional(undefined, isPositive)).toBeTruthy();
+		expect(isOptional(-5, isPositive)).toBeFalsy();
+		expect(isOptional(0, isPositive)).toBeFalsy();
+
 	});
 
 });

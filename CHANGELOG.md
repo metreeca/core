@@ -9,6 +9,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `isOptional` type guard for validating optional values (`undefined | T`)
 - `"hierarchical"` variant for URI/IRI validation (absolute with authority, usable as resolution base)
 - Optional `is` predicate parameter to `isArray` for element validation; receives `(value, index)`
 - Tuple template validation for `isArray` with exact length matching

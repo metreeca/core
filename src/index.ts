@@ -47,7 +47,7 @@
  * isObject({ a: 1 }, isNumber); // with entry predicate
  * isObject({ a: 1 }, { a: isNumber }); // with closed template
  * isObject({ a: 1 }, { a: isNumber, [key]: () => true }); // with open template
- * isObject({ a: 1 }, { a: isNumber, b: v => v === undefined || isString(v) }); // with optional field
+ * isObject({ a: 1 }, { a: isNumber, b: v => isOptional(v, isString) }); // with optional field
  * isObject({}, {}); // empty object check
  * ```
  *
@@ -486,5 +486,24 @@ export function isObject<T extends Record<PropertyKey, unknown> = Record<Propert
 		}
 
 	}
+
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Checks if a value is either `undefined` or satisfies a type guard.
+ *
+ * @typeParam T The type validated by the type guard
+ *
+ * @param value The value to check
+ * @param is A type guard function to validate the value if it is not `undefined`
+ *
+ * @returns `true` if the value is `undefined` or satisfies the type guard
+ */
+export function isOptional<T>(value: unknown, is: (value: unknown) => value is T): value is undefined | T {
+
+	return value === undefined || is(value);
 
 }
