@@ -9,6 +9,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `Guard<T>` type alias for type guard functions
+- `Guarded<G>` type alias for extracting guarded types from guard arrays
+- `isAny` type guard for validating values against multiple guards (union types)
 - `isOptional` type guard for validating optional values (`undefined | T`)
 - `isLiteral` type guard for validating literal values (single or array of literals)
 - `"hierarchical"` variant for URI/IRI validation (absolute with authority, usable as resolution base)

@@ -16,6 +16,7 @@
 
 import { describe, expect, it } from "vitest";
 import {
+	isAny,
 	isArray,
 	isAsyncIterable,
 	isBoolean,
@@ -770,6 +771,80 @@ describe("isLiteral()", () => {
 	it("should use strict equality", () => {
 		expect(isLiteral(1, [1])).toBeTruthy();
 		expect(isLiteral("1", [1] as unknown as string[])).toBeFalsy();
+	});
+
+});
+
+describe("isAny()", () => {
+
+	describe("without guards", () => {
+
+		it("should return true for any value", () => {
+			expect(isAny(undefined)).toBeTruthy();
+			expect(isAny(null)).toBeTruthy();
+			expect(isAny(true)).toBeTruthy();
+			expect(isAny(false)).toBeTruthy();
+			expect(isAny(0)).toBeTruthy();
+			expect(isAny(42)).toBeTruthy();
+			expect(isAny("")).toBeTruthy();
+			expect(isAny("test")).toBeTruthy();
+			expect(isAny({})).toBeTruthy();
+			expect(isAny([])).toBeTruthy();
+			expect(isAny(Symbol())).toBeTruthy();
+			expect(isAny(() => {})).toBeTruthy();
+		});
+
+	});
+
+	describe("with single guard in array", () => {
+
+		it("should return true when value satisfies the guard", () => {
+			expect(isAny("test", [isString])).toBeTruthy();
+			expect(isAny(42, [isNumber])).toBeTruthy();
+			expect(isAny(true, [isBoolean])).toBeTruthy();
+			expect(isAny(null, [isNull])).toBeTruthy();
+			expect(isAny([1, 2], [isArray])).toBeTruthy();
+			expect(isAny({ a: 1 }, [isObject])).toBeTruthy();
+		});
+
+		it("should return false when value fails the guard", () => {
+			expect(isAny(42, [isString])).toBeFalsy();
+			expect(isAny("test", [isNumber])).toBeFalsy();
+			expect(isAny(null, [isBoolean])).toBeFalsy();
+			expect(isAny(undefined, [isNull])).toBeFalsy();
+		});
+
+	});
+
+	describe("with multiple guards", () => {
+
+		it("should return true when value satisfies any guard", () => {
+			expect(isAny("test", [isString, isNumber])).toBeTruthy();
+			expect(isAny(42, [isString, isNumber])).toBeTruthy();
+			expect(isAny(true, [isString, isNumber, isBoolean])).toBeTruthy();
+		});
+
+		it("should return false when value fails all guards", () => {
+			expect(isAny(null, [isString, isNumber])).toBeFalsy();
+			expect(isAny(undefined, [isString, isNumber, isBoolean])).toBeFalsy();
+			expect(isAny({}, [isString, isNumber])).toBeFalsy();
+			expect(isAny([], [isString, isNumber])).toBeFalsy();
+		});
+
+		it("should short-circuit on first matching guard", () => {
+
+			let callCount = 0;
+
+			const countingGuard = (v: unknown): v is number => {
+				callCount++;
+				return isNumber(v);
+			};
+
+			isAny(42, [isString, countingGuard, isBoolean]);
+			expect(callCount).toBe(1);
+
+		});
+
 	});
 
 });

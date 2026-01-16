@@ -162,6 +162,20 @@ export type Lazy<T> =
 	| (() => T);
 
 
+/**
+ * A type guard function.
+ */
+export type Guard<T = unknown> =
+	(value: unknown) => value is T;
+
+/**
+ * Extracts the guarded type from an array of type guards.
+ */
+export type Guarded<G> =
+	G extends readonly Guard<infer T>[] ? T : never;
+
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -509,7 +523,7 @@ export function isObject<T extends Record<PropertyKey, unknown> = Record<Propert
  *
  * @returns `true` if the value is `undefined` or satisfies the type guard
  */
-export function isOptional<T>(value: unknown, is: (value: unknown) => value is T): value is undefined | T {
+export function isOptional<T>(value: unknown, is: Guard<T>): value is undefined | T {
 
 	return value === undefined || is(value);
 
@@ -530,5 +544,27 @@ export function isLiteral<T extends boolean | number | string>(value: unknown, v
 	return Array.isArray(values)
 		? values.includes(value)
 		: value === values;
+
+}
+
+/**
+ * Checks if a value satisfies any of the provided type guards.
+ *
+ * @param value The value to check
+ * @param guards Optional array of type guards to validate against
+ *
+ * @returns `true` if no guards are provided, or if the value satisfies at least one guard
+ *
+ * @remarks
+ *
+ * When no guards are provided, always succeeds and narrows to `unknown`.
+ * When guards are provided, the value is narrowed to the union of guarded types.
+ */
+export function isAny(value: unknown): value is unknown;
+export function isAny<G extends readonly Guard[]>(value: unknown, guards: G): value is Guarded<G>;
+export function isAny(value: unknown, guards?: readonly ((value: unknown) => boolean)[]): boolean {
+
+	return guards === undefined ? true
+		: guards.some(guard => guard(value));
 
 }
