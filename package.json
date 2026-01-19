@@ -25,7 +25,6 @@
   "sideEffects": false,
   "exports": {
     ".": "./dist/index.js",
-    "./json": "./dist/basic/json.js",
     "./nested": "./dist/basic/nested.js",
     "./error": "./dist/basic/error.js",
     "./resource": "./dist/network/resource.js",

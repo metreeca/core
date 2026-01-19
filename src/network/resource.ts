@@ -144,9 +144,9 @@
  * @see {@link https://datatracker.ietf.org/doc/html/rfc7807 RFC 7807 - Problem Details for HTTP APIs}
  */
 
-import { isString, type Value } from "../basic/json.js";
 import { immutable } from "../basic/nested.js";
 import { error } from "../basic/error.js";
+import { isString, type Value } from "../index.js";
 
 
 /**
@@ -388,7 +388,7 @@ export interface Problem {
  * @param value The value to validate as a URI
  * @param variant The identifier variant to validate against (default: `"relative"`)
  *
- * @returns `true` if the value is a valid ASCII-only URI matching the specified variant
+ * @returns `true` if the value is a valid ASCII-only URI matching the specified variant; `false` otherwise
  *
  * @see {@link URI}
  * @see {@link Variant}
@@ -398,36 +398,6 @@ export function isURI(value: unknown, variant: Variant = "relative"): value is U
 	return isString(value) && ASCIIPattern.test(value) && normalize(value, variant) !== undefined;
 
 }
-
-/**
- * Creates a validated URI from a string.
- *
- * Validates URIs according to RFC 3986, restricting identifiers to ASCII characters only.
- * For non-absolute variants, normalizes paths by removing `.` segments and resolving `..` segments.
- *
- * @param value The value to convert to a URI
- * @param variant The identifier variant to validate against (default: `"absolute"`)
- *
- * @returns The validated and normalized URI
- *
- * @throws TypeError If the value is not a string
- * @throws RangeError If the value is not a valid ASCII-only URI for the specified variant,
- *   or if `..` segments would climb above the root
- *
- * @see {@link isURI} for validation rules
- * @see {@link URI}
- * @see {@link Variant}
- */
-export function asURI(value: unknown, variant: Variant = "absolute"): URI {
-
-	if ( !isString(value) ) {
-		throw new TypeError("expected string");
-	}
-
-	return (ASCIIPattern.test(value) ? normalize(value, variant) : undefined) ?? invalid(value, variant);
-
-}
-
 
 /**
  * Checks if a value is a valid IRI.
@@ -447,7 +417,7 @@ export function asURI(value: unknown, variant: Variant = "absolute"): URI {
  * @param value The value to validate as an IRI
  * @param variant The identifier variant to validate against (default: `"relative"`)
  *
- * @returns `true` if the value is a string conforming to IRI syntax rules for the specified variant
+ * @returns `true` if the value is a string conforming to IRI syntax rules for the specified variant; `false` otherwise
  *
  * @remarks
  *
@@ -463,9 +433,41 @@ export function isIRI(value: unknown, variant: Variant = "relative"): value is I
 
 }
 
+
+/**
+ * Creates a validated URI from a string.
+ *
+ * Validates URIs according to RFC 3986, restricting identifiers to ASCII characters only.
+ * For non-absolute variants, normalizes paths by removing `.` segments and resolving `..` segments.
+ *
+ * @param value The value to convert to a URI
+ * @param variant The identifier variant to validate against (default: `"relative"`)
+ *
+ * @returns The validated and normalized URI
+ *
+ * @throws TypeError If the value is not a string
+ * @throws RangeError If the value is not a valid ASCII-only URI for the specified variant,
+ *   or if `..` segments would climb above the root
+ *
+ * @see {@link isURI} for validation rules
+ * @see {@link URI}
+ * @see {@link IRI}
+ * @see {@link Variant}
+ */
+export function asURI(value: string, variant: Variant = "relative"): URI {
+
+	if ( !isString(value) ) {
+		throw new TypeError("expected string");
+	}
+
+	return (ASCIIPattern.test(value) ? normalize(value, variant) : undefined) ?? invalid(value, variant);
+
+}
+
 /**
  * Creates a validated IRI from a string.
  *
+ * Validates IRIs according to RFC 3987, allowing Unicode characters.
  * For non-absolute variants, normalizes paths by removing `.` segments and resolving `..` segments.
  *
  * @param value The value to convert to an IRI
@@ -478,9 +480,10 @@ export function isIRI(value: unknown, variant: Variant = "relative"): value is I
  *   or if `..` segments would climb above the root
  *
  * @see {@link isIRI} for validation rules
+ * @see {@link IRI}
  * @see {@link Variant}
  */
-export function asIRI(value: unknown, variant: Variant = "relative"): IRI {
+export function asIRI(value: string, variant: Variant = "relative"): IRI {
 
 	if ( !isString(value) ) {
 		throw new TypeError("expected string");

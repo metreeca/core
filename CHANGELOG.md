@@ -9,31 +9,37 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `Guard<T>` type alias for type guard functions
+- `Guarded<G>` type alias for extracting guarded types from guard arrays
+- `isAny` wildcard type guard (always succeeds)
+- `isUnion` type guard for validating values against multiple guards (union types)
+- `isOptional` type guard for validating optional values (`undefined | T`)
+- `isLiteral` type guard for validating literal values (single or array of literals)
 - `"hierarchical"` variant for URI/IRI validation (absolute with authority, usable as resolution base)
-- Optional `is` predicate parameter to `isArray` for element validation; receives `(value, index)`
+- Optional `is` parameter to `isArray`/`asArray` for element validation; receives `(value, index)`
 - Tuple template validation for `isArray` with exact length matching
-- Optional `is` parameter to `isObject` supporting predicate `(value, key)` or template validation
+- Optional `is` parameter to `isObject`/`asObject` supporting predicate `(value, key)` or template validation
 - `key` symbol for open template validation in `isObject`
-- `any` wildcard guard for accepting any value in templates without validation
-- `Guard` type for template-based validation rules: literal values, literal arrays, predicates
-- `union` function to create combined type guards matching any of provided guards
-- `intersection` function to create refined type guards matching all provided guards
-- `Union<G>` and `Intersection<G>` type helpers for guard type extraction
 - `assert` validation function in `error` module
-- `asIdentifier` validating cast function for ECMAScript identifiers
-- `asBoolean`, `asNumber`, `asString`, `asArray`, `asObject` validating cast functions
-- Optional `is` guard/predicate parameter to `isArray`/`asArray` for element validation
-- Optional `is` guard/predicate parameter to `isObject`/`asObject` for `[key, value]` entry validation
-- `assert` memoized validation function for plain objects
+- `asIdentifier`, `asBoolean`, `asNumber`, `asString`, `asArray`, `asObject` validating cast functions
+- Optional `guard` parameter to `immutable` for type guard validation with memoization
 - `IdentifierPattern` regex constant for ECMAScript identifier validation
 - `TagPattern` regex constant for BCP 47 language tag validation
 - `TagRangePattern` regex constant for BCP 47 extended language range validation
 
 ### Changed
 
+- Change `isDefined` to only check for `undefined` (no longer excludes `null`)
 - Rename `report` module to `error`
+- Consolidate `json` module into main index module; import from `@metreeca/core` instead of `@metreeca/core/json`
 - Change default `variant` parameter from `"absolute"` to `"relative"` for `isURI`, `isIRI`, `asURI`, `asIRI`
+- Change `isObject` type parameter from `<K, V>` to `<T extends Record<PropertyKey, unknown>>`
 - Change `asTag`, `asTagRange`, `asURI`, `asIRI` to accept `unknown` values (throws `TypeError` for non-strings)
+- Change `immutable` to remove setters from accessor properties for true immutability
+
+### Removed
+
+- `isScalar` type guard (use `isBoolean(v) || isNumber(v) || isString(v)` instead)
 
 ## [0.9.17](https://github.com/metreeca/core/compare/v0.9.16...v0.9.17) - 2025-12-17
 

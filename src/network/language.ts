@@ -64,7 +64,8 @@
  * @see {@link https://www.rfc-editor.org/rfc/rfc4647.html RFC 4647 - Matching of Language Tags}
  */
 
-import { isString } from "../basic/json.js";
+
+import { isString } from "../index.js";
 
 
 /**
@@ -165,13 +166,30 @@ export type TagRange = string
  *
  * @param value The value to validate as a language tag
  *
- * @returns `true` if the value is a non-empty string matching the BCP 47 pattern
+ * @returns `true` if the value is a non-empty string matching the BCP 47 pattern; `false` otherwise
  *
  * @see {@link Tag}
  */
 export function isTag(value: unknown): value is Tag {
 	return isString(value) && value.length > 0 && TagPattern.test(value);
 }
+
+/**
+ * Checks if a value is a valid language range.
+ *
+ * Validates extended language ranges according to RFC 4647 § 2.2.
+ * An extended language range allows `*` as a wildcard for any subtag (e.g., `en-*`, `*-CH`).
+ *
+ * @param value The value to validate as a language range
+ *
+ * @returns `true` if the value matches the extended language range pattern; `false` otherwise
+ *
+ * @see {@link TagRange}
+ */
+export function isTagRange(value: unknown): value is TagRange {
+	return isString(value) && value.length > 0 && TagRangePattern.test(value);
+}
+
 
 /**
  * Creates a validated language tag from a string.
@@ -187,8 +205,9 @@ export function isTag(value: unknown): value is Tag {
  *
  * @see {@link isTag} for validation rules
  * @see {@link Tag}
+ * @see {@link TagRange}
  */
-export function asTag(value: unknown): Tag {
+export function asTag(value: string): Tag {
 
 	if ( !isString(value) ) {
 		throw new TypeError("expected string");
@@ -199,23 +218,6 @@ export function asTag(value: unknown): Tag {
 	}
 
 	return value;
-}
-
-
-/**
- * Checks if a value is a valid language range.
- *
- * Validates extended language ranges according to RFC 4647 § 2.2.
- * An extended language range allows `*` as a wildcard for any subtag (e.g., `en-*`, `*-CH`).
- *
- * @param value The value to validate as a language range
- *
- * @returns `true` if the value matches the extended language range pattern
- *
- * @see {@link TagRange}
- */
-export function isTagRange(value: unknown): value is TagRange {
-	return isString(value) && value.length > 0 && TagRangePattern.test(value);
 }
 
 /**
@@ -232,9 +234,10 @@ export function isTagRange(value: unknown): value is TagRange {
  * @throws RangeError If the value is not a valid language range
  *
  * @see {@link isTagRange} for validation rules
+ * @see {@link Tag}
  * @see {@link TagRange}
  */
-export function asTagRange(value: unknown): TagRange {
+export function asTagRange(value: string): TagRange {
 
 	if ( !isString(value) ) {
 		throw new TypeError("expected string");
@@ -262,7 +265,7 @@ export function asTagRange(value: unknown): TagRange {
  * @param tag The language tag to test
  * @param range The language range to match against
  *
- * @returns `true` if the tag matches the range pattern
+ * @returns `true` if the tag matches the range pattern; `false` otherwise
  *
  * @example
  *

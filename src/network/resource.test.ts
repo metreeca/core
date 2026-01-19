@@ -122,7 +122,7 @@ const uris = {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-describe("isURI", () => {
+describe("isURI()", () => {
 
 	it("should return true for valid absolute ASCII-only URIs", () => {
 		uris.absolute.valid.forEach(value => {
@@ -175,7 +175,7 @@ describe("isIRI()", () => {
 
 	it("should return true for valid absolute IRIs", () => {
 		iris.absolute.valid.forEach(value => {
-			expect(isIRI(value, "absolute")).toBe(true);
+			expect(isIRI(value)).toBe(true);
 		});
 	});
 
@@ -288,44 +288,7 @@ describe("asURI()", () => {
 
 });
 
-
-describe("isIRI", () => {
-
-	it("should return true for valid absolute IRIs", () => {
-		iris.absolute.valid.forEach(value => {
-			expect(isIRI(value)).toBe(true);
-		});
-	});
-
-	it("should return false for invalid absolute IRIs", () => {
-		iris.absolute.invalid.forEach(({ value }) => {
-			expect(isIRI(value)).toBe(false);
-		});
-	});
-
-	it("should return true for valid relative IRIs with relative variant", () => {
-		iris.relative.valid.forEach(value => {
-			expect(isIRI(value, "relative")).toBe(true);
-		});
-	});
-
-	it("should return false for invalid relative IRIs with relative variant", () => {
-		iris.relative.invalid.forEach(({ value }) => {
-			expect(isIRI(value, "relative")).toBe(false);
-		});
-	});
-
-	it("should return false for non-absolute IRIs without relative option", () => {
-		// Only test paths without scheme - absolute URIs are valid with default "absolute" variant
-		const relativePaths = iris.relative.valid.filter(v => !v.includes("://") && !v.startsWith("urn:"));
-		relativePaths.forEach(value => {
-			expect(isIRI(value)).toBe(false);
-		});
-	});
-
-});
-
-describe("iri", () => {
+describe("asIRI()", () => {
 
 	it("should create branded IRI from valid absolute strings", () => {
 		iris.absolute.valid.forEach(value => {

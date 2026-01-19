@@ -7,8 +7,8 @@
   "sortEntryPoints": false,
   "categorizeByGroup": true,
   "groupOrder": [
+    "Variables",
     "Type Aliases",
-    "Interfaces",
     "*"
   ],
   "useFirstParagraphOfCommentAsSummary": true,

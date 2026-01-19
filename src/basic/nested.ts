@@ -1,5 +1,5 @@
 /*
- * Copyright © 2025 Metreeca srl
+ * Copyright © 2026 Metreeca srl
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,28 +63,45 @@
  * frozenFn.config.port = 8080; // throws Error
  * ```
  *
+ * **Type-Safe Freezing**
+ *
+ * Validate and freeze with optional type guards:
+ *
+ * ```typescript
+ * import { immutable } from '@metreeca/core/nested';
+ * import { isObject, isString, isNumber } from '@metreeca/core';
+ *
+ * // Define a type guard
+ * const isUser = (v: unknown): v is { name: string; age: number } =>
+ *   isObject(v, { name: isString, age: isNumber });
+ *
+ * // Validate and freeze in one step
+ * const user = immutable(data, isUser);
+ *
+ * // Memoized: repeated calls with same guard return same reference
+ * immutable(user, isUser) === user; // true (no re-validation)
+ *
+ * // Different guard triggers revalidation
+ * const isAdmin = (v: unknown): v is { name: string; age: number } =>
+ *   isUser(v) && v.age >= 18;
+ *
+ * immutable(user, isAdmin); // revalidates
+ * ```
+ *
  * @module
  */
 
-import { isFunction } from "../index.js";
-import { isArray, isObject } from "./json.js";
+import { type Guard, isArray, isObject } from "../index.js";
+import { assert } from "./error.js";
 
 
 /**
  * Symbol used to tag objects that have been made immutable.
  *
- * This allows for efficient idempotency checking - if an object has this symbol,
- * we know it was already processed by immutable() and is deeply frozen.
+ * Stores `immutable` function reference if no guard was provided, or the guard function itself.
+ * This allows for efficient idempotency checking and guard memoization.
  */
 const Immutable = Symbol("immutable");
-
-/**
- * Brand symbol linking objects to their validating function.
- *
- * Used by {@link assert} to skip redundant validation when the object
- * was already validated by the same validator.
- */
-const Asserted = Symbol("Asserted");
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -109,7 +126,7 @@ const Asserted = Symbol("Asserted");
  *
  * @throws {RangeError} Stack overflow when `x` or `y` contains circular references
  */
-export function equals(x: unknown, y: unknown, equal: (x: unknown, y: unknown) => boolean=Object.is): boolean {
+export function equals(x: unknown, y: unknown, equal: (x: unknown, y: unknown) => boolean = Object.is): boolean {
 
 	function arrayEquals(x: unknown[], y: typeof x) {
 		return x.length === y.length && x.every((value, index) => equals(value, y[index], equal));
@@ -130,48 +147,94 @@ export function equals(x: unknown, y: unknown, equal: (x: unknown, y: unknown) =
 }
 
 /**
- * Creates an immutable deep clone.
+ * Creates an immutable deep clone, optionally validating against a type guard.
  *
- * Plain objects, arrays, and functions with custom properties are recursively cloned and frozen. Functions without
- * custom properties are returned as-is. Other object types (`Date`, `RegExp`, `Buffer`, etc.) are returned as-is to
- * preserve their functionality.
+ * Values are processed according to their type:
+ *
+ * - **Cloned and frozen**: {@link isObject plain objects} and {@link isArray arrays}; nested structures are cloned
+ *   recursively; accessor properties are preserved as read-only (getters only, setters removed)
+ * - **Returned as-is**: primitives, functions, and non-plain objects (for example, `Date`, `Map`, `Set`, class
+ *   instances, or objects with `null` prototype)
+ *
+ * When a type guard is provided, validates `value` before freezing:
+ *
+ * - **Plain objects and arrays**: memoizes validation; subsequent calls with the same guard skip re-validation and
+ *   return the same reference; calls with a different guard trigger revalidation and rebranding
+ * - **Other values**: validated on every call
+ *
+ * This function is idempotent: calling it multiple times on the same value with the same guard returns the same
+ * reference after the first call, making it safe and efficient to use defensively.
  *
  * > [!CAUTION]
  * > **Circular references are not supported**. Do not pass objects with cycles.
  *
+ * > [!IMPORTANT]
+ * > **Guards must have stable identity**. Use module-level named functions or `const` lambdas.
+ *
  * @typeParam T The type of the value to be cloned
  *
  * @param value The value to make immutable
+ * @param guard Optional type guard function to validate `value`
+ * @param message Optional error message when validation fails
  *
- * @returns A deeply immutable clone of `value`
+ * @returns A deeply frozen clone of `value`, branded with the guard if provided
  *
+ * @throws {TypeError} When the guard returns `false`
  * @throws {RangeError} Stack overflow when `value` contains circular references
- *
- * @remarks
- *
- * - Only plain objects (those with `Object.prototype`) and arrays are cloned and frozen.
- *   All other objects (`Date`, `RegExp`, `Map`, `Set`, class instances, objects with `null`
- *   prototype, etc.) are returned as-is to preserve their functionality.
- * - This function is idempotent: calling it multiple times on the same value returns the same
- *   reference after the first call, making it safe and efficient to use defensively.
- * - For functions with custom properties, built-in read-only properties (`length`, `name`, `prototype`)
- *   are preserved unchanged while custom writable properties are frozen recursively. Non-configurable
- *   custom properties are skipped and remain in their original state.
- * - Accessor properties (getters/setters) are preserved as-is without freezing the accessor
- *   functions themselves. Getters may still return mutable values.
  */
-export function immutable<T>(value: T): T {
+export function immutable<T>(value: T, guard?: Guard<T>, message?: string): T {
 
-	return isFunction(value) ? freeze(value, value)
-		: isArray(value) ? freeze(value, [])
-			: isObject(value) ? freeze(value, {})
+	// actual: existing brand stored on value
+	// target: expected brand (explicit guard, existing, or default)
+
+	const actual = value !== null && typeof value === "object" ? Reflect.get(value, Immutable) : undefined;
+	const target = guard ?? actual ?? immutable;
+
+	if ( actual === target ) {  // already frozen with target brand: idempotent
+
+		return value;
+
+	} else if ( actual !== undefined ) { // already frozen: rebrand and shallow-refreeze if array or object
+
+		const validated = guard ? assert(value, guard, message) : value;
+
+		return isArray(validated) ? brand([...validated])
+			: isObject(validated) ? brand({ ...validated })
+				: validated;
+
+	} else { // brand and deep-freeze if array or object
+
+		const validated = guard ? assert(value, guard, message) : value;
+
+		return isArray(validated) ? freeze(validated, [])
+			: isObject(validated) ? freeze(validated, {})
 				: value;
 
+	}
+
+
+	/**
+	 * Brands and freezes a value with the target brand.
+	 *
+	 * @param value The object or array to brand
+	 *
+	 * @returns The frozen and branded value
+	 */
+	function brand(value: object): T {
+
+		Object.defineProperty(value, Immutable, {
+			value: target,
+			enumerable: false
+		});
+
+		return Object.freeze(value) as T;
+
+	}
 
 	/**
 	 * Recursively freezes a value by copying properties to an accumulator.
 	 *
-	 * @param value The source value to freeze (object, array, or function)
+	 * @param value The value to freeze (object, array, or function)
 	 * @param accumulator The target object to receive frozen properties
 	 *
 	 * @returns The frozen accumulator
@@ -183,130 +246,33 @@ export function immutable<T>(value: T): T {
 	 */
 	function freeze(value: T & object, accumulator: {}): T {
 
-		if ( Immutable in value ) {
+		Reflect.ownKeys(value).forEach(key => {
 
-			return value as T;
+			if ( key !== Immutable ) {
 
-		} else {
+				const descriptor = Object.getOwnPropertyDescriptor(value, key)!;
 
-			const source = value as Record<PropertyKey, unknown>;
+				if ( "value" in descriptor ) { // data property: freeze the value recursively
 
-			Reflect.ownKeys(source).forEach(key => {
+					Object.defineProperty(accumulator, key, {
+						value: immutable(descriptor.value),
+						enumerable: descriptor.enumerable
+					});
 
-				const builtin = isFunction(value) && (
-					key === "length" || key === "name" || key === "prototype"
-				);
+				} else { // accessor property: preserve getter only (setters would allow mutation)
 
-				if ( !builtin ) {
+					Object.defineProperty(accumulator, key, {
+						get: descriptor.get,
+						enumerable: descriptor.enumerable
+					});
 
-					const descriptor = Object.getOwnPropertyDescriptor(source, key)!;
-
-					// leave non-configurable properties as-is when modifying in-place (functions only);
-					// for objects/arrays, accumulator is a fresh object so we can copy them
-
-					if ( accumulator !== value || descriptor.configurable ) {
-
-						if ( "value" in descriptor ) { // data property: freeze the value recursively
-
-							Object.defineProperty(accumulator, key, {
-								value: immutable(descriptor.value),
-								enumerable: descriptor.enumerable
-							});
-
-						} else { // accessor property: preserve getter/setter as-is
-
-							Object.defineProperty(accumulator, key, {
-								get: descriptor.get,
-								set: descriptor.set,
-								enumerable: descriptor.enumerable
-							});
-
-						}
-
-					}
 				}
 
-			});
+			}
 
-			Object.defineProperty(accumulator, Immutable, {
-				value: true,
-				enumerable: false
-			});
+		});
 
-			return Object.freeze(accumulator) as T;
-
-		}
-
-	}
-
-}
-
-/**
- * Asserts that a value conforms to a validated type.
- *
- * Applies a validator function to ensure `value` matches the expected type, throwing on invalid input. Validators may
- * recursively call `assert` to deep-validate complex nested objects. For plain objects, memoizes validation results by
- * branding the object with the validator function, so subsequent calls with the same validator return immediately
- * without re-validation. Non-object values are validated on every call.
- *
- * > [!CAUTION]
- * > **Circular references are not supported**. Do not pass objects with cycles.
- *
- * > [!IMPORTANT]
- * > **Validators must have stable identity**. Use module-level named functions or `const` lambdas.
- *
- * @typeParam V The input value type accepted by the validator
- * @typeParam T The type being asserted
- *
- * @param validator A function that validates `value` and throws on invalid input
- * @param value The value to validate
- *
- * @returns The validated value (branded and immutable if a plain object)
- *
- * @throws {RangeError} Stack overflow when `value` contains circular references
- * @throws Propagates any exception thrown by `validator`
- *
- * @remarks
- *
- * - This function is idempotent: calling it multiple times on the same value with the same validator returns the same
- *   reference after the first call, making it safe and efficient to use defensively.
- */
-export function assert<V, T>(validator: (value: V) => T, value: unknown): T {
-
-	if ( isObject(value) ) {
-
-		return value[Asserted] === validator
-			? value as T
-			: brand(validator(value as V));
-
-	} else {
-
-		return validator(value as V);
-
-	}
-
-
-	function brand(validated: T): T {
-
-		const target = Object.isExtensible(validated)
-			? validated
-			: copy(validated as object);
-
-		return immutable(Object.defineProperty(target, Asserted, {
-			value: validator,
-			enumerable: false,
-			configurable: true
-		})) as T;
-
-	}
-
-	function copy(source: object): object {
-
-		return Object.defineProperties({}, Object.fromEntries(
-			Reflect.ownKeys(source)
-				.filter(key => key !== Asserted)
-				.map(key => [key, Object.getOwnPropertyDescriptor(source, key)!])
-		));
+		return brand(accumulator);
 
 	}
 

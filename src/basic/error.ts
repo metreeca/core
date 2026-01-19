@@ -20,6 +20,18 @@
  * Provides utilities for error handling, message formatting, and execution timing
  * to support error reporting and performance analysis.
  *
+ * **Type Guard Assertion**
+ *
+ * Validate values against type guards with automatic error messages:
+ *
+ * ```typescript
+ * import { assert } from '@metreeca/core/error';
+ * import { isString, isNumber } from '@metreeca/core';
+ *
+ * const name = assert(input, isString);  // throws TypeError if not a string
+ * const count = assert(data, isNumber, "count must be numeric");
+ * ```
+ *
  * **Error Throwing in Expressions**
  *
  * Throw errors in expression contexts where statements aren't allowed:
@@ -69,16 +81,15 @@
  * @module
  */
 
-import { isError } from "../index.js";
-import { isNumber, isString } from "./json.js";
+import { type Guard, isError, isNumber, isString } from "../index.js";
 
 
 /**
  * Validates a value against a type guard and returns it.
  *
  * Applies the guard to the value: if it passes, returns the value; otherwise, throws a `TypeError`. When no custom
- * message is provided, generates a descriptive message from the guard function name (e.g., `isNonEmptyString` produces
- * "expected non empty string").
+ * message is provided, generates a descriptive message from the guard function name (e.g., `isString` produces
+ * "expected string").
  *
  * @param value The value to validate
  * @param guard The type guard function to apply
@@ -88,7 +99,7 @@ import { isNumber, isString } from "./json.js";
  *
  * @throws {TypeError} When the guard returns `false`
  */
-export function assert<T>(value: unknown, guard: (v: unknown) => v is T, message?: string): T {
+export function assert<T>(value: unknown, guard: Guard<T>, message?: string): T {
 
 	return guard(value) ? value : error(new TypeError(message ?? defaultMessage(guard)));
 
