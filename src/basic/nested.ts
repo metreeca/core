@@ -146,8 +146,9 @@ export function equals(x: unknown, y: unknown, equal: (x: unknown, y: unknown) =
 			: equal(x, y);
 }
 
+
 /**
- * Creates an immutable deep clone, optionally validating against a type guard.
+ * Creates an immutable deep clone.
  *
  * Values are processed according to their type:
  *
@@ -156,14 +157,37 @@ export function equals(x: unknown, y: unknown, equal: (x: unknown, y: unknown) =
  * - **Returned as-is**: primitives, functions, and non-plain objects (for example, `Date`, `Map`, `Set`, class
  *   instances, or objects with `null` prototype)
  *
- * When a type guard is provided, validates `value` before freezing:
+ * This function is idempotent: calling it multiple times on the same value returns the same reference after the first
+ * call, making it safe and efficient to use defensively.
+ *
+ * > [!CAUTION]
+ * > **Circular references are not supported**. Do not pass objects with cycles.
+ *
+ * @typeParam T The type of the value to be cloned
+ *
+ * @param value The value to make immutable
+ *
+ * @returns A deeply frozen clone of `value`
+ *
+ * @throws {RangeError} Stack overflow when `value` contains circular references
+ */
+export function immutable<T>(value: T): T;
+
+/**
+ * Creates an immutable deep clone, validating against a type guard.
+ *
+ * Values are processed according to their type:
+ *
+ * - **Cloned and frozen**: {@link isObject plain objects} and {@link isArray arrays}; nested structures are cloned
+ *   recursively; accessor properties are preserved as read-only (getters only, setters removed)
+ * - **Returned as-is**: primitives, functions, and non-plain objects (for example, `Date`, `Map`, `Set`, class
+ *   instances, or objects with `null` prototype)
+ *
+ * Validates `value` against the guard before freezing:
  *
  * - **Plain objects and arrays**: memoizes validation; subsequent calls with the same guard skip re-validation and
  *   return the same reference; calls with a different guard trigger revalidation and rebranding
  * - **Other values**: validated on every call
- *
- * This function is idempotent: calling it multiple times on the same value with the same guard returns the same
- * reference after the first call, making it safe and efficient to use defensively.
  *
  * > [!CAUTION]
  * > **Circular references are not supported**. Do not pass objects with cycles.
@@ -171,18 +195,23 @@ export function equals(x: unknown, y: unknown, equal: (x: unknown, y: unknown) =
  * > [!IMPORTANT]
  * > **Guards must have stable identity**. Use module-level named functions or `const` lambdas.
  *
- * @typeParam T The type of the value to be cloned
+ * @typeParam T The validated type of the returned clone
  *
  * @param value The value to make immutable
- * @param guard Optional type guard function to validate `value`
+ * @param guard Type guard function to validate `value`
  * @param message Optional error message when validation fails
  *
- * @returns A deeply frozen clone of `value`, branded with the guard if provided
+ * @returns A deeply frozen clone of `value`, branded with the guard
  *
  * @throws {TypeError} When the guard returns `false`
  * @throws {RangeError} Stack overflow when `value` contains circular references
  */
-export function immutable<T>(value: T, guard?: Guard<T>, message?: string): T {
+export function immutable<T>(value: unknown, guard: Guard<T>, message?: string): T;
+
+/**
+ * Creates an immutable deep clone, optionally validating against a type guard.
+ */
+export function immutable(value: unknown, guard?: Guard, message?: string): unknown {
 
 	// actual: existing brand stored on value
 	// target: expected brand (explicit guard, existing, or default)
@@ -220,14 +249,14 @@ export function immutable<T>(value: T, guard?: Guard<T>, message?: string): T {
 	 *
 	 * @returns The frozen and branded value
 	 */
-	function brand(value: object): T {
+	function brand(value: object): unknown {
 
 		Object.defineProperty(value, Immutable, {
 			value: target,
 			enumerable: false
 		});
 
-		return Object.freeze(value) as T;
+		return Object.freeze(value);
 
 	}
 
@@ -244,7 +273,7 @@ export function immutable<T>(value: T, guard?: Guard<T>, message?: string): T {
 	 * Property descriptors omit `writable` and `configurable` attributes since
 	 * `Object.freeze()` will make all properties non-writable and non-configurable.
 	 */
-	function freeze(value: T & object, accumulator: {}): T {
+	function freeze(value: object, accumulator: {}): unknown {
 
 		Reflect.ownKeys(value).forEach(key => {
 

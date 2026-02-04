@@ -22,7 +22,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `key` symbol for open template validation in `isObject`
 - `assert` validation function in `error` module
 - `asIdentifier`, `asBoolean`, `asNumber`, `asString`, `asArray`, `asObject` validating cast functions
-- Optional `guard` parameter to `immutable` for type guard validation with memoization
+- `immutable(value, guard)` overload for type guard validation with memoization
 - `IdentifierPattern` regex constant for ECMAScript identifier validation
 - `TagPattern` regex constant for BCP 47 language tag validation
 - `TagRangePattern` regex constant for BCP 47 extended language range validation

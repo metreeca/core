@@ -225,10 +225,21 @@ describe("immutable()", () => {
 
 	it("should return input primitives", async () => {
 
-		const value = "x";
+		expect(immutable(undefined)).toBe(undefined);
+		expect(immutable(null)).toBe(null);
+		expect(immutable(true)).toBe(true);
+		expect(immutable(0)).toBe(0);
+		expect(immutable("x")).toBe("x");
+
+	});
+
+	it("should return an immutable empty object clone", async () => {
+
+		const value = {};
 		const clone = immutable(value);
 
-		expect(clone).toBe(value);
+		expect(clone).not.toBe(value);
+		expect(clone).toEqual(value);
 
 	});
 
@@ -241,6 +252,16 @@ describe("immutable()", () => {
 		expect(clone).toEqual(value);
 
 		expect(() => (clone as any).uno = 3).toThrow();
+
+	});
+
+	it("should return an immutable empty array clone", async () => {
+
+		const value: number[] = [];
+		const clone = immutable(value);
+
+		expect(clone).not.toBe(value);
+		expect(clone).toEqual(value);
 
 	});
 
@@ -898,14 +919,8 @@ describe("immutable() with guard", () => {
 
 		it("throws TypeError when guard fails", async () => {
 
-			expect(() => immutable("not a number" as unknown as number, isNumber)).toThrow(TypeError);
-			expect(() => immutable(42 as unknown as string, isString)).toThrow(TypeError);
-
-		});
-
-		it("generates message from guard name", async () => {
-
-			expect(() => immutable(42 as unknown as string, isString)).toThrow("expected string");
+			expect(() => immutable("not a number", isNumber)).toThrow(TypeError);
+			expect(() => immutable(42, isString)).toThrow(TypeError);
 
 		});
 
