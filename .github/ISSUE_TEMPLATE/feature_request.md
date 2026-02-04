@@ -2,11 +2,10 @@
 name: "Feature Request"
 about: "Suggest an idea for this project"
 title: "What's missing from @metreeca/core?"
-labels: "Story"
-assignees: ""
+type: "Feature"
 ---
 
-**challenge / use case**
+**challenge / use case**s
 
 *What is the challenge you are facing or the use case you are proposing?*
 
