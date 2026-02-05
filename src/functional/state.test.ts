@@ -16,7 +16,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { manageState, State, createState, Version } from "./state.js";
+import { createState, manageState, State, Version } from "./state.js";
 
 
 describe("State()", () => {
@@ -751,12 +751,13 @@ describe("State observers", () => {
 		it("should return new state with observer attached", () => {
 			interface Counter extends State {
 				readonly count: number;
+
 				increment(): this;
 			}
 
 			const s = createState<Counter>({
 				count: 0,
-				increment() { return { count: this.count + 1 }; }
+				increment() { return { count: this.count+1 }; }
 			});
 
 			const observer = () => {};
@@ -841,12 +842,13 @@ describe("State observers", () => {
 		it("should preserve other observers when detaching one", () => {
 			interface Counter extends State {
 				readonly count: number;
+
 				increment(): this;
 			}
 
 			const s = createState<Counter>({
 				count: 0,
-				increment() { return { count: this.count + 1 }; }
+				increment() { return { count: this.count+1 }; }
 			});
 
 			let observer1Called = false;
@@ -891,12 +893,13 @@ describe("State observers", () => {
 		it("should notify observer on state change", async () => {
 			interface Counter extends State {
 				readonly count: number;
+
 				increment(): this;
 			}
 
 			const s = createState<Counter>({
 				count: 0,
-				increment() { return { count: this.count + 1 }; }
+				increment() { return { count: this.count+1 }; }
 			});
 
 			let notified = false;
@@ -914,12 +917,13 @@ describe("State observers", () => {
 		it("should pass new state to observer", async () => {
 			interface Counter extends State {
 				readonly count: number;
+
 				increment(): this;
 			}
 
 			const s = createState<Counter>({
 				count: 0,
-				increment() { return { count: this.count + 1 }; }
+				increment() { return { count: this.count+1 }; }
 			});
 
 			const nextHolder: (typeof s)[] = [];
@@ -939,12 +943,13 @@ describe("State observers", () => {
 		it("should notify all observers", async () => {
 			interface Counter extends State {
 				readonly count: number;
+
 				increment(): this;
 			}
 
 			const s = createState<Counter>({
 				count: 0,
-				increment() { return { count: this.count + 1 }; }
+				increment() { return { count: this.count+1 }; }
 			});
 
 			let observer1Called = false;
@@ -969,6 +974,7 @@ describe("State observers", () => {
 		it("should NOT notify when state doesn't change (same-state optimization)", async () => {
 			interface Counter extends State {
 				readonly count: number;
+
 				noop(): this;
 			}
 
@@ -991,12 +997,13 @@ describe("State observers", () => {
 		it("should notify asynchronously using microtasks", () => {
 			interface Counter extends State {
 				readonly count: number;
+
 				increment(): this;
 			}
 
 			const s = createState<Counter>({
 				count: 0,
-				increment() { return { count: this.count + 1 }; }
+				increment() { return { count: this.count+1 }; }
 			});
 
 			let notified = false;
@@ -1016,12 +1023,13 @@ describe("State observers", () => {
 		it("should inherit observers through state transitions", async () => {
 			interface Counter extends State {
 				readonly count: number;
+
 				increment(): this;
 			}
 
 			const s = createState<Counter>({
 				count: 0,
-				increment() { return { count: this.count + 1 }; }
+				increment() { return { count: this.count+1 }; }
 			});
 
 			let callCount = 0;
@@ -1038,13 +1046,15 @@ describe("State observers", () => {
 		it("should preserve observers through chained actions", async () => {
 			interface Counter extends State {
 				readonly count: number;
+
 				increment(): this;
+
 				reset(): this;
 			}
 
 			const s = createState<Counter>({
 				count: 0,
-				increment() { return { count: this.count + 1 }; },
+				increment() { return { count: this.count+1 }; },
 				reset() { return { count: 0 }; }
 			});
 
@@ -1066,12 +1076,13 @@ describe("State observers", () => {
 		it("should work with destructured methods", async () => {
 			interface Counter extends State {
 				readonly count: number;
+
 				increment(): this;
 			}
 
 			const s = createState<Counter>({
 				count: 0,
-				increment() { return { count: this.count + 1 }; }
+				increment() { return { count: this.count+1 }; }
 			});
 
 			let notified = false;
@@ -1094,15 +1105,16 @@ describe("State observers", () => {
 		it("should continue notifying other observers after error", async () => {
 			interface Counter extends State {
 				readonly count: number;
+
 				increment(): this;
 			}
 
 			const s = createState<Counter>({
 				count: 0,
-				increment() { return { count: this.count + 1 }; }
+				increment() { return { count: this.count+1 }; }
 			});
 
-			const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+			const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
 			let observer2Called = false;
 			let observer3Called = false;
@@ -1126,12 +1138,13 @@ describe("State observers", () => {
 		it("should complete state transition even if observer throws", async () => {
 			interface Counter extends State {
 				readonly count: number;
+
 				increment(): this;
 			}
 
 			const s = createState<Counter>({
 				count: 0,
-				increment() { return { count: this.count + 1 }; }
+				increment() { return { count: this.count+1 }; }
 			});
 
 			const throwingObserver = () => { throw new Error("Error"); };
@@ -1149,12 +1162,13 @@ describe("State observers", () => {
 		it("should handle empty observer list", () => {
 			interface Counter extends State {
 				readonly count: number;
+
 				increment(): this;
 			}
 
 			const s = createState<Counter>({
 				count: 0,
-				increment() { return { count: this.count + 1 }; }
+				increment() { return { count: this.count+1 }; }
 			});
 
 			// Should not throw
@@ -1183,12 +1197,13 @@ describe("State observers", () => {
 		it("should work with parameterized actions", async () => {
 			interface Counter extends State {
 				readonly count: number;
+
 				add(delta: number): this;
 			}
 
 			const s = createState<Counter>({
 				count: 0,
-				add(delta) { return { count: this.count + delta }; }
+				add(delta) { return { count: this.count+delta }; }
 			});
 
 			let receivedCount = 0;
@@ -1206,13 +1221,14 @@ describe("State observers", () => {
 			interface Point extends State {
 				readonly x: number;
 				readonly y: number;
+
 				move(dx: number, dy: number): this;
 			}
 
 			const s = createState<Point>({
 				x: 0,
 				y: 0,
-				move(dx, dy) { return { x: this.x + dx, y: this.y + dy }; }
+				move(dx, dy) { return { x: this.x+dx, y: this.y+dy }; }
 			});
 
 			const receivedPoint = await new Promise<Point>(resolve => {

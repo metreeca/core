@@ -15,7 +15,7 @@
  */
 
 import { assertType, describe, expectTypeOf, test } from "vitest";
-import { Option, createRelay } from "./relay.js";
+import { createRelay, Option } from "./relay.js";
 
 
 describe("Relay", () => {
@@ -66,7 +66,7 @@ describe("Relay", () => {
 
 			// @ts-expect-error - handler should accept string, not number
 			createRelay<TestOptions>({ string: "test" })({
-				string: (v: number) => v * 2,
+				string: (v: number) => v*2,
 				boolean: (b) => b ? "true" : "false",
 				number: (n) => n.toString()
 			});
@@ -100,7 +100,7 @@ describe("Relay", () => {
 
 			const result = createRelay<TestOptions>({ string: "test" })({
 				boolean: (b) => b ? 1 : 0,
-				number: (n) => n * 2,
+				number: (n) => n*2,
 				string: (v) => v.length
 			});
 
@@ -128,7 +128,7 @@ describe("Relay", () => {
 
 			createRelay<TestOptions>({ string: "test" })({
 					string: (v) => v.length,
-					number: (n) => n * 2,
+					number: (n) => n*2,
 					boolean: (b) => b ? 1 : 0
 				},
 				// @ts-expect-error - fallback returns string but R should be number

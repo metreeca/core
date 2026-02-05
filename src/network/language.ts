@@ -76,7 +76,7 @@ import { isString } from "../index.js";
  * @see {@link https://www.rfc-editor.org/info/bcp47 BCP 47 - Tags for Identifying Languages}
  * @see {@link https://www.rfc-editor.org/rfc/rfc5646.html RFC 5646 - Tags for Identifying Languages}
  */
- const TagPattern = (() => {
+const TagPattern = (() => {
 
 	const language = "(?:[a-z]{2,3}(?:-[a-z]{3}){0,3}|[a-z]{4}|[a-z]{5,8})"; // 2-3 + extlang / 4 / 5-8 letters
 	const script = "(?:-[a-z]{4})?"; // optional 4-letter script
@@ -99,7 +99,7 @@ import { isString } from "../index.js";
  * @see {@link https://www.rfc-editor.org/info/bcp47 BCP 47 - Tags for Identifying Languages}
  * @see {@link https://www.rfc-editor.org/rfc/rfc4647.html RFC 4647 - Matching of Language Tags}
  */
- const TagRangePattern = /^(?:[a-z]{1,8}|\*)(?:-(?:[a-z0-9]{1,8}|\*))*$/i;
+const TagRangePattern = /^(?:[a-z]{1,8}|\*)(?:-(?:[a-z0-9]{1,8}|\*))*$/i;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -282,7 +282,7 @@ export function asTagRange(value: string): TagRange {
  * @see {@link Tag}
  * @see {@link TagRange}
  */
-export function matchTag(tag: string|Tag, range: string|TagRange): boolean {
+export function matchTag(tag: string | Tag, range: string | TagRange): boolean {
 
 	const tagSubtags = asTag(tag).toLowerCase().split("-");
 	const rangeSubtags = asTagRange(range).toLowerCase().split("-");
@@ -318,7 +318,7 @@ export function matchTag(tag: string|Tag, range: string|TagRange): boolean {
 		const found = targetIndex !== -1 && !blockedBySingleton;
 
 		return found
-			? { matched: true, remaining: subtags.slice(targetIndex + 1) }
+			? { matched: true, remaining: subtags.slice(targetIndex+1) }
 			: { matched: false, remaining: [] };
 
 	}

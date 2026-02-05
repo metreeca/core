@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-import type { Guard } from "../index.js";
-
 import { assertType, describe, expectTypeOf, test } from "vitest";
+import type { Guard } from "../index.js";
 
 import { immutable } from "./nested.js";
 

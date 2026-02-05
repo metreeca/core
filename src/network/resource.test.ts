@@ -16,16 +16,16 @@
 
 import { describe, expect, it, vi } from "vitest";
 import {
-	createFetch,
-	internalize,
 	asIRI,
+	asURI,
+	createFetch,
+	createNamespace,
+	internalize,
 	isIRI,
 	isURI,
-	createNamespace,
 	type Problem,
 	relativize,
-	resolve,
-	asURI
+	resolve
 } from "./resource.js";
 
 

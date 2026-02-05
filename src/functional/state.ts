@@ -622,7 +622,7 @@ export function createState<T extends State>(seed: Seed<T>): Instance<T> {
  *
  * @throws Error if the object is not a valid state instance
  */
-export function manageState<T extends State>(instance	: Instance<T>): Manager<T> {
+export function manageState<T extends State>(instance: Instance<T>): Manager<T> {
 
 	if ( instance === null || typeof instance !== "object" || !(Manager in instance) ) {
 		throw new Error("not a state instance");

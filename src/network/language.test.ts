@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { isTagRange, isTag, matchTag, asTagRange, asTag } from "./language.js";
+import { asTag, asTagRange, isTag, isTagRange, matchTag } from "./language.js";
 
 
 const tags = {

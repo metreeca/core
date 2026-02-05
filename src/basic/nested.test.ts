@@ -205,10 +205,10 @@ describe("equals()", () => {
 			const tolerance = 0.001;
 			const approxEqual = (x: unknown, y: unknown) =>
 				typeof x === "number" && typeof y === "number"
-					? Math.abs(x - y) < tolerance
+					? Math.abs(x-y) < tolerance
 					: Object.is(x, y);
 
-			expect(equals(0.1 + 0.2, 0.3, approxEqual)).toBeTruthy();
+			expect(equals(0.1+0.2, 0.3, approxEqual)).toBeTruthy();
 			expect(equals({ value: 1.0001 }, { value: 1.0002 }, approxEqual)).toBeTruthy();
 			expect(equals([0.1, 0.2], [0.1001, 0.2001], approxEqual)).toBeTruthy();
 
@@ -1180,4 +1180,4 @@ describe("immutable() with guard", () => {
 
 	});
 
-})
+});

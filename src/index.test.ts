@@ -25,6 +25,7 @@ import {
 	isError,
 	isFunction,
 	isIdentifier,
+	isIntersection,
 	isIterable,
 	isLiteral,
 	isNull,
@@ -36,7 +37,6 @@ import {
 	isString,
 	isSymbol,
 	isUnion,
-	isIntersection,
 	isValue,
 	key
 } from "./index.js";

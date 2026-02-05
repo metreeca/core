@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { Handlers, createRelay } from "./relay.js";
+import { createRelay, Handlers } from "./relay.js";
 
 describe("relay()", () => {
 

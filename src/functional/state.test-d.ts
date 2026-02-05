@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { assertType, describe, expectTypeOf, test } from "vitest";
+import { describe, expectTypeOf, test } from "vitest";
 import { createState, State } from "./state.js";
 
 
@@ -26,6 +26,7 @@ describe("State", () => {
 
 			interface InvalidReturnType extends State {
 				readonly value: number;
+
 				step(): string;
 			}
 
@@ -41,6 +42,7 @@ describe("State", () => {
 
 			interface InvalidPromiseReturn extends State {
 				readonly data: string;
+
 				load(): Promise<this>;
 			}
 
@@ -60,6 +62,7 @@ describe("State", () => {
 
 			interface ValidInterface extends State {
 				readonly value: number;
+
 				increment(): this;
 			}
 
@@ -76,6 +79,7 @@ describe("State", () => {
 			interface RequiredData extends State {
 				readonly value: number;
 				readonly label: string;
+
 				update(): this;
 			}
 
@@ -95,6 +99,7 @@ describe("State", () => {
 
 			interface Adder extends State {
 				readonly value: number;
+
 				add(delta: number): this;
 			}
 
@@ -102,7 +107,7 @@ describe("State", () => {
 				value: 0,
 				// @ts-expect-error - transition expects [number] but receives [string]
 				add(delta: string) {
-					return { value: this.value + Number(delta) };
+					return { value: this.value+Number(delta) };
 				}
 			});
 
@@ -112,6 +117,7 @@ describe("State", () => {
 
 			interface Multiplier extends State {
 				readonly value: number;
+
 				multiply(x: number, y: number): this;
 			}
 
@@ -119,7 +125,7 @@ describe("State", () => {
 				value: 1,
 				// @ts-expect-error - transition expects 2 parameters but receives 3
 				multiply(x: number, y: number, z: number) {
-					return { value: this.value * x * y * z };
+					return { value: this.value*x*y*z };
 				}
 			});
 
@@ -129,6 +135,7 @@ describe("State", () => {
 
 			interface InvalidParamReturn extends State {
 				readonly items: readonly string[];
+
 				add(item: string): string; // returns string instead of this
 			}
 
@@ -146,6 +153,7 @@ describe("State", () => {
 
 			interface OptionalParam extends State {
 				readonly count: number;
+
 				increment(delta?: number): this;
 			}
 
@@ -153,7 +161,7 @@ describe("State", () => {
 				count: 0,
 				// @ts-expect-error - optional parameter has wrong type (string instead of number | undefined)
 				increment(delta?: string) {
-					return { count: this.count + (Number(delta) || 1) };
+					return { count: this.count+(Number(delta) || 1) };
 				}
 			});
 
@@ -167,6 +175,7 @@ describe("State", () => {
 
 			interface ValidSimple extends State {
 				readonly value: number;
+
 				step(): this;
 			}
 
@@ -186,16 +195,19 @@ describe("State", () => {
 			interface ValidMultiAction extends State {
 				readonly count: number;
 				readonly delta: number;
+
 				increment(): this;
+
 				decrement(): this;
+
 				reset(): this;
 			}
 
 			const s = createState<ValidMultiAction>({
 				count: 0,
 				delta: 1,
-				increment() { return { count: this.count + this.delta }; },
-				decrement() { return { count: this.count - this.delta }; },
+				increment() { return { count: this.count+this.delta }; },
+				decrement() { return { count: this.count-this.delta }; },
 				reset() { return { count: 0 }; }
 			});
 
@@ -212,6 +224,7 @@ describe("State", () => {
 			interface ValidOptional extends State {
 				readonly value: number;
 				readonly label?: string;
+
 				setValue(): this;
 			}
 
@@ -247,6 +260,7 @@ describe("State", () => {
 			interface Counter extends State {
 				readonly count: number;
 				readonly delta: number;
+
 				increment(): this;
 			}
 
@@ -254,7 +268,7 @@ describe("State", () => {
 				count: 0,
 				delta: 1,
 				increment() {
-					return { count: this.count + this.delta };
+					return { count: this.count+this.delta };
 				}
 			});
 
