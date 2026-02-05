@@ -144,8 +144,8 @@
  * @see {@link https://datatracker.ietf.org/doc/html/rfc7807 RFC 7807 - Problem Details for HTTP APIs}
  */
 
-import { immutable } from "../basic/nested.js";
 import { error } from "../basic/error.js";
+import { immutable } from "../basic/nested.js";
 import { isString, type Value } from "../index.js";
 
 
@@ -194,7 +194,7 @@ function normalize<T extends URI | IRI>(value: unknown, variant: Variant): T | u
 
 	// variant validation (hierarchy: hierarchical ⊂ absolute ⊂ internal ⊂ relative)
 
-	const isHierarchical = hasScheme && normalized.startsWith(normalized.slice(0, normalized.indexOf(":")+1)+"//");
+	const isHierarchical = hasScheme && normalized.charAt(normalized.indexOf(":")+1) === "/";
 	const isAbsolute = hasScheme && normalized.indexOf(":") < normalized.length-1;
 	const isInternal = isAbsolute || normalized.startsWith("/");
 
@@ -276,16 +276,22 @@ export type IRI = string
 /**
  * Identifier variant per RFC 3986 §§ 4.2-4.3.
  *
- * - `"hierarchical"`: Absolute with authority (e.g., `http://example.org/path`) — can be used as resolution base
- * - `"absolute"`: Contains scheme (e.g., `http://example.org/path`, `urn:example:resource`)
- * - `"internal"`: Root-relative path starting with `/` (e.g., `/path`)
- * - `"relative"`: Reference without scheme (e.g., `../path`, `path`)
+ * - `"hierarchical"`: Absolute with hierarchical path (`http://example.org/path`, `app:/path`)
+ * - `"absolute"`: Contains scheme (`http://example.org/path`, `urn:example:resource`)
+ * - `"internal"`: Root-relative path starting with `/` (`/path`)
+ * - `"relative"`: Reference without scheme (`../path`, `path`)
  *
  * @remarks
  *
  * - Variants form an inclusivity hierarchy: `hierarchical ⊂ absolute ⊂ internal ⊂ relative`
+ *
+ * - The `"hierarchical"` variant requires an absolute URI with a path starting with `/`;
+ *   authority is optional per RFC 3986 § 3 `hier-part` grammar (`path-absolute` alternative);
+ *   reference resolution is supported per RFC 3986 § 5.2.3
+ *
  * - The `"internal"` variant is project-specific, not formally defined in RFC 3986
- * - For opaque URIs (e.g., `urn:`, `mailto:`), reference operations adapt their behaviour:
+ *
+ * - For non-hierarchical (opaque) URIs such as `urn:` or `mailto:`, reference operations adapt:
  *   - {@link resolve}: Throws `RangeError` for relative references (no standard resolution)
  *   - {@link internalize}: Returns scheme-specific part if schemes match
  *   - {@link relativize}: Returns scheme-specific part if schemes match
@@ -404,7 +410,7 @@ export function isURI(value: unknown, variant: Variant = "relative"): value is U
  *
  * Validates IRIs according to RFC 3987 with variant-specific rules:
  *
- * - `"hierarchical"`: Absolute with authority (`scheme://...`) — can be used as resolution base
+ * - `"hierarchical"`: Absolute with root-relative path (`scheme:/...`) — can be used as resolution base
  * - `"absolute"`: Hierarchical or opaque (`scheme:...`)
  * - `"internal"`: Root-relative (`/...`) or absolute
  * - `"relative"`: Any well-formed reference
@@ -505,7 +511,7 @@ export function asIRI(value: string, variant: Variant = "relative"): IRI {
  * @remarks
  *
  * While RFC 3986 § 5 defines a path-merging algorithm that technically applies to all URI schemes, opaque identifiers
- * lack a hierarchical authority component, making relative resolution semantically undefined in practice. The WHATWG
+ * lack a hierarchical path structure, making relative resolution semantically undefined in practice. The WHATWG
  * URL Standard follows RFC 6454, which assigns opaque origins (serialized as the string `"null"`) to such URIs,
  * explicitly preventing same-origin comparisons and relative resolution.
  *
@@ -526,17 +532,20 @@ export function asIRI(value: string, variant: Variant = "relative"): IRI {
  * @see {@link https://www.rfc-editor.org/rfc/rfc6454#section-4 RFC 6454 § 4 - Origin of a URI}
  * @see {@link https://url.spec.whatwg.org/#origin WHATWG URL Standard - Origin}
  */
-export function resolve<T extends URI | IRI>(base: string|T, reference: string|T): T {
+export function resolve<T extends URI | IRI>(base: string | T, reference: string | T): T {
 
 	const normalizedBase = normalize<T>(base, "absolute") ?? invalid(base, "absolute");
 	const normalizedReference = normalize<T>(reference, "relative") ?? invalid(reference, "relative");
 
 	const baseURL = new URL(normalizedBase);
 
-	// opaque base URI: URL API can't resolve relative references
+	const opaqueBase = !baseURL.pathname.startsWith("/");
+	const relativeReference = !SchemePattern.test(normalizedReference);
 
-	return baseURL.origin === "null" && !SchemePattern.test(normalizedReference)
-		? error(new RangeError(`cannot resolve <${normalizedReference}> against opaque <${normalizedBase}>`))
+	return opaqueBase && relativeReference
+		? error(new RangeError(
+			`cannot resolve relative <${normalizedReference}> against non-hierarchical <${normalizedBase}>`
+		))
 		: merge(baseURL, normalizedReference).href as T;
 
 }
@@ -556,7 +565,7 @@ export function resolve<T extends URI | IRI>(base: string|T, reference: string|T
  *
  * @throws RangeError If the resolved path contains tree-climbing segments that would go above the root
  */
-export function internalize<T extends URI | IRI>(base: string|T, reference: string|T): T {
+export function internalize<T extends URI | IRI>(base: string | T, reference: string | T): T {
 
 	const normalizedBase = normalize<T>(base, "absolute") ?? invalid(base, "absolute");
 	const normalizedReference = normalize<T>(reference, "relative") ?? invalid(reference, "relative");
@@ -600,7 +609,7 @@ export function internalize<T extends URI | IRI>(base: string|T, reference: stri
  *
  * @throws RangeError If the resolved path contains tree-climbing segments that would go above the root
  */
-export function relativize<T extends URI | IRI>(base: string|T, reference: string|T): T {
+export function relativize<T extends URI | IRI>(base: string | T, reference: string | T): T {
 
 	const normalizedBase = normalize<T>(base, "absolute") ?? invalid(base, "absolute");
 	const normalizedReference = normalize<T>(reference, "relative") ?? invalid(reference, "relative");
@@ -685,9 +694,9 @@ export function relativize<T extends URI | IRI>(base: string|T, reference: strin
  * **Closed namespaces** (terms provided): Restrict access to predefined terms only, throwing errors
  * for undefined term names.
  */
-export function createNamespace<const T extends readonly string[]>(namespace: string|IRI, terms?: T): Namespace & Terms<T> {
+export function createNamespace<const T extends readonly string[]>(namespace: string | IRI, terms?: T): Namespace & Terms<T> {
 
-	const ns=asIRI(namespace); // validate namespace eagerly
+	const ns = asIRI(namespace); // validate namespace eagerly
 
 	const dictionary = Object.fromEntries((terms ?? []).map(term => [term, asIRI(ns+term)])) as Terms<T>;
 

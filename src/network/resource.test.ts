@@ -30,6 +30,22 @@ import {
 
 
 const iris = {
+	hierarchical: {
+		valid: [
+			"http://example.com/path", // with authority
+			"https://example.com/", // with authority, root path
+			"app:/path", // no authority, root-relative path
+			"app:/", // no authority, root path only
+			"file:///path/to/file" // empty authority, root-relative path
+		],
+		invalid: [
+			{ value: "urn:example:resource", reason: "opaque URI (no root-relative path)" },
+			{ value: "mailto:user@example.com", reason: "opaque URI" },
+			{ value: "app:path", reason: "no root-relative path (path-rootless)" },
+			{ value: "/path", reason: "no scheme" },
+			{ value: "path", reason: "relative reference" }
+		]
+	},
 	absolute: {
 		valid: [
 			"http://www.w3.org/2001/XMLSchema#integer",
@@ -173,36 +189,76 @@ describe("isURI()", () => {
 
 describe("isIRI()", () => {
 
-	it("should return true for valid absolute IRIs", () => {
-		iris.absolute.valid.forEach(value => {
-			expect(isIRI(value)).toBe(true);
+	describe("hierarchical variant", () => {
+
+		it("should return true for absolute IRIs with root-relative path", async () => {
+			iris.hierarchical.valid.forEach(value => {
+				expect(isIRI(value, "hierarchical")).toBe(true);
+			});
 		});
+
+		it("should return true for absolute hierarchical IRIs with authority", async () => {
+			const hierarchicalWithAuthority = iris.absolute.valid.filter(v => v.includes("://"));
+			hierarchicalWithAuthority.forEach(value => {
+				expect(isIRI(value, "hierarchical")).toBe(true);
+			});
+		});
+
+		it("should return false for opaque URIs and relative references", async () => {
+			iris.hierarchical.invalid.forEach(({ value }) => {
+				expect(isIRI(value, "hierarchical")).toBe(false);
+			});
+		});
+
 	});
 
-	it("should return false for invalid absolute IRIs", () => {
-		iris.absolute.invalid.forEach(({ value }) => {
-			expect(isIRI(value, "absolute")).toBe(false);
+	describe("absolute variant", () => {
+
+		it("should return true for valid absolute IRIs", async () => {
+			iris.absolute.valid.forEach(value => {
+				expect(isIRI(value)).toBe(true);
+			});
 		});
+
+		it("should return false for invalid absolute IRIs", async () => {
+			iris.absolute.invalid.forEach(({ value }) => {
+				expect(isIRI(value, "absolute")).toBe(false);
+			});
+		});
+
 	});
 
-	it("should return true for valid relative IRIs with relative variant", () => {
-		iris.relative.valid.forEach(value => {
-			expect(isIRI(value, "relative")).toBe(true);
+	describe("relative variant", () => {
+
+		it("should return true for valid relative IRIs", async () => {
+			iris.relative.valid.forEach(value => {
+				expect(isIRI(value, "relative")).toBe(true);
+			});
 		});
+
+		it("should return false for invalid relative IRIs", async () => {
+			iris.relative.invalid.forEach(({ value }) => {
+				expect(isIRI(value, "relative")).toBe(false);
+			});
+		});
+
 	});
 
-	it("should return false for invalid relative IRIs with relative variant", () => {
-		iris.relative.invalid.forEach(({ value }) => {
-			expect(isIRI(value, "relative")).toBe(false);
-		});
-	});
+	describe("variant hierarchy", () => {
 
-	it("should return false for non-absolute IRIs with absolute variant", () => {
-		// Only test paths without scheme - absolute URIs are valid with "absolute" variant
-		const relativePaths = iris.relative.valid.filter(v => !v.includes("://") && !v.startsWith("urn:"));
-		relativePaths.forEach(value => {
-			expect(isIRI(value, "absolute")).toBe(false);
+		it("should validate hierarchical IRIs as absolute", async () => {
+			iris.hierarchical.valid.forEach(value => {
+				expect(isIRI(value, "absolute")).toBe(true);
+			});
 		});
+
+		it("should return false for non-absolute IRIs with absolute variant", async () => {
+			const relativePaths = iris.relative.valid.filter(v => !v.includes("://") && !v.startsWith("urn:"));
+			relativePaths.forEach(value => {
+				expect(isIRI(value, "absolute")).toBe(false);
+			});
+		});
+
 	});
 
 });
@@ -290,41 +346,83 @@ describe("asURI()", () => {
 
 describe("asIRI()", () => {
 
-	it("should create branded IRI from valid absolute strings", () => {
-		iris.absolute.valid.forEach(value => {
-			expect(() => asIRI(value, "absolute")).not.toThrow();
-			const result = asIRI(value, "absolute");
-			expect(typeof result).toBe("string");
-			expect(result).toBe(value);
+	describe("hierarchical variant", () => {
+
+		it("should create branded IRI from absolute IRIs with root-relative path", async () => {
+			iris.hierarchical.valid.forEach(value => {
+				expect(() => asIRI(value, "hierarchical")).not.toThrow();
+				const result = asIRI(value, "hierarchical");
+				expect(typeof result).toBe("string");
+			});
 		});
+
+		it("should accept absolute hierarchical IRIs with authority", async () => {
+			const hierarchicalWithAuthority = iris.absolute.valid.filter(v => v.includes("://"));
+			hierarchicalWithAuthority.forEach(value => {
+				expect(() => asIRI(value, "hierarchical")).not.toThrow();
+			});
+		});
+
+		it("should throw RangeError for opaque URIs and relative references", async () => {
+			iris.hierarchical.invalid.forEach(({ value }) => {
+				expect(() => asIRI(value, "hierarchical")).toThrow(RangeError);
+			});
+		});
+
 	});
 
-	it("should throw RangeError for invalid absolute IRIs", () => {
-		iris.absolute.invalid.forEach(({ value }) => {
-			expect(() => asIRI(value, "absolute")).toThrow(RangeError);
+	describe("absolute variant", () => {
+
+		it("should create branded IRI from valid absolute strings", async () => {
+			iris.absolute.valid.forEach(value => {
+				expect(() => asIRI(value, "absolute")).not.toThrow();
+				const result = asIRI(value, "absolute");
+				expect(typeof result).toBe("string");
+				expect(result).toBe(value);
+			});
 		});
+
+		it("should throw RangeError for invalid absolute IRIs", async () => {
+			iris.absolute.invalid.forEach(({ value }) => {
+				expect(() => asIRI(value, "absolute")).toThrow(RangeError);
+			});
+		});
+
 	});
 
-	it("should create branded IRI from valid relative strings with relative variant", () => {
-		iris.relative.valid.forEach(value => {
-			expect(() => asIRI(value, "relative")).not.toThrow();
-			const result = asIRI(value, "relative");
-			expect(typeof result).toBe("string");
+	describe("relative variant", () => {
+
+		it("should create branded IRI from valid relative strings", async () => {
+			iris.relative.valid.forEach(value => {
+				expect(() => asIRI(value, "relative")).not.toThrow();
+				const result = asIRI(value, "relative");
+				expect(typeof result).toBe("string");
+			});
 		});
+
+		it("should throw RangeError for invalid relative IRIs", async () => {
+			iris.relative.invalid.forEach(({ value }) => {
+				expect(() => asIRI(value, "relative")).toThrow(RangeError);
+			});
+		});
+
 	});
 
-	it("should throw RangeError for invalid relative IRIs with relative variant", () => {
-		iris.relative.invalid.forEach(({ value }) => {
-			expect(() => asIRI(value, "relative")).toThrow(RangeError);
-		});
-	});
+	describe("variant hierarchy", () => {
 
-	it("should throw RangeError for non-absolute IRIs with absolute variant", () => {
-		// Only test actual relative paths (no scheme) - absolute URIs are valid with "absolute" variant
-		const relativePaths = iris.relative.valid.filter(v => !v.includes("://") && !v.startsWith("urn:"));
-		relativePaths.forEach(value => {
-			expect(() => asIRI(value, "absolute")).toThrow(RangeError);
+		it("should validate hierarchical IRIs as absolute", async () => {
+			iris.hierarchical.valid.forEach(value => {
+				expect(() => asIRI(value, "absolute")).not.toThrow();
+			});
 		});
+
+		it("should throw RangeError for non-absolute IRIs with absolute variant", async () => {
+			const relativePaths = iris.relative.valid.filter(v => !v.includes("://") && !v.startsWith("urn:"));
+			relativePaths.forEach(value => {
+				expect(() => asIRI(value, "absolute")).toThrow(RangeError);
+			});
+		});
+
 	});
 
 	it("should normalize paths by removing . and resolving .. segments", () => {
@@ -364,47 +462,88 @@ describe("asIRI()", () => {
 
 describe("resolve()", () => {
 
-	describe("hierarchical URIs", () => {
+	describe("hierarchical URIs with authority", () => {
 
 		// RFC 3986 § 5.4 reference resolution examples
 
 		const base = asURI("http://example.com/a/b/c");
 
-		it("should resolve relative path against base", () => {
+		it("should resolve relative path against base", async () => {
 			expect(resolve(base, asURI("d", "relative"))).toBe("http://example.com/a/b/d");
 			expect(resolve(base, asURI("d/e", "relative"))).toBe("http://example.com/a/b/d/e");
 		});
 
-		it("should resolve root-relative path against base", () => {
+		it("should resolve root-relative path against base", async () => {
 			expect(resolve(base, asURI("/d", "internal"))).toBe("http://example.com/d");
 			expect(resolve(base, asURI("/d/e", "internal"))).toBe("http://example.com/d/e");
 		});
 
-		it("should resolve empty reference to base", () => {
+		it("should resolve empty reference to base", async () => {
 			expect(resolve(base, asURI("", "relative"))).toBe("http://example.com/a/b/c");
 		});
 
-		it("should resolve fragment-only reference", () => {
+		it("should resolve fragment-only reference", async () => {
 			expect(resolve(base, asURI("#frag", "relative"))).toBe("http://example.com/a/b/c#frag");
 		});
 
-		it("should resolve query-only reference", () => {
+		it("should resolve query-only reference", async () => {
 			expect(resolve(base, asURI("?query", "relative"))).toBe("http://example.com/a/b/c?query");
 		});
 
-		it("should handle dot segments (. and ..)", () => {
+		it("should handle dot segments (. and ..)", async () => {
 			expect(resolve(base, asURI("./d", "relative"))).toBe("http://example.com/a/b/d");
 			expect(resolve(base, asURI("../d", "relative"))).toBe("http://example.com/a/d");
 			expect(resolve(base, asURI("../../d", "relative"))).toBe("http://example.com/d");
 		});
 
-		it("should clip excessive .. segments at root", () => {
+		it("should clip excessive .. segments at root", async () => {
 			expect(resolve(base, asURI("../../../d", "relative"))).toBe("http://example.com/d");
 			expect(resolve(base, asURI("../../../../d", "relative"))).toBe("http://example.com/d");
 		});
 
-		it("should preserve absolute reference with scheme", () => {
+		it("should preserve absolute reference with scheme", async () => {
 			expect(resolve(base, asURI("https://other.com/path"))).toBe("https://other.com/path");
+		});
+
+	});
+
+	describe("hierarchical URIs without authority", () => {
+
+		// RFC 3986 § 5.2.3 — resolution works for authority-less hierarchical URIs
+
+		const base = asIRI("app:/a/b/c", "hierarchical");
+
+		it("should resolve relative path against base", async () => {
+			expect(resolve(base, asIRI("d", "relative"))).toBe("app:/a/b/d");
+			expect(resolve(base, asIRI("d/e", "relative"))).toBe("app:/a/b/d/e");
+		});
+
+		it("should resolve root-relative path against base", async () => {
+			expect(resolve(base, asIRI("/d", "internal"))).toBe("app:/d");
+			expect(resolve(base, asIRI("/d/e", "internal"))).toBe("app:/d/e");
+		});
+
+		it("should resolve empty reference to base", async () => {
+			expect(resolve(base, asIRI("", "relative"))).toBe("app:/a/b/c");
+		});
+
+		it("should resolve fragment-only reference", async () => {
+			expect(resolve(base, asIRI("#frag", "relative"))).toBe("app:/a/b/c#frag");
+		});
+
+		it("should resolve query-only reference", async () => {
+			expect(resolve(base, asIRI("?query", "relative"))).toBe("app:/a/b/c?query");
+		});
+
+		it("should handle dot segments (. and ..)", async () => {
+			expect(resolve(base, asIRI("./d", "relative"))).toBe("app:/a/b/d");
+			expect(resolve(base, asIRI("../d", "relative"))).toBe("app:/a/d");
+			expect(resolve(base, asIRI("../../d", "relative"))).toBe("app:/d");
+		});
+
+		it("should clip excessive .. segments at root", async () => {
+			expect(resolve(base, asIRI("../../../d", "relative"))).toBe("app:/d");
+			expect(resolve(base, asIRI("../../../../d", "relative"))).toBe("app:/d");
 		});
 
 	});

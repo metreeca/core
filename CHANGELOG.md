@@ -15,7 +15,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `isUnion` type guard for validating values against multiple guards (union types)
 - `isOptional` type guard for validating optional values (`undefined | T`)
 - `isLiteral` type guard for validating literal values (single or array of literals)
-- `"hierarchical"` variant for URI/IRI validation (absolute with authority, usable as resolution base)
+- `"hierarchical"` variant for URI/IRI validation (absolute with `/`-rooted path, usable as resolution base)
 - Optional `is` parameter to `isArray`/`asArray` for element validation; receives `(value, index)`
 - Tuple template validation for `isArray` with exact length matching
 - Optional `is` parameter to `isObject`/`asObject` supporting predicate `(value, key)` or template validation
