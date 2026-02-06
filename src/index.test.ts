@@ -27,6 +27,7 @@ import {
 	isIdentifier,
 	isIntersection,
 	isIterable,
+	isLazy,
 	isLiteral,
 	isNull,
 	isNumber,
@@ -34,6 +35,7 @@ import {
 	isOptional,
 	isPromise,
 	isRegExp,
+	isSome,
 	isString,
 	isSymbol,
 	isUnion,
@@ -656,6 +658,104 @@ describe("isObject()", () => {
 	it("should validate empty object with empty template", () => {
 		expect(isObject({}, {})).toBeTruthy();
 		expect(isObject({ a: 1 }, {})).toBeFalsy();
+	});
+
+});
+
+
+describe("isSome()", () => {
+
+	it("should return true for a single value satisfying the guard", async () => {
+		expect(isSome("hello", isString)).toBeTruthy();
+		expect(isSome(42, isNumber)).toBeTruthy();
+		expect(isSome(true, isBoolean)).toBeTruthy();
+	});
+
+	it("should return false for a single value failing the guard", async () => {
+		expect(isSome(42, isString)).toBeFalsy();
+		expect(isSome("hello", isNumber)).toBeFalsy();
+		expect(isSome(null, isString)).toBeFalsy();
+	});
+
+	it("should return true for an array where all elements satisfy the guard", async () => {
+		expect(isSome(["a", "b", "c"], isString)).toBeTruthy();
+		expect(isSome([1, 2, 3], isNumber)).toBeTruthy();
+		expect(isSome([true, false], isBoolean)).toBeTruthy();
+	});
+
+	it("should return false for an array where some elements fail the guard", async () => {
+		expect(isSome(["a", 1, "c"], isString)).toBeFalsy();
+		expect(isSome([1, "two", 3], isNumber)).toBeFalsy();
+	});
+
+	it("should return true for an empty array", async () => {
+		expect(isSome([], isString)).toBeTruthy();
+		expect(isSome([], isNumber)).toBeTruthy();
+	});
+
+	it("should return false for non-matching non-array values", async () => {
+		expect(isSome(undefined, isString)).toBeFalsy();
+		expect(isSome(null, isNumber)).toBeFalsy();
+		expect(isSome({}, isString)).toBeFalsy();
+	});
+
+	it("should work with custom type guards", async () => {
+
+		const isPositive = (v: unknown): v is number => isNumber(v) && v > 0;
+
+		expect(isSome(5, isPositive)).toBeTruthy();
+		expect(isSome([1, 2, 3], isPositive)).toBeTruthy();
+		expect(isSome(-1, isPositive)).toBeFalsy();
+		expect(isSome([1, -2, 3], isPositive)).toBeFalsy();
+
+	});
+
+});
+
+describe("isLazy()", () => {
+
+	it("should return true for a plain value satisfying the guard", async () => {
+		expect(isLazy("hello", isString)).toBeTruthy();
+		expect(isLazy(42, isNumber)).toBeTruthy();
+		expect(isLazy(true, isBoolean)).toBeTruthy();
+	});
+
+	it("should return false for a plain value failing the guard", async () => {
+		expect(isLazy(42, isString)).toBeFalsy();
+		expect(isLazy("hello", isNumber)).toBeFalsy();
+		expect(isLazy(null, isString)).toBeFalsy();
+	});
+
+	it("should return true for a no-arg function", async () => {
+		expect(isLazy(() => "hello", isString)).toBeTruthy();
+		expect(isLazy(() => 42, isNumber)).toBeTruthy();
+	});
+
+	it("should return true for a no-arg function even when guard would fail on non-functions", async () => {
+		expect(isLazy(() => 42, isString)).toBeTruthy();
+		expect(isLazy(() => "hello", isNumber)).toBeTruthy();
+	});
+
+	it("should return false for functions with arguments", async () => {
+		expect(isLazy((x: number) => x, isNumber)).toBeFalsy();
+		expect(isLazy((a: string, b: string) => a + b, isString)).toBeFalsy();
+		expect(isLazy(parseInt, isNumber)).toBeFalsy();
+	});
+
+	it("should return false for non-matching non-function values", async () => {
+		expect(isLazy(undefined, isString)).toBeFalsy();
+		expect(isLazy(null, isNumber)).toBeFalsy();
+		expect(isLazy({}, isString)).toBeFalsy();
+	});
+
+	it("should work with custom type guards", async () => {
+
+		const isPositive = (v: unknown): v is number => isNumber(v) && v > 0;
+
+		expect(isLazy(5, isPositive)).toBeTruthy();
+		expect(isLazy(() => 5, isPositive)).toBeTruthy();
+		expect(isLazy(-1, isPositive)).toBeFalsy();
+
 	});
 
 });

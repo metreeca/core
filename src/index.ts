@@ -535,6 +535,43 @@ export function isObject<T extends Record<PropertyKey, unknown> = Record<Propert
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * Checks if a value is a {@link Some} value, that is either a single value or a readonly array of values.
+ *
+ * @typeParam T The type of the value(s)
+ *
+ * @param value The value to check
+ * @param is A type guard function to validate the value or its array elements
+ *
+ * @returns True if the value satisfies the type guard or is an array where all elements satisfy it; false otherwise
+ */
+export function isSome<T>(value: unknown, is: Guard<T>): value is Some<T> {
+
+	return Array.isArray(value) ? value.every(is) : is(value);
+
+}
+
+/**
+ * Checks if a value is a {@link Lazy} value, that is either a plain value or a no-arg function returning a value.
+ *
+ * @typeParam T The type of the value
+ *
+ * @param value The value to check
+ * @param is A type guard function to validate the value if it is not a function
+ *
+ * @returns True if the value is a no-arg function or satisfies the type guard; false otherwise
+ *
+ * Functions with a non-zero expected argument length are rejected.
+ */
+export function isLazy<T>(value: unknown, is: Guard<T>): value is Lazy<T> {
+
+	return typeof value === "function" && value.length === 0 || is(value);
+
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
  * Wildcard type guard that always succeeds.
  *
  * Mainly intended as a wildcard predicate in {@link isObject} open templates to accept any extra properties.
