@@ -131,8 +131,8 @@
  *
  * });
  *
- * const observer = (version: Version<Counter>) => {
- *   console.log("Count changed:", version.count);
+ * const observer = (state: Counter) => {
+ *   console.log("Count changed:", state.count);
  * };
  *
  * // Get manager and attach observer - returns a new state with the observer attached

@@ -68,15 +68,27 @@
  * ));
  * ```
  *
- * **Handling Nullish Values**
+ * **Reversing Order**
  *
- * Place `null` and `undefined` values first, before comparing others:
+ * Invert an existing comparator:
  *
  * ```typescript
- * import { nullish, ascending } from '@metreeca/core/order';
+ * import { reverse, ascending } from '@metreeca/core/order';
+ *
+ * const numbers = [3, 1, 4, 1, 5];
+ * numbers.sort(reverse(ascending)); // [5, 4, 3, 1, 1]
+ * ```
+ *
+ * **Handling Nullish Values**
+ *
+ * Place `null` and `undefined` values first or last:
+ *
+ * ```typescript
+ * import { nullish, defined, ascending } from '@metreeca/core/order';
  *
  * const values = [3, null, 1, undefined, 2];
  * values.sort(nullish(ascending)); // [null, undefined, 1, 2, 3]
+ * values.sort(defined(ascending)); // [1, 2, 3, null, undefined]
  * ```
  *
  * @module

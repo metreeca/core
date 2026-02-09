@@ -52,6 +52,12 @@
  * isObject({ value: 42 }, { value: v => isUnion(v, [isString, isNumber]) }); // with union field
  * isObject({}, {}); // empty object check
  *
+ * isSome("hello", isString); // true (single value)
+ * isSome(["hello", "world"], isString); // true (array of values)
+ *
+ * isLazy(() => 42, isNumber); // true (no-arg function)
+ * isLazy(42, isNumber); // true (plain value)
+ *
  * isAny("test"); // true (wildcard, always succeeds)
  *
  * isOptional(undefined, isString); // true
@@ -62,6 +68,8 @@
  *
  * isUnion("test", [isString, isNumber]); // true (matches isString)
  * isUnion(42, [isString, isNumber]); // true (matches isNumber)
+ *
+ * isIntersection({ a: 1 }, [isObject, v => isObject(v, { a: isNumber })]); // true (satisfies all)
  * ```
  *
  * @module index
