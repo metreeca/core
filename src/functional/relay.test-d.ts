@@ -104,8 +104,8 @@ describe("Relay", () => {
 				string: (v) => v.length
 			});
 
-			// result is number | undefined because handlers are complete but no fallback
-			expectTypeOf(result).toEqualTypeOf<number | undefined>();
+			// result is number because all handlers are provided
+			expectTypeOf(result).toEqualTypeOf<number>();
 
 		});
 
@@ -183,7 +183,7 @@ describe("Relay", () => {
 				error: (e) => `error: ${e.message}`
 			});
 
-			expectTypeOf(result).toEqualTypeOf<string | undefined>();
+			expectTypeOf(result).toEqualTypeOf<string>();
 
 		});
 

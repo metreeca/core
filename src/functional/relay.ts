@@ -61,6 +61,21 @@
  * });
  * ```
  *
+ * **Delegation to Fallback**
+ *
+ * When a fallback is provided, handlers receive a delegate function to invoke common logic:
+ *
+ * ```typescript
+ * const format = (v: string | Error | void) =>
+ *   v instanceof Error ? `error: ${v.message}` : `value: ${v}`;
+ *
+ * const display = r({
+ *   unset: "Enter email",
+ *   value: (email, delegate) => email.length > 0 ? email : delegate(),
+ *   error: (_err, delegate) => delegate()
+ * }, format);
+ * ```
+ *
  * **Partial Matching without Fallback**
  *
  * Handle specific options only, returning `undefined` for unhandled options:
@@ -81,21 +96,6 @@
  * }, "‹blank›");
  * ```
  *
- * **Delegation to Fallback**
- *
- * When a fallback is provided, handlers receive a delegate function to invoke common logic:
- *
- * ```typescript
- * const format = (v: string | Error | void) =>
- *   v instanceof Error ? `error: ${v.message}` : `value: ${v}`;
- *
- * const display = r({
- *   unset: "Enter email",
- *   value: (email, delegate) => email.length > 0 ? email : delegate(),
- *   error: (_err, delegate) => delegate()
- * }, format);
- * ```
- *
  * @module
  */
 
@@ -108,39 +108,16 @@ import { isDefined, isFunction } from "../index.js";
  * Accepts handlers for each option and returns the result from the matched handler.
  * Four usage patterns are supported:
  *
- * - Some options without fallback: provide handlers for some options only, returns `R | undefined`
- * - Some options with fallback: provide handlers for some options plus a fallback, returns `R`
  * - All options handled: provide a handler for every option, returns `R`
  * - All options with fallback: provide all handlers plus a fallback for delegation, returns `R`
+ * - Some options without fallback: provide handlers for some options only, returns `R | undefined`
+ * - Some options with fallback: provide handlers for some options plus a fallback, returns `R`
  *
  * When a fallback is provided, handlers receive a delegate function to invoke it.
  *
  * @typeParam O The options type defining all possible option variants
  */
 export interface Relay<O extends Options> {
-
-	/**
-	 * Handles some options without a fallback.
-	 *
-	 * @typeParam R The return type of all handlers
-	 *
-	 * @param handlers Partial mapping of option keys to handlers
-	 *
-	 * @returns The result from the matched handler, or `undefined` if no handler matched
-	 */<R>(handlers: Partial<Handlers<O, R>>): undefined | R;
-
-	/**
-	 * Handles some options with a fallback handler for unmatched options.
-	 *
-	 * Handlers receive a delegate function that can be called to invoke the fallback.
-	 *
-	 * @typeParam R The return type of all handlers
-	 *
-	 * @param handlers Partial mapping of option keys to delegating handlers
-	 * @param fallback Fallback handler receiving union of option values
-	 *
-	 * @returns The result from the matched handler or fallback
-	 */<R>(handlers: Partial<Handlers<O, R, () => R>>, fallback: Handler<O[keyof O], R>): R;
 
 	/**
 	 * Handles all options with complete handlers.
@@ -165,6 +142,29 @@ export interface Relay<O extends Options> {
 	 *
 	 * @returns The result from the matched handler or fallback
 	 */<R>(handlers: Handlers<O, R, () => R>, fallback: Handler<O[keyof O], R>): R;
+
+	/**
+	 * Handles some options without a fallback.
+	 *
+	 * @typeParam R The return type of all handlers
+	 *
+	 * @param handlers Partial mapping of option keys to handlers
+	 *
+	 * @returns The result from the matched handler, or `undefined` if no handler matched
+	 */<R>(handlers: Partial<Handlers<O, R>>): undefined | R;
+
+	/**
+	 * Handles some options with a fallback handler for unmatched options.
+	 *
+	 * Handlers receive a delegate function that can be called to invoke the fallback.
+	 *
+	 * @typeParam R The return type of all handlers
+	 *
+	 * @param handlers Partial mapping of option keys to delegating handlers
+	 * @param fallback Fallback handler receiving union of option values
+	 *
+	 * @returns The result from the matched handler or fallback
+	 */<R>(handlers: Partial<Handlers<O, R, () => R>>, fallback: Handler<O[keyof O], R>): R;
 
 }
 

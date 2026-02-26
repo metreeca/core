@@ -7,6 +7,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unpublished](https://github.com/metreeca/core/compare/v0.9.18...HEAD)
 
+### Fixed
+
+- `Relay` overload resolution picking partial over complete handlers
+
 ## [0.9.18](https://github.com/metreeca/core/compare/v0.9.17...v0.9.18) - 2026-02-09
 
 ### Added
