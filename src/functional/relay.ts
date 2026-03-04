@@ -99,6 +99,7 @@
  * @module
  */
 
+import { immutable } from "../basic/nested.js";
 import { isDefined, isFunction } from "../index.js";
 
 
@@ -234,6 +235,10 @@ export type Handler<V = unknown, R = unknown, D extends (() => R) | never = neve
 /**
  * Creates a type-safe relay function for an option.
  *
+ * All values returned by the relay are made {@link immutable}, ensuring that structured results
+ * (plain objects and arrays) are deep-frozen before being returned to the caller. Primitive values
+ * pass through unchanged.
+ *
  * @typeParam O The options type defining all possible option variants
  *
  * @param option An option variant
@@ -254,10 +259,12 @@ export function createRelay<O extends Options>(option: Option<O>): Relay<O> {
 
 		const handler = handlers[label];
 
-		return isFunction(handler) ? handler(value, delegate)
-			: isDefined(handler) ? handler
-				: isFunction(fallback) ? fallback(value)
-					: fallback;
+		return immutable(
+			isFunction(handler) ? handler(value, delegate)
+				: isDefined(handler) ? handler
+					: isFunction(fallback) ? fallback(value)
+						: fallback
+		);
 
 
 		function delegate() {

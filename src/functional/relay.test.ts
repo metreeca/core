@@ -556,4 +556,106 @@ describe("relay()", () => {
 
 	});
 
+	describe("immutability", () => {
+
+		type StructuredOptions = {
+			object: { id: number, name: string }
+			array: string[]
+			primitive: number
+		}
+
+		it("should freeze object values returned by function handlers", async () => {
+
+			const result = createRelay<StructuredOptions>({ object: { id: 1, name: "test" } })({
+				object: (o) => ({ ...o, extra: true })
+			});
+
+			expect(result).toEqual({ id: 1, name: "test", extra: true });
+			expect(Object.isFrozen(result)).toBeTruthy();
+
+		});
+
+		it("should freeze array values returned by function handlers", async () => {
+
+			const result = createRelay<StructuredOptions>({ array: ["a", "b"] })({
+				array: (a) => [...a, "c"]
+			});
+
+			expect(result).toEqual(["a", "b", "c"]);
+			expect(Object.isFrozen(result)).toBeTruthy();
+
+		});
+
+		it("should freeze object values returned by constant handlers", async () => {
+
+			const result = createRelay<StructuredOptions>({ object: { id: 1, name: "test" } })({
+				object: { status: "matched" },
+				array: { status: "array" },
+				primitive: { status: "primitive" }
+			});
+
+			expect(result).toEqual({ status: "matched" });
+			expect(Object.isFrozen(result)).toBeTruthy();
+
+		});
+
+		it("should freeze values returned by fallback function", async () => {
+
+			const result = createRelay<StructuredOptions>({ object: { id: 1, name: "test" } })({
+			}, () => ({ fallback: true }));
+
+			expect(result).toEqual({ fallback: true });
+			expect(Object.isFrozen(result)).toBeTruthy();
+
+		});
+
+		it("should freeze values returned by constant fallback", async () => {
+
+			const result = createRelay<StructuredOptions>({ object: { id: 1, name: "test" } })({
+			}, { fallback: true });
+
+			expect(result).toEqual({ fallback: true });
+			expect(Object.isFrozen(result)).toBeTruthy();
+
+		});
+
+		it("should freeze values returned via delegation", async () => {
+
+			const result = createRelay<StructuredOptions>({ object: { id: 1, name: "test" } })({
+				object: (_v, delegate) => delegate()
+			}, () => ({ delegated: true }));
+
+			expect(result).toEqual({ delegated: true });
+			expect(Object.isFrozen(result)).toBeTruthy();
+
+		});
+
+		it("should deep-freeze nested structures", async () => {
+
+			const result = createRelay<StructuredOptions>({ object: { id: 1, name: "test" } })({
+				object: () => ({ outer: { inner: [1, 2, 3] } }),
+				array: () => ({}),
+				primitive: () => ({})
+			}) as { outer: { inner: number[] } };
+
+			expect(Object.isFrozen(result)).toBeTruthy();
+			expect(Object.isFrozen(result.outer)).toBeTruthy();
+			expect(Object.isFrozen(result.outer.inner)).toBeTruthy();
+
+		});
+
+		it("should return primitives unchanged", async () => {
+
+			const result = createRelay<StructuredOptions>({ primitive: 42 })({
+				object: () => 0,
+				array: () => 0,
+				primitive: (n) => n * 2
+			});
+
+			expect(result).toBe(84);
+
+		});
+
+	});
+
 });
