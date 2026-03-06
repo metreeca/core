@@ -53,13 +53,13 @@ export interface Mutex {
  * });
  * ```
  *
- * @returns A mutex instance that serializes task execution in FIFO order
+ * @returns An immutable mutex instance that serializes task execution in FIFO order
  */
 export function createMutex(): Mutex {
 
 	let next: Promise<void> = Promise.resolve();
 
-	return {
+	return Object.freeze({
 
 		async execute<T>(task: () => T | Promise<T>): Promise<T> {
 
@@ -83,6 +83,6 @@ export function createMutex(): Mutex {
 
 		}
 
-	};
+	});
 
 }

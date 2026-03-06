@@ -10,6 +10,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - `createRelay` now returns immutable values, deep-freezing structured results (objects, arrays)
+- `createState`, `createNamespace`, `createMutex`, `createThrottle`, and `manageState` now return immutable objects
+- `Manager.capture()` now returns an immutable version snapshot
 
 ### Fixed
 

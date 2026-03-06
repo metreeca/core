@@ -280,10 +280,10 @@ export type Manager<T extends State> = {
 	/**
 	 * Captures a snapshot of the current version.
 	 *
-	 * Returns a snapshot containing only the data properties, excluding transition
+	 * Returns an {@link immutable} snapshot containing only the data properties, excluding transition
 	 * methods and observers. Useful for persistence, undo/redo, or time-travel debugging.
 	 *
-	 * @returns Snapshot of the current version
+	 * @returns Immutable snapshot of the current version
 	 */
 	capture(): Version<T>;
 
@@ -530,12 +530,12 @@ export function createState<T extends State>(seed: Seed<T>): Instance<T> {
 		// create and attach manager
 
 		Object.defineProperty(state, Manager, {
-			value: {
+			value: Object.freeze({
 				capture: () => capture.call(state),
 				restore: (version: Version<T>) => restore.call(state, version),
 				attach: (observer: Observer<T>) => attach.call(state, observer),
 				detach: (observer: Observer<T>) => detach.call(state, observer)
-			},
+			}),
 			enumerable: false,
 			writable: false,
 			configurable: false
@@ -547,9 +547,9 @@ export function createState<T extends State>(seed: Seed<T>): Instance<T> {
 
 	function capture(this: Observed<T>): Version<T> {
 
-		return Object.fromEntries(Object.entries(this)
+		return immutable(Object.fromEntries(Object.entries(this)
 			.filter(([, value]) => typeof value !== "function")
-		) as Version<T>;
+		) as Version<T>);
 
 	}
 
@@ -618,7 +618,7 @@ export function createState<T extends State>(seed: Seed<T>): Instance<T> {
  *
  * @param instance The state instance
  *
- * @returns The state instance manager providing snapshot, restoration, and observer operations
+ * @returns An immutable state instance manager providing snapshot, restoration, and observer operations
  *
  * @throws Error if the object is not a valid state instance
  */

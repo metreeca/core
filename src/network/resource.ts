@@ -681,7 +681,7 @@ export function relativize<T extends URI | IRI>(base: string | T, reference: str
  * @param namespace The namespace IRI to which names and terms are appended
  * @param terms Optional array of predefined term names to expose as typed properties
  *
- * @returns A callable function accepting a name parameter, augmented with IRI properties for each term
+ * @returns An immutable callable function accepting a name parameter, augmented with IRI properties for each term
  *
  * @throws RangeError If the namespace or any term produces an invalid IRI during initialization.
  *   For closed namespaces, also throws when the factory is called with an undefined term name.
@@ -712,7 +712,7 @@ export function createNamespace<const T extends readonly string[]>(namespace: st
 
 		: (name?: string): IRI => name === undefined ? ns : asIRI(ns+name);
 
-	return Object.assign(factory, dictionary);
+	return Object.freeze(Object.assign(factory, dictionary));
 
 }
 
@@ -736,7 +736,9 @@ export function createNamespace<const T extends readonly string[]>(namespace: st
  * and `statusText`.
  *
  * @param base The fetch function to wrap
- * @returns Fetch function whose promises reject with {@link Problem} for all error conditions
+ *
+ * @returns Fetch function whose promises reject with {@link immutable} {@link Problem} exceptions for all error
+ *     conditions
  */
 export function createFetch(base: typeof fetch): typeof fetch {
 	return (input: RequestInfo | URL, init?: RequestInit) => base(input, init)

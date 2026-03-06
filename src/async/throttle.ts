@@ -179,7 +179,7 @@ export interface Throttle {
  * @param options.backoff The multiplicative factor for increasing delays on task failure; must be >= 1.0
  * @param options.recover The multiplicative factor for decreasing delays on task success; must be 0.0-1.0
  *
- * @returns A throttle instance for rate-limiting operations
+ * @returns An immutable throttle instance for rate-limiting operations
  *
  * @throws Error if any parameter validation fails
  */
@@ -248,7 +248,7 @@ export function createThrottle({
 	}
 
 
-	return {
+	return Object.freeze({
 
 		async queue(input?: unknown): Promise<any> {
 
@@ -406,6 +406,6 @@ export function createThrottle({
 
 		}
 
-	};
+	});
 
 }
