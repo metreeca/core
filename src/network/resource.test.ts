@@ -17,12 +17,10 @@
 import { describe, expect, it, vi } from "vitest";
 import {
 	asIRI,
-	asURI,
 	createFetch,
 	createNamespace,
 	internalize,
 	isIRI,
-	isURI,
 	nests,
 	type Problem,
 	relativize,
@@ -101,92 +99,7 @@ const iris = {
 	}
 };
 
-const uris = {
-	absolute: {
-		valid: [
-			"http://www.w3.org/2001/XMLSchema#integer",
-			"https://example.com/datatype",
-			"urn:example:datatype"
-		],
-		invalid: [
-			{ value: "not-a-valid-uri", reason: "missing scheme" },
-			{ value: "/relative/path", reason: "relative path" },
-			{ value: "http:", reason: "empty SSP" },
-			{ value: "http://example.com/资源", reason: "Unicode characters" },
-			{ value: "http://example.com/café", reason: "Unicode characters" },
-			{ value: "http://example.com/path with spaces", reason: "whitespace in path" }
-		]
-	},
-	relative: {
-		valid: [
-			"path/to/resource",
-			"../parent/resource",
-			"current/resource",
-			"/absolute/path",
-			"resource",
-			"path?query=value",
-			"path#fragment",
-			"http://example.com/absolute" // relative variant accepts absolute references
-		],
-		invalid: [
-			{ value: "path/资源", reason: "Unicode characters" },
-			{ value: "path/café", reason: "Unicode characters" },
-			{ value: "path with spaces", reason: "whitespace in path" }
-		]
-	}
-};
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-describe("isURI()", () => {
-
-	it("should return true for valid absolute ASCII-only URIs", () => {
-		uris.absolute.valid.forEach(value => {
-			expect(isURI(value, "absolute")).toBe(true);
-		});
-	});
-
-	it("should return false for invalid absolute URIs", () => {
-		uris.absolute.invalid.forEach(({ value }) => {
-			expect(isURI(value, "absolute")).toBe(false);
-		});
-	});
-
-	it("should return false for URIs with Unicode characters", () => {
-		expect(isURI("http://example.com/资源", "absolute")).toBe(false);
-		expect(isURI("http://example.com/café", "absolute")).toBe(false);
-		expect(isURI("urn:example:数据", "absolute")).toBe(false);
-	});
-
-	it("should return true for valid relative ASCII-only URIs with relative variant", () => {
-		uris.relative.valid.forEach(value => {
-			expect(isURI(value, "relative")).toBe(true);
-		});
-	});
-
-	it("should return false for invalid relative URIs with relative variant", () => {
-		uris.relative.invalid.forEach(({ value }) => {
-			expect(isURI(value, "relative")).toBe(false);
-		});
-	});
-
-	it("should return false for non-absolute URIs with absolute variant", () => {
-		// Only test paths without scheme - absolute URIs are valid with "absolute" variant
-		const relativePaths = uris.relative.valid.filter(v => !v.includes("://"));
-		relativePaths.forEach(value => {
-			expect(isURI(value, "absolute")).toBe(false);
-		});
-	});
-
-	it("should return true for ASCII URIs that are also valid IRIs", () => {
-		uris.absolute.valid.forEach(value => {
-			expect(isURI(value, "absolute")).toBe(true);
-			expect(isIRI(value, "absolute")).toBe(true);
-		});
-	});
-
-});
 
 describe("isIRI()", () => {
 
@@ -264,86 +177,6 @@ describe("isIRI()", () => {
 
 });
 
-
-describe("asURI()", () => {
-
-	it("should create branded URI from valid absolute ASCII-only strings", () => {
-		uris.absolute.valid.forEach(value => {
-			expect(() => asURI(value, "absolute")).not.toThrow();
-			const result = asURI(value, "absolute");
-			expect(typeof result).toBe("string");
-			expect(result).toBe(value);
-		});
-	});
-
-	it("should throw RangeError for invalid absolute URIs", () => {
-		uris.absolute.invalid.forEach(({ value }) => {
-			expect(() => asURI(value, "absolute")).toThrow(RangeError);
-		});
-	});
-
-	it("should throw RangeError for URIs with Unicode characters", () => {
-		expect(() => asURI("http://example.com/资源", "absolute")).toThrow(RangeError);
-		expect(() => asURI("http://example.com/café", "absolute")).toThrow(RangeError);
-		expect(() => asURI("urn:example:数据", "absolute")).toThrow(RangeError);
-	});
-
-	it("should create branded URI from valid relative ASCII-only strings with relative variant", () => {
-		uris.relative.valid.forEach(value => {
-			expect(() => asURI(value, "relative")).not.toThrow();
-			const result = asURI(value, "relative");
-			expect(typeof result).toBe("string");
-			expect(result).toBe(value);
-		});
-	});
-
-	it("should throw RangeError for invalid relative URIs with relative variant", () => {
-		uris.relative.invalid.forEach(({ value }) => {
-			expect(() => asURI(value, "relative")).toThrow(RangeError);
-		});
-	});
-
-	it("should throw RangeError for non-absolute URIs with absolute variant", () => {
-		// Only test actual relative paths (no scheme) - absolute URIs are valid with "absolute" variant
-		const relativePaths = uris.relative.valid.filter(v => !v.includes("://"));
-		relativePaths.forEach(value => {
-			expect(() => asURI(value, "absolute")).toThrow(RangeError);
-		});
-	});
-
-	it("should normalize paths by removing . and resolving .. segments", () => {
-		expect(asURI("/a/./b/../c", "internal")).toBe("/a/c");
-	});
-
-	it("should preserve . and .. in relative paths for later resolution", () => {
-		expect(asURI("./path", "relative")).toBe("./path");
-		expect(asURI("a/./b", "relative")).toBe("a/./b");
-		expect(asURI("a/../b", "relative")).toBe("a/../b");
-		expect(asURI("a/b/../c", "relative")).toBe("a/b/../c");
-	});
-
-	it("should clip excessive .. segments at root", () => {
-		expect(asURI("/../path", "internal")).toBe("/path");
-		expect(asURI("/a/../../path", "internal")).toBe("/path");
-		expect(asURI("http://example.com/../path", "absolute")).toBe("http://example.com/path");
-		expect(asURI("http://example.com/a/../../path", "absolute")).toBe("http://example.com/path");
-	});
-
-	it("should preserve leading .. in relative paths for later resolution", () => {
-		expect(asURI("../path", "relative")).toBe("../path");
-		expect(asURI("../../path", "relative")).toBe("../../path");
-		expect(asURI("../a/../b", "relative")).toBe("../a/../b");
-	});
-
-	it("should throw TypeError for non-string values", async () => {
-		expect(() => asURI(null as unknown as string)).toThrow(TypeError);
-		expect(() => asURI(undefined as unknown as string)).toThrow(TypeError);
-		expect(() => asURI(123 as unknown as string)).toThrow(TypeError);
-		expect(() => asURI({} as unknown as string)).toThrow(TypeError);
-		expect(() => asURI([] as unknown as string)).toThrow(TypeError);
-	});
-
-});
 
 describe("asIRI()", () => {
 
@@ -467,43 +300,43 @@ describe("resolve()", () => {
 
 		// RFC 3986 § 5.4 reference resolution examples
 
-		const base = asURI("http://example.com/a/b/c");
+		const base = asIRI("http://example.com/a/b/c");
 
 		it("should resolve relative path against base", async () => {
-			expect(resolve(base, asURI("d", "relative"))).toBe("http://example.com/a/b/d");
-			expect(resolve(base, asURI("d/e", "relative"))).toBe("http://example.com/a/b/d/e");
+			expect(resolve(base, asIRI("d", "relative"))).toBe("http://example.com/a/b/d");
+			expect(resolve(base, asIRI("d/e", "relative"))).toBe("http://example.com/a/b/d/e");
 		});
 
 		it("should resolve root-relative path against base", async () => {
-			expect(resolve(base, asURI("/d", "internal"))).toBe("http://example.com/d");
-			expect(resolve(base, asURI("/d/e", "internal"))).toBe("http://example.com/d/e");
+			expect(resolve(base, asIRI("/d", "internal"))).toBe("http://example.com/d");
+			expect(resolve(base, asIRI("/d/e", "internal"))).toBe("http://example.com/d/e");
 		});
 
 		it("should resolve empty reference to base", async () => {
-			expect(resolve(base, asURI("", "relative"))).toBe("http://example.com/a/b/c");
+			expect(resolve(base, asIRI("", "relative"))).toBe("http://example.com/a/b/c");
 		});
 
 		it("should resolve fragment-only reference", async () => {
-			expect(resolve(base, asURI("#frag", "relative"))).toBe("http://example.com/a/b/c#frag");
+			expect(resolve(base, asIRI("#frag", "relative"))).toBe("http://example.com/a/b/c#frag");
 		});
 
 		it("should resolve query-only reference", async () => {
-			expect(resolve(base, asURI("?query", "relative"))).toBe("http://example.com/a/b/c?query");
+			expect(resolve(base, asIRI("?query", "relative"))).toBe("http://example.com/a/b/c?query");
 		});
 
 		it("should handle dot segments (. and ..)", async () => {
-			expect(resolve(base, asURI("./d", "relative"))).toBe("http://example.com/a/b/d");
-			expect(resolve(base, asURI("../d", "relative"))).toBe("http://example.com/a/d");
-			expect(resolve(base, asURI("../../d", "relative"))).toBe("http://example.com/d");
+			expect(resolve(base, asIRI("./d", "relative"))).toBe("http://example.com/a/b/d");
+			expect(resolve(base, asIRI("../d", "relative"))).toBe("http://example.com/a/d");
+			expect(resolve(base, asIRI("../../d", "relative"))).toBe("http://example.com/d");
 		});
 
 		it("should clip excessive .. segments at root", async () => {
-			expect(resolve(base, asURI("../../../d", "relative"))).toBe("http://example.com/d");
-			expect(resolve(base, asURI("../../../../d", "relative"))).toBe("http://example.com/d");
+			expect(resolve(base, asIRI("../../../d", "relative"))).toBe("http://example.com/d");
+			expect(resolve(base, asIRI("../../../../d", "relative"))).toBe("http://example.com/d");
 		});
 
 		it("should preserve absolute reference with scheme", async () => {
-			expect(resolve(base, asURI("https://other.com/path"))).toBe("https://other.com/path");
+			expect(resolve(base, asIRI("https://other.com/path"))).toBe("https://other.com/path");
 		});
 
 	});
@@ -552,12 +385,12 @@ describe("resolve()", () => {
 	describe("opaque URIs", () => {
 
 		it("should preserve absolute reference with scheme", () => {
-			expect(resolve(asURI("urn:example:base"), asURI("urn:example:other"))).toBe("urn:example:other");
+			expect(resolve(asIRI("urn:example:base"), asIRI("urn:example:other"))).toBe("urn:example:other");
 		});
 
 		it("should throw for relative reference (no standard resolution)", () => {
-			expect(() => resolve(asURI("urn:example:base"), asURI("relative", "relative"))).toThrow(RangeError);
-			expect(() => resolve(asURI("urn:example:base"), asURI("../path", "relative"))).toThrow(RangeError);
+			expect(() => resolve(asIRI("urn:example:base"), asIRI("relative", "relative"))).toThrow(RangeError);
+			expect(() => resolve(asIRI("urn:example:base"), asIRI("../path", "relative"))).toThrow(RangeError);
 		});
 
 	});
@@ -565,18 +398,18 @@ describe("resolve()", () => {
 	describe("normalization", () => {
 
 		it("should normalize . segments in resolved path", () => {
-			expect(resolve(asURI("http://example.com/a/b/"), asURI("./c", "relative"))).toBe("http://example.com/a/b/c");
-			expect(resolve(asURI("http://example.com/a/b/"), asURI("./c/./d", "relative"))).toBe("http://example.com/a/b/c/d");
+			expect(resolve(asIRI("http://example.com/a/b/"), asIRI("./c", "relative"))).toBe("http://example.com/a/b/c");
+			expect(resolve(asIRI("http://example.com/a/b/"), asIRI("./c/./d", "relative"))).toBe("http://example.com/a/b/c/d");
 		});
 
 		it("should normalize .. segments in resolved path", () => {
-			expect(resolve(asURI("http://example.com/a/b/c"), asURI("../d", "relative"))).toBe("http://example.com/a/d");
-			expect(resolve(asURI("http://example.com/a/b/c"), asURI("../../d", "relative"))).toBe("http://example.com/d");
+			expect(resolve(asIRI("http://example.com/a/b/c"), asIRI("../d", "relative"))).toBe("http://example.com/a/d");
+			expect(resolve(asIRI("http://example.com/a/b/c"), asIRI("../../d", "relative"))).toBe("http://example.com/d");
 		});
 
 		it("should normalize mixed . and .. segments", () => {
-			expect(resolve(asURI("http://example.com/a/b/c"), asURI("./d/../e", "relative"))).toBe("http://example.com/a/b/e");
-			expect(resolve(asURI("http://example.com/a/b/c"), asURI("./../d", "relative"))).toBe("http://example.com/a/d");
+			expect(resolve(asIRI("http://example.com/a/b/c"), asIRI("./d/../e", "relative"))).toBe("http://example.com/a/b/e");
+			expect(resolve(asIRI("http://example.com/a/b/c"), asIRI("./../d", "relative"))).toBe("http://example.com/a/d");
 		});
 
 	});
@@ -587,35 +420,35 @@ describe("internalize()", () => {
 
 	describe("hierarchical URIs", () => {
 
-		const base = asURI("http://example.com/a/b/c");
+		const base = asIRI("http://example.com/a/b/c");
 
 		it("should extract root-relative path", () => {
-			expect(internalize(base, asURI("http://example.com/x/y"))).toBe("/x/y");
-			expect(internalize(base, asURI("http://example.com/"))).toBe("/");
+			expect(internalize(base, asIRI("http://example.com/x/y"))).toBe("/x/y");
+			expect(internalize(base, asIRI("http://example.com/"))).toBe("/");
 		});
 
 		it("should preserve query component", () => {
-			expect(internalize(base, asURI("http://example.com/path?query=value"))).toBe("/path?query=value");
+			expect(internalize(base, asIRI("http://example.com/path?query=value"))).toBe("/path?query=value");
 		});
 
 		it("should preserve fragment component", () => {
-			expect(internalize(base, asURI("http://example.com/path#frag"))).toBe("/path#frag");
-			expect(internalize(base, asURI("http://example.com/path?query#frag"))).toBe("/path?query#frag");
+			expect(internalize(base, asIRI("http://example.com/path#frag"))).toBe("/path#frag");
+			expect(internalize(base, asIRI("http://example.com/path?query#frag"))).toBe("/path?query#frag");
 		});
 
 		it("should return reference unchanged if different authority", () => {
-			expect(internalize(base, asURI("http://other.com/path"))).toBe("http://other.com/path");
-			expect(internalize(base, asURI("https://example.com/path"))).toBe("https://example.com/path");
+			expect(internalize(base, asIRI("http://other.com/path"))).toBe("http://other.com/path");
+			expect(internalize(base, asIRI("https://example.com/path"))).toBe("https://example.com/path");
 		});
 
 		it("should normalize . segments in internalized path", () => {
-			expect(internalize(base, asURI("http://example.com/x/./y"))).toBe("/x/y");
-			expect(internalize(base, asURI("http://example.com/./x/./y"))).toBe("/x/y");
+			expect(internalize(base, asIRI("http://example.com/x/./y"))).toBe("/x/y");
+			expect(internalize(base, asIRI("http://example.com/./x/./y"))).toBe("/x/y");
 		});
 
 		it("should normalize .. segments in internalized path", () => {
-			expect(internalize(base, asURI("http://example.com/x/y/../z"))).toBe("/x/z");
-			expect(internalize(base, asURI("http://example.com/x/y/z/../../w"))).toBe("/x/w");
+			expect(internalize(base, asIRI("http://example.com/x/y/../z"))).toBe("/x/z");
+			expect(internalize(base, asIRI("http://example.com/x/y/z/../../w"))).toBe("/x/w");
 		});
 
 	});
@@ -623,13 +456,13 @@ describe("internalize()", () => {
 	describe("opaque URIs", () => {
 
 		it("should extract scheme-specific part for same scheme", () => {
-			const base = asURI("urn:example:base");
-			expect(internalize(base, asURI("urn:example:other"))).toBe("example:other");
+			const base = asIRI("urn:example:base");
+			expect(internalize(base, asIRI("urn:example:other"))).toBe("example:other");
 		});
 
 		it("should return reference unchanged if different scheme", () => {
-			const base = asURI("urn:example:base");
-			expect(internalize(base, asURI("mailto:user@example.com"))).toBe("mailto:user@example.com");
+			const base = asIRI("urn:example:base");
+			expect(internalize(base, asIRI("mailto:user@example.com"))).toBe("mailto:user@example.com");
 		});
 
 	});
@@ -640,40 +473,40 @@ describe("relativize()", () => {
 
 	describe("hierarchical URIs", () => {
 
-		const base = asURI("http://example.com/a/b/c");
+		const base = asIRI("http://example.com/a/b/c");
 
 		it("should return relative path for same-directory reference", () => {
-			expect(relativize(base, asURI("http://example.com/a/b/d"))).toBe("d");
-			expect(relativize(base, asURI("http://example.com/a/b/d/e"))).toBe("d/e");
+			expect(relativize(base, asIRI("http://example.com/a/b/d"))).toBe("d");
+			expect(relativize(base, asIRI("http://example.com/a/b/d/e"))).toBe("d/e");
 		});
 
 		it("should return parent-relative path (..) for ancestor", () => {
-			expect(relativize(base, asURI("http://example.com/a/d"))).toBe("../d");
-			expect(relativize(base, asURI("http://example.com/d"))).toBe("../../d");
+			expect(relativize(base, asIRI("http://example.com/a/d"))).toBe("../d");
+			expect(relativize(base, asIRI("http://example.com/d"))).toBe("../../d");
 		});
 
 		it("should return reference unchanged if different scheme", () => {
-			expect(relativize(base, asURI("https://example.com/a/b/d"))).toBe("https://example.com/a/b/d");
+			expect(relativize(base, asIRI("https://example.com/a/b/d"))).toBe("https://example.com/a/b/d");
 		});
 
 		it("should return reference unchanged if different authority", () => {
-			expect(relativize(base, asURI("http://other.com/a/b/d"))).toBe("http://other.com/a/b/d");
+			expect(relativize(base, asIRI("http://other.com/a/b/d"))).toBe("http://other.com/a/b/d");
 		});
 
 		it("should handle query and fragment components", () => {
-			expect(relativize(base, asURI("http://example.com/a/b/d?query"))).toBe("d?query");
-			expect(relativize(base, asURI("http://example.com/a/b/d#frag"))).toBe("d#frag");
-			expect(relativize(base, asURI("http://example.com/a/b/d?query#frag"))).toBe("d?query#frag");
+			expect(relativize(base, asIRI("http://example.com/a/b/d?query"))).toBe("d?query");
+			expect(relativize(base, asIRI("http://example.com/a/b/d#frag"))).toBe("d#frag");
+			expect(relativize(base, asIRI("http://example.com/a/b/d?query#frag"))).toBe("d?query#frag");
 		});
 
 		it("should normalize . segments in relativized path", () => {
-			expect(relativize(base, asURI("http://example.com/a/b/./d"))).toBe("d");
-			expect(relativize(base, asURI("http://example.com/a/./b/d"))).toBe("d");
+			expect(relativize(base, asIRI("http://example.com/a/b/./d"))).toBe("d");
+			expect(relativize(base, asIRI("http://example.com/a/./b/d"))).toBe("d");
 		});
 
 		it("should normalize .. segments in relativized path", () => {
-			expect(relativize(base, asURI("http://example.com/a/b/c/../d"))).toBe("d");
-			expect(relativize(base, asURI("http://example.com/a/b/../c/d"))).toBe("../c/d");
+			expect(relativize(base, asIRI("http://example.com/a/b/c/../d"))).toBe("d");
+			expect(relativize(base, asIRI("http://example.com/a/b/../c/d"))).toBe("../c/d");
 		});
 
 	});
@@ -681,13 +514,13 @@ describe("relativize()", () => {
 	describe("opaque URIs", () => {
 
 		it("should return scheme-specific part if same scheme", () => {
-			const base = asURI("urn:example:base");
-			expect(relativize(base, asURI("urn:example:other"))).toBe("example:other");
+			const base = asIRI("urn:example:base");
+			expect(relativize(base, asIRI("urn:example:other"))).toBe("example:other");
 		});
 
 		it("should return reference unchanged if different scheme", () => {
-			const base = asURI("urn:example:base");
-			expect(relativize(base, asURI("mailto:user@example.com"))).toBe("mailto:user@example.com");
+			const base = asIRI("urn:example:base");
+			expect(relativize(base, asIRI("mailto:user@example.com"))).toBe("mailto:user@example.com");
 		});
 
 	});

@@ -19,6 +19,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Removed
 
+- `URI` type alias (use `IRI` instead — every valid URI is a valid IRI)
+- `isURI` type guard (use `isIRI` instead)
+- `asURI` validating cast (use `asIRI` instead)
 - `Some<T>` utility type (inlined as `T | readonly T[]` where used)
 - `isSome` type guard
 

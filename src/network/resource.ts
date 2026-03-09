@@ -17,69 +17,62 @@
 /**
  * Resource identifiers and HTTP utilities.
  *
- * Provides types and functions for resource identifiers (URI/IRI), namespace factories,
+ * Provides types and functions for resource identifiers (IRIs), namespace factories,
  * HTTP error handling, and fetch operations.
  *
  * **Type Guards**
  *
  * ```typescript
- * import { isURI, isIRI } from "@metreeca/core/resource";
+ * import { isIRI } from "@metreeca/core/resource";
  *
  * const value = "http://example.org/resource";
  *
- * if (isURI(value)) {
- *   // value is typed as URI (ASCII-only)
- * }
- *
  * if (isIRI(value)) {
- *   // value is typed as IRI (allows Unicode)
+ *   // value is typed as IRI
  * }
  * ```
  *
  * **Identifier Factories**
  *
  * ```typescript
- * import { asURI, asIRI } from "@metreeca/core/resource";
+ * import { asIRI } from "@metreeca/core/resource";
  *
  * // Absolute identifiers
  *
- * const absoluteURI = asURI("http://example.org/resource");
- * const absoluteIRI = asIRI("http://example.org/resource");
+ * const absolute = asIRI("http://example.org/resource", "absolute");
  *
  * // Relative references
  *
- * const relativeURI = asURI("../resource", "relative");
- * const relativeIRI = asIRI("../resource", "relative");
+ * const relative = asIRI("../resource", "relative");
  *
  * // Root-relative (internal) paths
  *
- * const internalURI = asURI("/resource", "internal");
- * const internalIRI = asIRI("/resource", "internal");
+ * const internal = asIRI("/resource", "internal");
  *
- * // Unicode in IRIs (throws for URIs)
+ * // Unicode in IRIs
  *
- * const unicodeIRI = asIRI("http://example.org/资源");
+ * const unicode = asIRI("http://example.org/资源", "absolute");
  * ```
  *
  * **Reference Operations**
  *
  * ```typescript
- * import { resolve, relativize, internalize, asURI } from "@metreeca/core/resource";
+ * import { resolve, relativize, internalize, asIRI } from "@metreeca/core/resource";
  *
- * const base = asURI("http://example.com/a/b/c");
+ * const base = asIRI("http://example.com/a/b/c", "absolute");
  *
  * // Resolve relative references against base
  *
- * resolve(base, asURI("../d", "relative"));  // "http://example.com/a/d"
- * resolve(base, asURI("/d", "internal"));    // "http://example.com/d"
+ * resolve(base, asIRI("../d", "relative"));  // "http://example.com/a/d"
+ * resolve(base, asIRI("/d", "internal"));    // "http://example.com/d"
  *
  * // Convert absolute to root-relative (internal) path
  *
- * internalize(base, asURI("http://example.com/x/y"));  // "/x/y"
+ * internalize(base, asIRI("http://example.com/x/y", "absolute"));  // "/x/y"
  *
  * // Convert absolute to relative path
  *
- * relativize(base, asURI("http://example.com/a/d"));   // "../d"
+ * relativize(base, asIRI("http://example.com/a/d", "absolute"));   // "../d"
  * ```
  *
  * **Namespace Factories**
@@ -139,8 +132,8 @@
  *
  * @module
  *
- * @see {@link https://www.rfc-editor.org/rfc/rfc3986.html RFC 3986 - Uniform Resource Identifiers (URIs)}
  * @see {@link https://www.rfc-editor.org/rfc/rfc3987.html RFC 3987 - Internationalized Resource Identifiers (IRIs)}
+ * @see {@link https://www.rfc-editor.org/rfc/rfc3986.html RFC 3986 - Uniform Resource Identifiers (URIs)}
  * @see {@link https://datatracker.ietf.org/doc/html/rfc7807 RFC 7807 - Problem Details for HTTP APIs}
  */
 
@@ -160,12 +153,6 @@ const SchemePattern = /^[a-z][a-z0-9+.-]*:/i;
 const ExcludedPattern = /[\x00-\x1F\x7F-\x9F\s<>"{}|\\^`]/;
 
 /**
- * ASCII-only pattern for URI validation per RFC 3986 (characters U+0000-U+007F)
- */
-const ASCIIPattern = /^[\x00-\x7F]*$/;
-
-
-/**
  * Validates and normalizes a reference.
  *
  * Performs syntax validation (string type, excluded characters), path normalization
@@ -176,7 +163,7 @@ const ASCIIPattern = /^[\x00-\x7F]*$/;
  *
  * @returns The validated and normalized reference, or `undefined` if invalid
  */
-function normalize<T extends URI | IRI>(value: unknown, variant: Variant): T | undefined {
+function normalize(value: unknown, variant: Variant): IRI | undefined {
 
 	// syntax validation
 
@@ -203,7 +190,7 @@ function normalize<T extends URI | IRI>(value: unknown, variant: Variant): T | u
 		|| variant === "internal" && isInternal
 		|| variant === "relative";
 
-	return valid ? normalized as T : undefined;
+	return valid ? normalized : undefined;
 
 
 	function parseURL(ref: string, extract: (url: URL) => string, base?: string): string | undefined {
@@ -243,31 +230,18 @@ function invalid(value: unknown, variant: Variant): never {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Uniform Resource Identifier (URI) as defined by RFC 3986.
- *
- * A URI is a sequence of characters that identifies an abstract or physical resource using
- * only ASCII characters (U+0000-U+007F).
- *
- * > [!WARNING]
- * > This is a type alias for documentation purposes only. Branding was considered but not adopted due to
- * > interoperability issues with tools relying on static code analysis. Values must be validated at runtime
- * > using {@link isURI} or {@link asURI}.
- *
- * @see {@link https://www.rfc-editor.org/rfc/rfc3986.html RFC 3986 - URI Generic Syntax}
- */
-export type URI = string
-
-/**
  * Internationalized Resource Identifier (IRI) as defined by RFC 3987.
  *
- * An IRI is a sequence of characters that identifies an abstract or physical resource, allowing
- * Unicode characters beyond the ASCII subset permitted in URIs.
+ * An IRI is a sequence of characters that identifies an abstract or physical resource.
+ * IRIs extend URIs (RFC 3986) by allowing Unicode characters beyond the ASCII subset.
+ * Every valid URI is also a valid IRI.
  *
  * > [!WARNING]
  * > This is a type alias for documentation purposes only. Branding was considered but not adopted due to
  * > interoperability issues with tools relying on static code analysis. Values must be validated at runtime
  * > using {@link isIRI} or {@link asIRI}.
  *
+ * @see {@link https://www.rfc-editor.org/rfc/rfc3986.html RFC 3986 - URI Generic Syntax}
  * @see {@link https://www.rfc-editor.org/rfc/rfc3987.html#section-2.2 RFC 3987 § 2.2 - IRI Syntax}
  */
 export type IRI = string
@@ -340,8 +314,8 @@ export type Terms<T extends readonly string[]> = {
  * Problem Details for HTTP APIs.
  *
  * Standardized format for machine-readable error information in HTTP responses, as defined by RFC 7807.
- * All fields are optional, allowing flexibility in error reporting. Use {@link detail} for human-readable
- * occurrence-specific information, and {@link report} for machine-readable data.
+ * All fields are optional, allowing flexibility in error reporting. Use `detail` for human-readable
+ * occurrence-specific information, and `report` for machine-readable data.
  *
  * @see {@link https://datatracker.ietf.org/doc/html/rfc7807 RFC 7807 - Problem Details for HTTP APIs}
  */
@@ -387,25 +361,6 @@ export interface Problem {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Checks if a value is a valid URI.
- *
- * Validates URIs according to RFC 3986, restricting identifiers to ASCII characters only.
- *
- * @param value The value to validate as a URI
- * @param variant The identifier variant to validate against (default: `"relative"`)
- *
- * @returns `true` if the value is a valid ASCII-only URI matching the specified variant; `false` otherwise
- *
- * @see {@link URI}
- * @see {@link Variant}
- */
-export function isURI(value: unknown, variant: Variant = "relative"): value is URI {
-
-	return isString(value) && ASCIIPattern.test(value) && normalize(value, variant) !== undefined;
-
-}
-
-/**
  * Checks if a value is a valid IRI.
  *
  * Validates IRIs according to RFC 3987 with variant-specific rules:
@@ -436,37 +391,6 @@ export function isURI(value: unknown, variant: Variant = "relative"): value is U
 export function isIRI(value: unknown, variant: Variant = "relative"): value is IRI {
 
 	return normalize(value, variant) !== undefined;
-
-}
-
-
-/**
- * Creates a validated URI from a string.
- *
- * Validates URIs according to RFC 3986, restricting identifiers to ASCII characters only.
- * For non-absolute variants, normalizes paths by removing `.` segments and resolving `..` segments.
- *
- * @param value The value to convert to a URI
- * @param variant The identifier variant to validate against (default: `"relative"`)
- *
- * @returns The validated and normalized URI
- *
- * @throws TypeError If the value is not a string
- * @throws RangeError If the value is not a valid ASCII-only URI for the specified variant,
- *   or if `..` segments would climb above the root
- *
- * @see {@link isURI} for validation rules
- * @see {@link URI}
- * @see {@link IRI}
- * @see {@link Variant}
- */
-export function asURI(value: string, variant: Variant = "relative"): URI {
-
-	if ( !isString(value) ) {
-		throw new TypeError("expected string");
-	}
-
-	return (ASCIIPattern.test(value) ? normalize(value, variant) : undefined) ?? invalid(value, variant);
 
 }
 
@@ -518,8 +442,6 @@ export function asIRI(value: string, variant: Variant = "relative"): IRI {
  * This implementation aligns with WHATWG/URL API behavior by rejecting relative references against opaque bases,
  * providing clearer error semantics than the underlying URL API.
  *
- * @typeParam T The identifier type ({@link URI} or {@link IRI})
- *
  * @param base The absolute base identifier to resolve against
  * @param reference The reference to resolve
  *
@@ -532,10 +454,10 @@ export function asIRI(value: string, variant: Variant = "relative"): IRI {
  * @see {@link https://www.rfc-editor.org/rfc/rfc6454#section-4 RFC 6454 § 4 - Origin of a URI}
  * @see {@link https://url.spec.whatwg.org/#origin WHATWG URL Standard - Origin}
  */
-export function resolve<T extends URI | IRI>(base: string | T, reference: string | T): T {
+export function resolve(base: string | IRI, reference: string | IRI): IRI {
 
-	const normalizedBase = normalize<T>(base, "absolute") ?? invalid(base, "absolute");
-	const normalizedReference = normalize<T>(reference, "relative") ?? invalid(reference, "relative");
+	const normalizedBase = normalize(base, "absolute") ?? invalid(base, "absolute");
+	const normalizedReference = normalize(reference, "relative") ?? invalid(reference, "relative");
 
 	const baseURL = new URL(normalizedBase);
 
@@ -546,7 +468,7 @@ export function resolve<T extends URI | IRI>(base: string | T, reference: string
 		? error(new RangeError(
 			`cannot resolve relative <${normalizedReference}> against non-hierarchical <${normalizedBase}>`
 		))
-		: merge(baseURL, normalizedReference).href as T;
+		: merge(baseURL, normalizedReference).href;
 
 }
 
@@ -556,8 +478,6 @@ export function resolve<T extends URI | IRI>(base: string | T, reference: string
  * - **Hierarchical identifiers**: Returns the root-relative path (starting with `/`) if scheme and authority match
  * - **Opaque identifiers**: Returns the scheme-specific part if schemes match
  *
- * @typeParam T The identifier type ({@link URI} or {@link IRI})
- *
  * @param base The absolute base identifier providing the scheme and authority context
  * @param reference The reference to internalize
  *
@@ -565,10 +485,10 @@ export function resolve<T extends URI | IRI>(base: string | T, reference: string
  *
  * @throws RangeError If the resolved path contains tree-climbing segments that would go above the root
  */
-export function internalize<T extends URI | IRI>(base: string | T, reference: string | T): T {
+export function internalize(base: string | IRI, reference: string | IRI): IRI {
 
-	const normalizedBase = normalize<T>(base, "absolute") ?? invalid(base, "absolute");
-	const normalizedReference = normalize<T>(reference, "relative") ?? invalid(reference, "relative");
+	const normalizedBase = normalize(base, "absolute") ?? invalid(base, "absolute");
+	const normalizedReference = normalize(reference, "relative") ?? invalid(reference, "relative");
 
 	const baseURL = new URL(normalizedBase);
 	const referenceURL = merge(baseURL, normalizedReference);
@@ -579,17 +499,15 @@ export function internalize<T extends URI | IRI>(base: string | T, reference: st
 		? baseURL.origin === referenceURL.origin
 		: baseURL.protocol === referenceURL.protocol;
 
-	return (sameOrigin
+	return sameOrigin
 
-			// same origin: return root-relative path (already normalized by URL API)
+		// same origin: return root-relative path (already normalized by URL API)
 
-			? referenceURL.pathname+referenceURL.search+referenceURL.hash
+		? referenceURL.pathname+referenceURL.search+referenceURL.hash
 
-			// different origin: return absolute reference (already normalized by URL API)
+		// different origin: return absolute reference (already normalized by URL API)
 
-			: referenceURL.href
-
-	) as T;
+		: referenceURL.href;
 
 }
 
@@ -600,8 +518,6 @@ export function internalize<T extends URI | IRI>(base: string | T, reference: st
  *   yields `reference`
  * - **Opaque identifiers**: Returns the scheme-specific part if schemes match
  *
- * @typeParam T The identifier type ({@link URI} or {@link IRI})
- *
  * @param base The absolute base identifier
  * @param reference The reference to relativize
  *
@@ -609,10 +525,10 @@ export function internalize<T extends URI | IRI>(base: string | T, reference: st
  *
  * @throws RangeError If the resolved path contains tree-climbing segments that would go above the root
  */
-export function relativize<T extends URI | IRI>(base: string | T, reference: string | T): T {
+export function relativize(base: string | IRI, reference: string | IRI): IRI {
 
-	const normalizedBase = normalize<T>(base, "absolute") ?? invalid(base, "absolute");
-	const normalizedReference = normalize<T>(reference, "relative") ?? invalid(reference, "relative");
+	const normalizedBase = normalize(base, "absolute") ?? invalid(base, "absolute");
+	const normalizedReference = normalize(reference, "relative") ?? invalid(reference, "relative");
 
 	const baseURL = new URL(normalizedBase);
 	const referenceURL = merge(baseURL, normalizedReference);
@@ -630,23 +546,23 @@ export function relativize<T extends URI | IRI>(base: string | T, reference: str
 
 	// different origin: return absolute reference (already normalized by URL API)
 
-	function absolute(): T {
+	function absolute(): IRI {
 
-		return referenceURL.href as T;
+		return referenceURL.href;
 
 	}
 
 	// opaque URIs: return scheme-specific part (not a hierarchical path)
 
-	function internal(): T {
+	function internal(): IRI {
 
-		return (referenceURL.pathname+referenceURL.search+referenceURL.hash) as T;
+		return referenceURL.pathname+referenceURL.search+referenceURL.hash;
 
 	}
 
 	// hierarchical URIs: compute relative path
 
-	function relative(): T {
+	function relative(): IRI {
 
 		const baseParts = baseURL.pathname.split("/").slice(0, -1); // directory segments
 		const refParts = referenceURL.pathname.split("/");
@@ -660,7 +576,7 @@ export function relativize<T extends URI | IRI>(base: string | T, reference: str
 		const downSegments = refParts.slice(commonLength);
 		const relativePath = [...upSegments, ...downSegments].join("/") || ".";
 
-		return (relativePath+referenceURL.search+referenceURL.hash) as T;
+		return relativePath+referenceURL.search+referenceURL.hash;
 
 	}
 
@@ -680,8 +596,6 @@ export function relativize<T extends URI | IRI>(base: string | T, reference: str
  * A parent always nests itself (`nests(x, x)` is `true`).
  * Segment-boundary matching prevents false positives (e.g., `/a/b` does not nest `/a/bc`).
  *
- * @typeParam T The identifier type ({@link URI} or {@link IRI})
- *
  * @param parent The potential parent identifier
  * @param child The potential child identifier
  *
@@ -689,10 +603,10 @@ export function relativize<T extends URI | IRI>(base: string | T, reference: str
  *
  * @throws RangeError If either argument is not a valid identifier
  */
-export function nests<T extends URI | IRI>(parent: string | T, child: string | T): boolean {
+export function nests(parent: string | IRI, child: string | IRI): boolean {
 
-	const normalizedParent = normalize<T>(parent, "hierarchical");
-	const normalizedChild = normalize<T>(child, "hierarchical");
+	const normalizedParent = normalize(parent, "hierarchical");
+	const normalizedChild = normalize(child, "hierarchical");
 
 	if ( normalizedParent === undefined || normalizedChild === undefined ) {
 
