@@ -52,9 +52,6 @@
  * isObject({ value: 42 }, { value: v => isUnion(v, [isString, isNumber]) }); // with union field
  * isObject({}, {}); // empty object check
  *
- * isSome("hello", isString); // true (single value)
- * isSome(["hello", "world"], isString); // true (array of values)
- *
  * isLazy(() => 42, isNumber); // true (no-arg function)
  * isLazy(42, isNumber); // true (plain value)
  *
@@ -152,17 +149,6 @@ export type Array =
 export type Object =
 	{ readonly [name: string]: Value };
 
-
-/**
- * A value or a readonly array of values.
- *
- * Enables APIs to accept either a single value or multiple values uniformly.
- *
- * @typeParam T The type of the value(s)
- */
-export type Some<T> =
-	| T
-	| readonly T[]
 
 /**
  * A value or a function returning a value.
@@ -543,22 +529,6 @@ export function isObject<T extends Record<PropertyKey, unknown> = Record<Propert
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Checks if a value is a {@link Some} value, that is either a single value or a readonly array of values.
- *
- * @typeParam T The type of the value(s)
- *
- * @param value The value to check
- * @param is A type guard function to validate the value or its array elements
- *
- * @returns True if the value satisfies the type guard or is an array where all elements satisfy it; false otherwise
- */
-export function isSome<T>(value: unknown, is: Guard<T>): value is Some<T> {
-
-	return Array.isArray(value) ? value.every(is) : is(value);
-
-}
-
-/**
  * Checks if a value is a {@link Lazy} value, that is either a plain value or a no-arg function returning a value.
  *
  * @typeParam T The type of the value
@@ -620,11 +590,11 @@ export function isOptional<T>(value: unknown, is: Guard<T>): value is undefined 
  * @typeParam T The literal type (boolean, number, or string)
  *
  * @param value The value to check
- * @param values A single literal value or a {@link Some} array of literal values to match against
+ * @param values A single literal value or an array of literal values to match against
  *
  * @returns True if the value strictly equals one of the specified literals; false otherwise
  */
-export function isLiteral<T extends boolean | number | string>(value: unknown, values: Some<T>): value is T {
+export function isLiteral<T extends boolean | number | string>(value: unknown, values: T | readonly T[]): value is T {
 
 	return Array.isArray(values)
 		? values.includes(value)

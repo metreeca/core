@@ -13,6 +13,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `createState`, `createNamespace`, `createMutex`, `createThrottle`, and `manageState` now return immutable objects
 - `Manager.capture()` now returns an immutable version snapshot
 
+### Removed
+
+- `Some<T>` utility type (inlined as `T | readonly T[]` where used)
+- `isSome` type guard
+
 ### Fixed
 
 - `Relay` overload resolution picking partial over complete handlers
