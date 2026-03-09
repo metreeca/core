@@ -662,7 +662,6 @@ describe("isObject()", () => {
 });
 
 
-
 describe("isLazy()", () => {
 
 	it("should return true for a plain value satisfying the guard", async () => {
@@ -689,7 +688,7 @@ describe("isLazy()", () => {
 
 	it("should return false for functions with arguments", async () => {
 		expect(isLazy((x: number) => x, isNumber)).toBeFalsy();
-		expect(isLazy((a: string, b: string) => a + b, isString)).toBeFalsy();
+		expect(isLazy((a: string, b: string) => a+b, isString)).toBeFalsy();
 		expect(isLazy(parseInt, isNumber)).toBeFalsy();
 	});
 

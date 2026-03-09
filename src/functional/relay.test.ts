@@ -601,8 +601,12 @@ describe("relay()", () => {
 
 		it("should freeze values returned by fallback function", async () => {
 
-			const result = createRelay<StructuredOptions>({ object: { id: 1, name: "test" } })({
-			}, () => ({ fallback: true }));
+			const result = createRelay<StructuredOptions>({
+				object: {
+					id: 1,
+					name: "test"
+				}
+			})({}, () => ({ fallback: true }));
 
 			expect(result).toEqual({ fallback: true });
 			expect(Object.isFrozen(result)).toBeTruthy();
@@ -611,8 +615,7 @@ describe("relay()", () => {
 
 		it("should freeze values returned by constant fallback", async () => {
 
-			const result = createRelay<StructuredOptions>({ object: { id: 1, name: "test" } })({
-			}, { fallback: true });
+			const result = createRelay<StructuredOptions>({ object: { id: 1, name: "test" } })({}, { fallback: true });
 
 			expect(result).toEqual({ fallback: true });
 			expect(Object.isFrozen(result)).toBeTruthy();
@@ -649,7 +652,7 @@ describe("relay()", () => {
 			const result = createRelay<StructuredOptions>({ primitive: 42 })({
 				object: () => 0,
 				array: () => 0,
-				primitive: (n) => n * 2
+				primitive: (n) => n*2
 			});
 
 			expect(result).toBe(84);
