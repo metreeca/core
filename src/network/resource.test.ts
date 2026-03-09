@@ -23,6 +23,7 @@ import {
 	internalize,
 	isIRI,
 	isURI,
+	nests,
 	type Problem,
 	relativize,
 	resolve
@@ -687,6 +688,110 @@ describe("relativize()", () => {
 		it("should return reference unchanged if different scheme", () => {
 			const base = asURI("urn:example:base");
 			expect(relativize(base, asURI("mailto:user@example.com"))).toBe("mailto:user@example.com");
+		});
+
+	});
+
+});
+
+
+describe("nests()", () => {
+
+	describe("same-origin hierarchical URIs", () => {
+
+		it("should return true when parent equals child", async () => {
+			expect(nests("http://example.com/a/b", "http://example.com/a/b")).toBeTruthy();
+			expect(nests("http://example.com/", "http://example.com/")).toBeTruthy();
+			expect(nests("http://example.com/a", "http://example.com/a")).toBeTruthy();
+		});
+
+		it("should return true when child extends parent path", async () => {
+			expect(nests("http://example.com/a", "http://example.com/a/b")).toBeTruthy();
+			expect(nests("http://example.com/a/b", "http://example.com/a/b/c")).toBeTruthy();
+			expect(nests("http://example.com/", "http://example.com/a/b")).toBeTruthy();
+		});
+
+		it("should return false when child path is not under parent", async () => {
+			expect(nests("http://example.com/a/b", "http://example.com/a")).toBeFalsy();
+			expect(nests("http://example.com/a/b", "http://example.com/c")).toBeFalsy();
+			expect(nests("http://example.com/a/b", "http://example.com/a/c")).toBeFalsy();
+		});
+
+		it("should require segment boundary match", async () => {
+			expect(nests("http://example.com/a/b", "http://example.com/a/bc")).toBeFalsy();
+			expect(nests("http://example.com/a/b", "http://example.com/a/bcd")).toBeFalsy();
+			expect(nests("http://example.com/ab", "http://example.com/abc")).toBeFalsy();
+		});
+
+	});
+
+	describe("query strings and fragments", () => {
+
+		it("should ignore query strings on parent", async () => {
+			expect(nests("http://example.com/a?q=1", "http://example.com/a/b")).toBeTruthy();
+		});
+
+		it("should ignore query strings on child", async () => {
+			expect(nests("http://example.com/a", "http://example.com/a/b?q=1")).toBeTruthy();
+		});
+
+		it("should ignore fragments on parent", async () => {
+			expect(nests("http://example.com/a#frag", "http://example.com/a/b")).toBeTruthy();
+		});
+
+		it("should ignore fragments on child", async () => {
+			expect(nests("http://example.com/a", "http://example.com/a/b#frag")).toBeTruthy();
+		});
+
+		it("should ignore query strings and fragments on both", async () => {
+			expect(nests("http://example.com/a?q=1#f1", "http://example.com/a/b?q=2#f2")).toBeTruthy();
+		});
+
+	});
+
+	describe("different origins", () => {
+
+		it("should return false for different schemes", async () => {
+			expect(nests("http://example.com/a", "https://example.com/a/b")).toBeFalsy();
+		});
+
+		it("should return false for different authorities", async () => {
+			expect(nests("http://example.com/a", "http://other.com/a/b")).toBeFalsy();
+		});
+
+		it("should return false for different ports", async () => {
+			expect(nests("http://example.com/a", "http://example.com:8080/a/b")).toBeFalsy();
+		});
+
+	});
+
+	describe("non-hierarchical identifiers", () => {
+
+		it("should return false for opaque URIs", async () => {
+			expect(nests("urn:example:a", "urn:example:a:b")).toBeFalsy();
+			expect(nests("mailto:user@example.com", "mailto:user@example.com")).toBeFalsy();
+		});
+
+		it("should return false for internal references", async () => {
+			expect(nests("/a/b", "/a/b/c")).toBeFalsy();
+		});
+
+		it("should return false for relative references", async () => {
+			expect(nests("a/b", "a/b/c")).toBeFalsy();
+		});
+
+	});
+
+	describe("path normalization", () => {
+
+		it("should normalize dot segments before comparison", async () => {
+			expect(nests("http://example.com/a/b", "http://example.com/a/b/./c")).toBeTruthy();
+			expect(nests("http://example.com/a/./b", "http://example.com/a/b/c")).toBeTruthy();
+		});
+
+		it("should normalize double-dot segments before comparison", async () => {
+			expect(nests("http://example.com/a/b", "http://example.com/a/b/c/../d")).toBeTruthy();
+			expect(nests("http://example.com/a/b/../c", "http://example.com/a/c/d")).toBeTruthy();
 		});
 
 	});

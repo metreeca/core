@@ -667,6 +667,60 @@ export function relativize<T extends URI | IRI>(base: string | T, reference: str
 }
 
 
+/**
+ * Checks if a parent identifier nests a child identifier.
+ *
+ * Returns `true` if `child`'s path is equal to or extends `parent`'s path at a segment boundary,
+ * meaning `parent` is a path prefix of `child` when compared segment by segment.
+ *
+ * Both identifiers must be absolute hierarchical (scheme + root-relative path); returns `false` for
+ * opaque, internal, or relative references. Query strings and fragments are ignored — only the path
+ * component is compared.
+ *
+ * A parent always nests itself (`nests(x, x)` is `true`).
+ * Segment-boundary matching prevents false positives (e.g., `/a/b` does not nest `/a/bc`).
+ *
+ * @typeParam T The identifier type ({@link URI} or {@link IRI})
+ *
+ * @param parent The potential parent identifier
+ * @param child The potential child identifier
+ *
+ * @returns `true` if `parent` nests `child`; `false` otherwise
+ *
+ * @throws RangeError If either argument is not a valid identifier
+ */
+export function nests<T extends URI | IRI>(parent: string | T, child: string | T): boolean {
+
+	const normalizedParent = normalize<T>(parent, "hierarchical");
+	const normalizedChild = normalize<T>(child, "hierarchical");
+
+	if ( normalizedParent === undefined || normalizedChild === undefined ) {
+
+		return false;
+
+	} else {
+
+		const parentURL = new URL(normalizedParent);
+		const childURL = new URL(normalizedChild);
+
+		if ( parentURL.origin === childURL.origin ) {
+
+			const parentPath = parentURL.pathname.endsWith("/") ? parentURL.pathname : `${parentURL.pathname}/`;
+			const childPath = childURL.pathname.endsWith("/") ? childURL.pathname : `${childURL.pathname}/`;
+
+			return childPath.startsWith(parentPath);
+
+		} else {
+
+			return false;
+
+		}
+
+	}
+
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**

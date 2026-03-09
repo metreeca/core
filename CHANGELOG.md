@@ -7,6 +7,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unpublished](https://github.com/metreeca/core/compare/v0.9.18...HEAD)
 
+### Added
+
+- `nests` function for checking parent/child relationships between hierarchical URI/IRI identifiers
+
 ### Changed
 
 - `createRelay` now returns immutable values, deep-freezing structured results (objects, arrays)
