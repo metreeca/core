@@ -13,6 +13,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `Namespace` is now an object type accessed via property lookup (`ns.term`, `ns["term"]`) instead of a callable;
+  the namespace IRI is retrieved via `ns[""]` instead of `ns()`
+- `Terms<T>` type merged into `Namespace<T>`
 - `createRelay` now returns immutable values, deep-freezing structured results (objects, arrays)
 - `createState`, `createNamespace`, `createMutex`, `createThrottle`, and `manageState` now return immutable objects
 - `Manager.capture()` now returns an immutable version snapshot
@@ -27,6 +30,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- `createNamespace` now validates that the namespace IRI is absolute (rejects relative and root-relative references)
+- `Namespace<T>` closed type now rejects unknown terms at compile time (previously allowed any string key)
+- `createNamespace` crashing with `TypeError` when terms collide with `Function.prototype` properties (`name`,
+  `length`, `caller`)
 - `Relay` overload resolution picking partial over complete handlers
 
 ## [0.9.18](https://github.com/metreeca/core/compare/v0.9.17...v0.9.18) - 2026-02-09

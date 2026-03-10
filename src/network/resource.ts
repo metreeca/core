@@ -54,6 +54,16 @@
  * const unicode = asIRI("http://example.org/资源", "absolute");
  * ```
  *
+ * **Nesting Checks**
+ *
+ * ```typescript
+ * import { nests, asIRI } from "@metreeca/core/resource";
+ *
+ * nests("http://example.com/a/", "http://example.com/a/b");   // true
+ * nests("http://example.com/a/", "http://example.com/a/");    // true (self-nesting)
+ * nests("http://example.com/a/", "http://example.com/x/y");   // false
+ * ```
+ *
  * **Reference Operations**
  *
  * ```typescript
@@ -75,7 +85,7 @@
  * relativize(base, asIRI("http://example.com/a/d", "absolute"));   // "../d"
  * ```
  *
- * **Namespace Factories**
+ * **Namespace Objects**
  *
  * ```typescript
  * import { createNamespace } from "@metreeca/core/resource";
@@ -87,17 +97,17 @@
  *   "comment"
  * ]);
  *
- * rdfs();           // IRI: "http://www.w3.org/2000/01/rdf-schema#"
- * rdfs.label;        // IRI: "http://www.w3.org/2000/01/rdf-schema#label"
- * rdfs("comment");   // IRI: "http://www.w3.org/2000/01/rdf-schema#comment"
- * rdfs("seeAlso");   // Throws RangeError: unknown term
+ * rdfs[""];           // IRI: "http://www.w3.org/2000/01/rdf-schema#"
+ * rdfs.label;         // IRI: "http://www.w3.org/2000/01/rdf-schema#label"
+ * rdfs["comment"];    // IRI: "http://www.w3.org/2000/01/rdf-schema#comment"
+ * rdfs["seeAlso"];    // throws RangeError: unknown term
  *
  * // Open namespace for dynamic terms
  *
  * const ex = createNamespace("http://example.org/");
  *
- * ex();              // IRI: "http://example.org/"
- * ex("anything");    // IRI: "http://example.org/anything"
+ * ex[""];             // IRI: "http://example.org/"
+ * ex["anything"];     // IRI: "http://example.org/anything"
  * ```
  *
  * **HTTP Error Handling**
@@ -282,32 +292,30 @@ export type Variant =
 
 
 /**
- * Factory function type for generating IRIs within a common namespace.
+ * Object type for accessing IRIs within a common namespace.
  *
- * A callable function that constructs IRIs by appending names to the namespace IRI.
- * When created via {@link createNamespace} with predefined terms, the function is augmented
- * with typed properties for direct access to known terms.
+ * Provides IRI access via property lookup. The namespace IRI itself is available via the empty
+ * string key (`ns[""]`), while terms are accessed as named properties (`ns.label` or `ns["label"]`).
  *
- * The function signature accepts an optional name parameter and returns the constructed {@link IRI}.
- * If name is omitted, returns the namespace IRI itself.
+ * @typeParam T Predefined term names for closed namespace access
  *
- * @see {@link createNamespace} for creating namespace factories with typed term properties
+ * @see {@link createNamespace} for creating namespace objects
  */
-export type Namespace =
-	((name?: string) => IRI)
+export type Namespace<T extends readonly string[] = []> =
+	T extends readonly [] ? {
 
-/**
- * Mapped type for namespace term properties.
- *
- * Creates an object type with IRI-valued properties for each term in the array.
- *
- * @typeParam T The readonly array type of term names
- */
-export type Terms<T extends readonly string[]> = {
+		readonly [""]: IRI
+		readonly [term: string]: IRI
 
-	[K in T[number]]: IRI
+	} : {
 
-}
+		readonly [""]: IRI
+
+	} & {
+
+		readonly [K in T[number]]: IRI
+
+	}
 
 
 /**
@@ -420,6 +428,58 @@ export function asIRI(value: string, variant: Variant = "relative"): IRI {
 	}
 
 	return normalize(value, variant) ?? invalid(value, variant);
+
+}
+
+
+/**
+ * Checks if a parent identifier nests a child identifier.
+ *
+ * Returns `true` if `child`'s path is equal to or extends `parent`'s path at a segment boundary,
+ * meaning `parent` is a path prefix of `child` when compared segment by segment.
+ *
+ * Both identifiers must be absolute hierarchical (scheme + root-relative path); returns `false` for
+ * opaque, internal, or relative references. Query strings and fragments are ignored — only the path
+ * component is compared.
+ *
+ * A parent always nests itself (`nests(x, x)` is `true`).
+ * Segment-boundary matching prevents false positives (e.g., `/a/b` does not nest `/a/bc`).
+ *
+ * @param parent The potential parent identifier
+ * @param child The potential child identifier
+ *
+ * @returns `true` if `parent` nests `child`; `false` otherwise
+ *
+ * @throws RangeError If either argument is not a valid identifier
+ */
+export function nests(parent: string | IRI, child: string | IRI): boolean {
+
+	const normalizedParent = normalize(parent, "hierarchical");
+	const normalizedChild = normalize(child, "hierarchical");
+
+	if ( normalizedParent === undefined || normalizedChild === undefined ) {
+
+		return false;
+
+	} else {
+
+		const parentURL = new URL(normalizedParent);
+		const childURL = new URL(normalizedChild);
+
+		if ( parentURL.origin === childURL.origin ) {
+
+			const parentPath = parentURL.pathname.endsWith("/") ? parentURL.pathname : `${parentURL.pathname}/`;
+			const childPath = childURL.pathname.endsWith("/") ? childURL.pathname : `${childURL.pathname}/`;
+
+			return childPath.startsWith(parentPath);
+
+		} else {
+
+			return false;
+
+		}
+
+	}
 
 }
 
@@ -583,104 +643,53 @@ export function relativize(base: string | IRI, reference: string | IRI): IRI {
 }
 
 
-/**
- * Checks if a parent identifier nests a child identifier.
- *
- * Returns `true` if `child`'s path is equal to or extends `parent`'s path at a segment boundary,
- * meaning `parent` is a path prefix of `child` when compared segment by segment.
- *
- * Both identifiers must be absolute hierarchical (scheme + root-relative path); returns `false` for
- * opaque, internal, or relative references. Query strings and fragments are ignored — only the path
- * component is compared.
- *
- * A parent always nests itself (`nests(x, x)` is `true`).
- * Segment-boundary matching prevents false positives (e.g., `/a/b` does not nest `/a/bc`).
- *
- * @param parent The potential parent identifier
- * @param child The potential child identifier
- *
- * @returns `true` if `parent` nests `child`; `false` otherwise
- *
- * @throws RangeError If either argument is not a valid identifier
- */
-export function nests(parent: string | IRI, child: string | IRI): boolean {
-
-	const normalizedParent = normalize(parent, "hierarchical");
-	const normalizedChild = normalize(child, "hierarchical");
-
-	if ( normalizedParent === undefined || normalizedChild === undefined ) {
-
-		return false;
-
-	} else {
-
-		const parentURL = new URL(normalizedParent);
-		const childURL = new URL(normalizedChild);
-
-		if ( parentURL.origin === childURL.origin ) {
-
-			const parentPath = parentURL.pathname.endsWith("/") ? parentURL.pathname : `${parentURL.pathname}/`;
-			const childPath = childURL.pathname.endsWith("/") ? childURL.pathname : `${childURL.pathname}/`;
-
-			return childPath.startsWith(parentPath);
-
-		} else {
-
-			return false;
-
-		}
-
-	}
-
-}
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Creates a namespace factory for generating IRIs within a common namespace.
+ * Creates an immutable {@link Namespace} object for generating and accessing IRIs from a common base.
  *
- * Returns a callable function that constructs IRIs by appending names to the namespace,
- * enhanced with typed properties for each predefined term. This enables both dynamic IRI creation
- * (`ns("custom")`) and type-safe access to known terms (`ns.label`).
+ * @typeParam T Predefined term names, inferred from the `terms` argument
  *
- * @typeParam T The readonly array type of term names, inferred as const
+ * @param namespace The absolute base IRI to which terms are appended
+ * @param terms Optional array of predefined term names to restrict access to
  *
- * @param namespace The namespace IRI to which names and terms are appended
- * @param terms Optional array of predefined term names to expose as typed properties
+ * @returns An immutable {@link Namespace} object with typed term properties
  *
- * @returns An immutable callable function accepting a name parameter, augmented with IRI properties for each term
- *
- * @throws RangeError If the namespace or any term produces an invalid IRI during initialization.
- *   For closed namespaces, also throws when the factory is called with an undefined term name.
- *   For open namespaces, throws when the factory is called with a name that produces an invalid IRI.
+ * @throws {RangeError} If the namespace is not a valid absolute IRI, or if any term produces an invalid IRI
+ *   during initialisation. For open namespaces, also throws when accessing a term that produces an invalid IRI.
+ *   For closed namespaces, also throws when accessing an unknown term name.
  *
  * @remarks
  *
  * **Open namespaces** (no terms provided): Accept any term name dynamically, constructing IRIs on demand.
  *
  * **Closed namespaces** (terms provided): Restrict access to predefined terms only, throwing errors
- * for undefined term names.
+ * for unknown term names.
+ *
+ * > [!WARNING]
+ * > Accessing an unknown term on a closed namespace throws a `RangeError` at runtime,
+ * > even though TypeScript's type system may not flag the access at compile time (e.g., when using
+ * > bracket notation with a dynamic key).
  */
-export function createNamespace<const T extends readonly string[]>(namespace: string | IRI, terms?: T): Namespace & Terms<T> {
+export function createNamespace<const T extends readonly string[]>(namespace: string | IRI, terms?: T): Namespace<T> {
 
-	const ns = asIRI(namespace); // validate namespace eagerly
+	const ns = asIRI(namespace, "absolute"); // validate namespace eagerly
 
-	const dictionary = Object.fromEntries((terms ?? []).map(term => [term, asIRI(ns+term)])) as Terms<T>;
+	const dictionary = Object.assign(Object.create(null), Object.fromEntries([
+		["", ns],
+		...(terms ?? []).map(term => [term, asIRI(ns+term, "absolute")])
+	]));
 
-	const factory = terms && terms.length > 0
+	return Object.freeze(new Proxy(dictionary, {
 
-		// closed namespace: only allow predefined terms
+		get(target, property) {
+			return !isString(property) ? undefined
+				: property in target ? target[property]
+					: terms && terms.length > 0 ? error(new RangeError(`unknown term <${property}> in closed namespace <${ns}>`))
+						: asIRI(ns+property, "absolute");
+		}
 
-		? (name?: string): IRI => name === undefined ? ns
-			: name in dictionary ? dictionary[name as T[number]]
-				: error(new RangeError(`unknown term <${name}> in closed namespace <${ns}>`))
-
-		// open namespace: dynamically create IRIs
-
-		: (name?: string): IRI => name === undefined ? ns : asIRI(ns+name);
-
-	return Object.freeze(Object.assign(factory, dictionary));
+	})) as Namespace<T>;
 
 }
 

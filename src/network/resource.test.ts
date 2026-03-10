@@ -640,21 +640,21 @@ describe("namespace", () => {
 
 	describe("open namespace (no terms)", () => {
 
-		it("should create namespace factory with dynamic term generation", async () => {
+		it("should create namespace object", async () => {
 			const ns = createNamespace(base);
-			expect(typeof ns).toBe("function");
+			expect(typeof ns).toBe("object");
 		});
 
-		it("should return namespace IRI when called without arguments", async () => {
+		it("should return namespace IRI via empty string key", async () => {
 			const ns = createNamespace(base);
-			expect(ns()).toBe(base);
-			expect(isIRI(ns())).toBe(true);
+			expect(ns[""]).toBe(base);
+			expect(isIRI(ns[""])).toBe(true);
 		});
 
 		it("should generate IRIs dynamically for any term", async () => {
 			const ns = createNamespace(base);
-			const label = ns("label");
-			const comment = ns("comment");
+			const label = ns["label"];
+			const comment = ns["comment"];
 
 			expect(label).toBe(`${base}label`);
 			expect(comment).toBe(`${base}comment`);
@@ -662,27 +662,27 @@ describe("namespace", () => {
 			expect(isIRI(comment)).toBe(true);
 		});
 
-		it("should validate generated IRIs", () => {
+		it("should validate generated IRIs", async () => {
 			const ns = createNamespace(base);
-			expect(() => ns("valid-term")).not.toThrow();
-			expect(() => ns("invalid term")).toThrow(RangeError);
+			expect(ns["valid-term"]).toBe(`${base}valid-term`);
+			expect(() => ns["invalid term"]).toThrow(RangeError);
 		});
 
 	});
 
 	describe("closed namespace (with terms)", () => {
 
-		it("should create namespace factory with typed term properties", async () => {
+		it("should create namespace object with typed term properties", async () => {
 			const ns = createNamespace(base, ["label", "comment"]);
-			expect(typeof ns).toBe("function");
+			expect(typeof ns).toBe("object");
 			expect(isIRI(ns.label)).toBe(true);
 			expect(isIRI(ns.comment)).toBe(true);
 		});
 
-		it("should return namespace IRI when called without arguments", async () => {
+		it("should return namespace IRI via empty string key", async () => {
 			const ns = createNamespace(base, ["label", "comment"] as const);
-			expect(ns()).toBe(base);
-			expect(isIRI(ns())).toBe(true);
+			expect(ns[""]).toBe(base);
+			expect(isIRI(ns[""])).toBe(true);
 		});
 
 		it("should provide access to predefined terms via properties", async () => {
@@ -691,31 +691,68 @@ describe("namespace", () => {
 			expect(ns.comment).toBe(`${base}comment`);
 		});
 
-		it("should provide access to predefined terms via function call", () => {
+		it("should provide access to predefined terms via bracket notation", async () => {
 			const ns = createNamespace(base, ["label", "comment"] as const);
-			expect(ns("label")).toBe(ns.label);
-			expect(ns("comment")).toBe(ns.comment);
+			expect(ns["label"]).toBe(ns.label);
+			expect(ns["comment"]).toBe(ns.comment);
 		});
 
-		it("should throw RangeError for undefined terms", () => {
+		it("should throw RangeError for undefined terms", async () => {
 			const ns = createNamespace(base, ["label", "comment"] as const);
-			expect(() => ns("seeAlso")).toThrow(RangeError);
+			expect(() => (ns as any)["seeAlso"]).toThrow(RangeError);
+		});
+
+	});
+
+	describe("namespace validation", () => {
+
+		it("should reject non-absolute namespace IRI", async () => {
+			expect(() => createNamespace("not-absolute")).toThrow(RangeError);
+			expect(() => createNamespace("/root-relative")).toThrow(RangeError);
+			expect(() => createNamespace("../relative")).toThrow(RangeError);
+		});
+
+		it("should reject non-absolute namespace IRI with terms", async () => {
+			expect(() => createNamespace("not-absolute", ["term"])).toThrow(RangeError);
+			expect(() => createNamespace("/root-relative", ["term"])).toThrow(RangeError);
+		});
+
+		it("should accept absolute namespace IRI", async () => {
+			expect(() => createNamespace("http://example.org/")).not.toThrow();
+			expect(() => createNamespace("urn:example:")).not.toThrow();
 		});
 
 	});
 
 	describe("edge cases", () => {
 
-		it("should handle empty terms array as open namespace", () => {
+		it("should handle empty terms array as open namespace", async () => {
 			const ns = createNamespace(base, []);
-			expect(() => ns("anyTerm")).not.toThrow();
-			expect(ns("label")).toBe(`${base}label`);
+			expect((ns as any)["label"]).toBe(`${base}label`);
 		});
 
-		it("should handle namespace with single term", () => {
+		it("should handle namespace with single term", async () => {
 			const ns = createNamespace(base, ["label"] as const);
 			expect(ns.label).toBe(`${base}label`);
-			expect(() => ns("comment")).toThrow(RangeError);
+			expect(() => (ns as any)["comment"]).toThrow(RangeError);
+		});
+
+		it("should handle 'name' term without throwing", async () => {
+			const ns = createNamespace(base, ["name"] as const);
+			expect(ns.name).toBe(`${base}name`);
+			expect(ns["name"]).toBe(`${base}name`);
+		});
+
+		it("should handle 'length' term without throwing", async () => {
+			const ns = createNamespace(base, ["length"] as const);
+			expect(ns.length).toBe(`${base}length`);
+			expect(ns["length"]).toBe(`${base}length`);
+		});
+
+		it("should handle 'caller' term without throwing", async () => {
+			const ns = createNamespace(base, ["caller"] as const);
+			expect(ns.caller).toBe(`${base}caller`);
+			expect(ns["caller"]).toBe(`${base}caller`);
 		});
 
 	});
