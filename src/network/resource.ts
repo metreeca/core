@@ -461,6 +461,10 @@ export function nests(parent: string | IRI, child: string | IRI): boolean {
 
 		return false;
 
+	} else if ( normalizedParent === normalizedChild ) {
+
+		return true;
+
 	} else {
 
 		const parentURL = new URL(normalizedParent);
