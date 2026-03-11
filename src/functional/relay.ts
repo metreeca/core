@@ -258,7 +258,7 @@ export function createRelay<O extends Options>(option: Option<O>): Relay<O> {
 	const entries = Object.entries(option);
 
 	if ( entries.length !== 1 ) {
-		throw new TypeError(`relay: option must have exactly one property`);
+		throw new TypeError(`expected option with exactly one property`);
 	}
 
 	const [label, value] = entries[0];

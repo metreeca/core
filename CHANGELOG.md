@@ -13,6 +13,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `manageState` now throws `TypeError` instead of `Error` for invalid instances
 - `Namespace` is now an object type accessed via property lookup (`ns.term`, `ns["term"]`) instead of a callable;
   the namespace IRI is retrieved via `ns[""]` instead of `ns()`
 - `Terms<T>` type merged into `Namespace<T>`
