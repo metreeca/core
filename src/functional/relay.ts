@@ -99,7 +99,7 @@
  * @module
  */
 
-import { immutable } from "../basic/nested.js";
+import { immutable } from "../common/deep.js";
 import { isDefined, isFunction } from "../index.js";
 
 

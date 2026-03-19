@@ -15,7 +15,7 @@
  */
 
 /**
- * Language tags and ranges.
+ * BCP 47 language tags and ranges.
  *
  * Provides branded types and utilities for working with BCP 47 language tags ({@link Tag}) and RFC 4647 language
  * ranges ({@link TagRange}). Use {@link asTag} and {@link asTagRange} to create validated instances, {@link isTag} and

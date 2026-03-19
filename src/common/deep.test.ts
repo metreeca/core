@@ -17,7 +17,7 @@
 import { describe, expect, it } from "vitest";
 import { isNumber, isObject, isString } from "../index.js";
 
-import { equals, immutable } from "./nested.js";
+import { equals, immutable } from "./deep.js";
 
 
 describe("equals()", () => {

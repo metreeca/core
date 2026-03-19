@@ -17,7 +17,7 @@
 import { assertType, describe, expectTypeOf, test } from "vitest";
 import type { Guard } from "../index.js";
 
-import { immutable } from "./nested.js";
+import { immutable } from "./deep.js";
 
 
 describe("immutable(value)", () => {

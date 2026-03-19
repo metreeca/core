@@ -25,11 +25,12 @@
   "sideEffects": false,
   "exports": {
     ".": "./dist/index.js",
-    "./nested": "./dist/basic/nested.js",
-    "./error": "./dist/basic/error.js",
-    "./resource": "./dist/network/resource.js",
-    "./language": "./dist/network/language.js",
-    "./async": "./dist/async/index.js",
+    "./deep": "./dist/common/deep.js",
+    "./report": "./dist/common/report.js",
+    "./resource": "./dist/standard/resource.js",
+    "./problem": "./dist/standard/problem.js",
+    "./language": "./dist/standard/language.js",
+    "./async": "./dist/common/async/index.js",
     "./order": "./dist/functional/order.js",
     "./relay": "./dist/functional/relay.js",
     "./state": "./dist/functional/state.js"

@@ -15,7 +15,7 @@
  */
 
 
-import { isBoolean } from "../index.js";
+import { isBoolean } from "../../index.js";
 import { createMutex } from "./mutex.js";
 import { sleep } from "./sleep.js";
 

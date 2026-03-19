@@ -4,8 +4,8 @@
 
 Essential TypeScript abstractions.
 
-**@metreeca/core** is a foundational TypeScript toolkit with clean, minimalist APIs for common datatypes, operations and
-functional patterns.
+**@metreeca/core** is a foundational TypeScript toolkit with clean, minimalist APIs for common operations, standard
+datatypes and functional patterns.
 
 # Installation
 
@@ -20,20 +20,21 @@ npm install @metreeca/core
 
 # Usage
 
-| Module                                                                           | Description                                  |
-|----------------------------------------------------------------------------------|----------------------------------------------|
-| [@metreeca/core](https://metreeca.github.io/core/modules.html)                   | Core utility types and type guards           |
-| **Basic Operations**                                                             |                                              |
-| [@metreeca/core/nested](https://metreeca.github.io/core/modules/nested.html)     | Deep operations on nested objects and arrays |
-| [@metreeca/core/error](https://metreeca.github.io/core/modules/error.html)       | Error handling and execution reporting       |
-| [@metreeca/core/async](https://metreeca.github.io/core/modules/async.html)       | Primitives for asynchronous operations       |
-| **Network Datatypes**                                                            |                                              |
-| [@metreeca/core/resource](https://metreeca.github.io/core/modules/resource.html) | Resource identifiers and HTTP utilities      |
-| [@metreeca/core/language](https://metreeca.github.io/core/modules/language.html) | Language tags and ranges                     |
-| **Functional Patterns**                                                          |                                              |
-| [@metreeca/core/order](https://metreeca.github.io/core/modules/order.html)       | Composable comparison functions for sorting  |
-| [@metreeca/core/relay](https://metreeca.github.io/core/modules/relay.html)       | Type-safe relay for discriminated unions     |
-| [@metreeca/core/state](https://metreeca.github.io/core/modules/state.html)       | Type-safe immutable state manager            |
+| Module                                                                           | Description                              |
+|----------------------------------------------------------------------------------|------------------------------------------|
+| [@metreeca/core](https://metreeca.github.io/core/modules.html)                   | Utility types and type guards            |
+| **Common Operations**                                                            |                                          |
+| [@metreeca/core/deep](https://metreeca.github.io/core/modules/deep.html)         | Deep operations on objects and arrays    |
+| [@metreeca/core/report](https://metreeca.github.io/core/modules/report.html)     | Execution reporting and error handling   |
+| [@metreeca/core/async](https://metreeca.github.io/core/modules/async.html)       | Asynchronous coordination primitives     |
+| **Standard Datatypes**                                                           |                                          |
+| [@metreeca/core/resource](https://metreeca.github.io/core/modules/resource.html) | RFC 3987 resource identifiers            |
+| [@metreeca/core/language](https://metreeca.github.io/core/modules/language.html) | BCP 47 language tags and ranges          |
+| [@metreeca/core/problem](https://metreeca.github.io/core/modules/problem.html)   | RFC 7807 problem details for HTTP APIs   |
+| **Functional Patterns**                                                          |                                          |
+| [@metreeca/core/order](https://metreeca.github.io/core/modules/order.html)       | Composable comparison functions          |
+| [@metreeca/core/relay](https://metreeca.github.io/core/modules/relay.html)       | Type-safe relay for discriminated unions |
+| [@metreeca/core/state](https://metreeca.github.io/core/modules/state.html)       | Type-safe immutable state management     |
 
 # Support
 

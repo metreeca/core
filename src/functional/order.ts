@@ -15,7 +15,7 @@
  */
 
 /**
- * Composable comparison functions and combinators for sorting operations.
+ * Composable comparison functions.
  *
  * Provides composable comparison functions for use with
  * {@link https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array/sort | Array.sort()}

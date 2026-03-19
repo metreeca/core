@@ -15,7 +15,7 @@
  */
 
 /**
- * Error handling and execution reporting utilities.
+ * Execution reporting and error handling.
  *
  * Provides utilities for error handling, message formatting, and execution timing
  * to support error reporting and performance analysis.
@@ -25,7 +25,7 @@
  * Validate values against type guards with automatic error messages:
  *
  * ```typescript
- * import { assert } from '@metreeca/core/error';
+ * import { assert } from '@metreeca/core/report';
  * import { isString, isNumber } from '@metreeca/core';
  *
  * const name = assert(input, isString);  // throws TypeError if not a string
@@ -37,7 +37,7 @@
  * Throw errors in expression contexts where statements aren't allowed:
  *
  * ```typescript
- * import { error } from '@metreeca/core/error';
+ * import { error } from '@metreeca/core/report';
  *
  * const value = map.get(key) ?? error("Missing required key");
  *
@@ -51,7 +51,7 @@
  * Extract readable messages from various value types:
  *
  * ```typescript
- * import { message } from '@metreeca/core/error';
+ * import { message } from '@metreeca/core/report';
  *
  * console.error(`Failed with: ${message(errorValue)}`);
  *
@@ -65,7 +65,7 @@
  * Monitor timing for synchronous and asynchronous operations:
  *
  * ```typescript
- * import { time } from '@metreeca/core/error';
+ * import { time } from '@metreeca/core/report';
  *
  * const result = await time(
  *   async () => fetchData(url),

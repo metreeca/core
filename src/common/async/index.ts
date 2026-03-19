@@ -15,7 +15,7 @@
  */
 
 /**
- * Primitives for asynchronous operations.
+ * Asynchronous coordination primitives.
  *
  * Provides utilities for coordinating concurrent operations and managing execution flow.
  *

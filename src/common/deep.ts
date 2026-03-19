@@ -15,14 +15,14 @@
  */
 
 /**
- * Deep operations on nested objects and arrays.
+ * Deep operations on objects and arrays.
  *
  * **Deep Equality**
  *
  * Compare nested structures for structural equality:
  *
  * ```typescript
- * import { equals } from '@metreeca/core/nested';
+ * import { equals } from '@metreeca/core/deep';
  *
  * // Objects and arrays
  * equals({ a: [1, 2] }, { a: [1, 2] }); // true
@@ -42,7 +42,7 @@
  * Create deeply frozen structures that prevent all mutations:
  *
  * ```typescript
- * import { immutable } from '@metreeca/core/nested';
+ * import { immutable } from '@metreeca/core/deep';
  *
  * // Objects and arrays
  * const original = { a: [1, 2, 3], b: { c: 4 } };
@@ -68,7 +68,7 @@
  * Validate and freeze with optional type guards:
  *
  * ```typescript
- * import { immutable } from '@metreeca/core/nested';
+ * import { immutable } from '@metreeca/core/deep';
  * import { isObject, isString, isNumber } from '@metreeca/core';
  *
  * // Define a type guard
@@ -92,7 +92,7 @@
  */
 
 import { type Guard, isArray, isObject } from "../index.js";
-import { assert } from "./error.js";
+import { assert } from "./report.js";
 
 
 /**

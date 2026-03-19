@@ -20,6 +20,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `createRelay` now returns immutable values, deep-freezing structured results (objects, arrays)
 - `createState`, `createNamespace`, `createMutex`, `createThrottle`, and `manageState` now return immutable objects
 - `Manager.capture()` now returns an immutable version snapshot
+- Rename `error` module to `report` (import from `@metreeca/core/report`)
+- Rename `nested` module to `deep` (import from `@metreeca/core/deep`)
+- Split `Problem` and `createFetch` from `resource` into new `problem` module (import from `@metreeca/core/problem`)
+- Reorganize source layout: `basic/` → `common/`, `network/` → `standard/`, `async/` → `common/async/`
 
 ### Removed
 
@@ -54,7 +58,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Tuple template validation for `isArray` with exact length matching
 - Optional `is` parameter to `isObject`/`asObject` supporting predicate `(value, key)` or template validation
 - `key` symbol for open template validation in `isObject`
-- `assert` validation function in `error` module
+- `assert` validation function in `report` module
 - `asIdentifier`, `asBoolean`, `asNumber`, `asString`, `asArray`, `asObject` validating cast functions
 - `immutable(value, guard)` overload for type guard validation with memoization
 - `IdentifierPattern` regex constant for ECMAScript identifier validation
@@ -64,7 +68,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - Change `isDefined` to only check for `undefined` (no longer excludes `null`)
-- Rename `report` module to `error`
+- Rename `report` module to `error`, then back to `report`
 - Consolidate `json` module into main index module; import from `@metreeca/core` instead of `@metreeca/core/json`
 - Change default `variant` parameter from `"absolute"` to `"relative"` for `isURI`, `isIRI`, `asURI`, `asIRI`
 - Change `isObject` type parameter from `<K, V>` to `<T extends Record<PropertyKey, unknown>>`
