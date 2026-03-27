@@ -222,7 +222,8 @@ function invalid(value: unknown, variant: Variant): never {
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986.html RFC 3986 - URI Generic Syntax}
  * @see {@link https://www.rfc-editor.org/rfc/rfc3987.html#section-2.2 RFC 3987 § 2.2 - IRI Syntax}
  */
-export type IRI = string
+export type IRI =
+	| string
 
 
 /**

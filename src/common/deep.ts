@@ -118,6 +118,10 @@ const Immutable = Symbol("immutable");
  * > [!CAUTION]
  * > **Circular references are not supported**. Do not pass objects with cycles.
  *
+ * > [!NOTE]
+ * > Reference-identical arguments (`Object.is(x, y)`) short-circuit immediately, skipping deep traversal entirely.
+ * > This optimisation is unconditional and independent of the custom `equal` function.
+ *
  * @param x The target object to be checked for equality
  * @param y The reference object to be checked for equality
  * @param equal An optional custom equality function for comparing non-object, non-array values; defaults to `Object.is`
@@ -127,6 +131,12 @@ const Immutable = Symbol("immutable");
  * @throws {RangeError} Stack overflow when `x` or `y` contains circular references
  */
 export function equals(x: unknown, y: unknown, equal: (x: unknown, y: unknown) => boolean = Object.is): boolean {
+
+	return Object.is(x, y) ? true
+		: isArray(x) ? isArray(y) && arrayEquals(x, y)
+			: isObject(x) ? isObject(y) && objectEquals(x, y)
+				: equal(x, y);
+
 
 	function arrayEquals(x: unknown[], y: typeof x) {
 		return x.length === y.length && x.every((value, index) => equals(value, y[index], equal));
@@ -140,10 +150,6 @@ export function equals(x: unknown, y: unknown, equal: (x: unknown, y: unknown) =
 		return xKeys.length !== yKeys.length ? false
 			: xKeys.every(key => key in y && equals(x[key], y[key], equal));
 	}
-
-	return isArray(x) ? isArray(y) && arrayEquals(x, y)
-		: isObject(x) ? isObject(y) && objectEquals(x, y)
-			: equal(x, y);
 }
 
 
@@ -251,12 +257,10 @@ export function immutable(value: unknown, guard?: Guard, message?: string): unkn
 	 */
 	function brand(value: object): unknown {
 
-		Object.defineProperty(value, Immutable, {
+		return Object.freeze(Object.defineProperty(value, Immutable, {
 			value: target,
 			enumerable: false
-		});
-
-		return Object.freeze(value);
+		}));
 
 	}
 

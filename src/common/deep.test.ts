@@ -146,6 +146,71 @@ describe("equals()", () => {
 
 	});
 
+	describe("reference identity short-circuit", () => {
+
+		it("should short-circuit for same-reference objects", async () => {
+
+			let callCount = 0;
+			const trackingEqual = (x: unknown, y: unknown) => {
+				callCount++;
+				return Object.is(x, y);
+			};
+
+			const obj = { a: { b: 1 }, c: [2, 3] };
+
+			expect(equals(obj, obj, trackingEqual)).toBeTruthy();
+			expect(callCount).toBe(0);
+
+		});
+
+		it("should short-circuit for same-reference arrays", async () => {
+
+			let callCount = 0;
+			const trackingEqual = (x: unknown, y: unknown) => {
+				callCount++;
+				return Object.is(x, y);
+			};
+
+			const arr = [{ a: 1 }, [2, 3]];
+
+			expect(equals(arr, arr, trackingEqual)).toBeTruthy();
+			expect(callCount).toBe(0);
+
+		});
+
+		it("should short-circuit for same-reference primitives", async () => {
+
+			let callCount = 0;
+			const trackingEqual = (x: unknown, y: unknown) => {
+				callCount++;
+				return Object.is(x, y);
+			};
+
+			const str = "hello";
+
+			expect(equals(str, str, trackingEqual)).toBeTruthy();
+			expect(callCount).toBe(0);
+
+		});
+
+		it("should not short-circuit for distinct but equal objects", async () => {
+
+			let callCount = 0;
+			const trackingEqual = (x: unknown, y: unknown) => {
+				callCount++;
+				return Object.is(x, y);
+			};
+
+			const a = { x: 1 };
+			const b = { x: 2 };
+
+			expect(equals(a, b, trackingEqual)).toBeFalsy();
+			expect(callCount).toBeGreaterThan(0);
+
+		});
+
+	});
+
 	describe("custom equality", () => {
 
 		it("should use Object.is by default", async () => {
