@@ -10,10 +10,16 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - `nests` function for checking parent/child relationships between hierarchical URI/IRI identifiers
+- `seal` function for attaching typed content to objects under symbol keys, producing deep immutable clones
+
+### Fixed
+
+- `equals` now correctly distinguishes `-0` from `+0` using `Object.is` semantics in the short-circuit path
 
 ### Changed
 
 - `equals` now short-circuits on reference-identical arguments, skipping deep traversal entirely
+- `immutable` no longer brands nested children; idempotency applies only at top level
 - `manageState` now throws `TypeError` instead of `Error` for invalid instances
 - `Namespace` is now an object type accessed via property lookup (`ns.term`, `ns["term"]`) instead of a callable;
   the namespace IRI is retrieved via `ns[""]` instead of `ns()`

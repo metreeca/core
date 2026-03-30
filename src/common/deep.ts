@@ -222,79 +222,109 @@ export function immutable(value: unknown, guard?: Guard, message?: string): unkn
 	// actual: existing brand stored on value
 	// target: expected brand (explicit guard, existing, or default)
 
-	const actual = value !== null && typeof value === "object" ? Reflect.get(value, Immutable) : undefined;
+	const actual = seal(value, Immutable);
 	const target = guard ?? actual ?? immutable;
 
-	if ( actual === target ) {  // already frozen with target brand: idempotent
+	return actual === target ? value // already branded with target
+		: seal(guard ? assert(value, guard, message) : value, Immutable, target);
+
+}
+
+
+/**
+ * Retrieves the content sealed on `value` under the given `seal`.
+ *
+ * @typeParam T The expected type of the sealed content
+ *
+ * @param value The value to inspect
+ * @param seal The symbol identifying the seal
+ *
+ * @returns The sealed content if `value` is sealed under `seal`; `undefined` otherwise
+ */
+export function seal<T>(value: unknown, seal: symbol): undefined | T;
+
+/**
+ * Seals `content` on `value` under the given `seal`.
+ *
+ * @typeParam V The type of the value being sealed
+ *
+ * @param value The value to seal
+ * @param seal The symbol identifying the seal
+ * @param content The content to seal on `value`
+ *
+ * @returns The sealed `value`
+ */
+export function seal<V>(value: V, seal: symbol, content: unknown): V;
+
+/**
+ * Inspects or attaches sealed content on a value.
+ */
+export function seal(value: unknown, seal: symbol, content?: unknown): unknown {
+
+	if ( arguments.length < 3 ) { // retrieve
+
+		return value !== null && typeof value === "object" ? Reflect.get(value, seal) : undefined;
+
+	} else if ( !isArray(value) && !isObject(value) ) { // primitive or non-plain object: return as-is
 
 		return value;
 
-	} else if ( actual !== undefined ) { // already frozen: rebrand and shallow-refreeze if array or object
+	} else { // clone, seal, and deep-freeze
 
-		const validated = guard ? assert(value, guard, message) : value;
+		const sealed: object = isArray(value) ? [] : {};
 
-		return isArray(validated) ? brand([...validated])
-			: isObject(validated) ? brand({ ...validated })
-				: validated;
+		// apply caller's seal
 
-	} else { // brand and deep-freeze if array or object
+		Object.defineProperty(sealed, seal, {
 
-		const validated = guard ? assert(value, guard, message) : value;
+			value: isArray(content) ? freeze([], content)
+				: isObject(content) ? freeze({}, content)
+					: content,
 
-		return isArray(validated) ? freeze(validated, [])
-			: isObject(validated) ? freeze(validated, {})
-				: value;
-
-	}
-
-
-	/**
-	 * Brands and freezes a value with the target brand.
-	 *
-	 * @param value The object or array to brand
-	 *
-	 * @returns The frozen and branded value
-	 */
-	function brand(value: object): unknown {
-
-		return Object.freeze(Object.defineProperty(value, Immutable, {
-			value: target,
 			enumerable: false
-		}));
+
+		});
+
+		// apply immutable brand
+
+		if ( seal !== Immutable ) {
+			Object.defineProperty(sealed, Immutable, {
+				value: immutable,
+				enumerable: false
+			});
+		}
+
+		// clone properties and freeze
+
+		return freeze(sealed, value);
 
 	}
 
-	/**
-	 * Recursively freezes a value by copying properties to an accumulator.
-	 *
-	 * @param value The value to freeze (object, array, or function)
-	 * @param accumulator The target object to receive frozen properties
-	 *
-	 * @returns The frozen accumulator
-	 *
-	 * @remarks
-	 *
-	 * Property descriptors omit `writable` and `configurable` attributes since
-	 * `Object.freeze()` will make all properties non-writable and non-configurable.
-	 */
-	function freeze(value: object, accumulator: {}): unknown {
 
-		Reflect.ownKeys(value).forEach(key => {
+	// recursively clone properties to accumulator, stripping setters and deep-freezing values
 
-			if ( key !== Immutable ) {
+	function freeze(target: object, source: object): object {
 
-				const descriptor = Object.getOwnPropertyDescriptor(value, key)!;
+		Reflect.ownKeys(source).forEach(key => {
 
-				if ( "value" in descriptor ) { // data property: freeze the value recursively
+			if ( key !== Immutable && key !== seal ) {
 
-					Object.defineProperty(accumulator, key, {
-						value: immutable(descriptor.value),
+				const descriptor = Object.getOwnPropertyDescriptor(source, key)!;
+
+				if ( "value" in descriptor ) { // data property: recurse
+
+					const child = descriptor.value;
+
+					Object.defineProperty(target, key, {
+						value: isArray(child) ? (Immutable in child ? child : freeze([], child))
+							: isObject(child) ? (Immutable in child ? child : freeze({}, child))
+								: child,
 						enumerable: descriptor.enumerable
 					});
 
-				} else { // accessor property: preserve getter only (setters would allow mutation)
+				} else { // accessor property: preserve getter only
 
-					Object.defineProperty(accumulator, key, {
+					Object.defineProperty(target, key, {
 						get: descriptor.get,
 						enumerable: descriptor.enumerable
 					});
@@ -305,7 +335,7 @@ export function immutable(value: unknown, guard?: Guard, message?: string): unkn
 
 		});
 
-		return brand(accumulator);
+		return Object.freeze(target);
 
 	}
 

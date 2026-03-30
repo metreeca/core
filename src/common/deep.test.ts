@@ -17,7 +17,7 @@
 import { describe, expect, it } from "vitest";
 import { isNumber, isObject, isString } from "../index.js";
 
-import { equals, immutable } from "./deep.js";
+import { equals, immutable, seal } from "./deep.js";
 
 
 describe("equals()", () => {
@@ -533,96 +533,6 @@ describe("immutable()", () => {
 
 		});
 
-		it("should tag nested objects during deep freeze", async () => {
-
-			const original = {
-				user: { name: "Alice", age: 30 },
-				settings: { theme: "dark" }
-			};
-
-			const frozen = immutable(original);
-
-			// extract nested objects
-			const user = frozen.user;
-			const settings = frozen.settings;
-
-			// re-freeze the nested objects - should return same reference
-			const userRefrozen = immutable(user);
-			const settingsRefrozen = immutable(settings);
-
-			expect(userRefrozen).toBe(user);
-			expect(settingsRefrozen).toBe(settings);
-
-		});
-
-		it("should tag deeply nested objects", async () => {
-
-			const original = {
-				level1: {
-					level2: {
-						level3: {
-							value: "deep"
-						}
-					}
-				}
-			};
-
-			const frozen = immutable(original);
-
-			// extract deeply nested object
-			const level3 = frozen.level1.level2.level3;
-
-			// re-freeze should return same reference
-			const refrozen = immutable(level3);
-
-			expect(refrozen).toBe(level3);
-
-		});
-
-		it("should tag nested arrays during deep freeze", async () => {
-
-			const original = {
-				items: [1, 2, 3],
-				nested: [[4, 5], [6, 7]]
-			};
-
-			const frozen = immutable(original);
-
-			// extract nested arrays
-			const items = frozen.items;
-			const nestedArray = frozen.nested[0];
-
-			// re-freeze should return same reference
-			const itemsRefrozen = immutable(items);
-			const nestedRefrozen = immutable(nestedArray);
-
-			expect(itemsRefrozen).toBe(items);
-			expect(nestedRefrozen).toBe(nestedArray);
-
-		});
-
-		it("should tag objects within arrays", async () => {
-
-			const original = [
-				{ id: 1, name: "Alice" },
-				{ id: 2, name: "Bob" }
-			];
-
-			const frozen = immutable(original);
-
-			// extract object from array
-			const firstItem = frozen[0];
-			const secondItem = frozen[1];
-
-			// re-freeze should return same reference
-			const firstRefrozen = immutable(firstItem);
-			const secondRefrozen = immutable(secondItem);
-
-			expect(firstRefrozen).toBe(firstItem);
-			expect(secondRefrozen).toBe(secondItem);
-
-		});
-
 		it("should handle primitive array items correctly", async () => {
 
 			const original = [1, 2, 3, "hello", true];
@@ -637,52 +547,6 @@ describe("immutable()", () => {
 			expect(immutable(num)).toBe(num);
 			expect(immutable(str)).toBe(str);
 			expect(immutable(bool)).toBe(bool);
-
-		});
-
-		it("should tag array items that are arrays", async () => {
-
-			const original = [[1, 2], [3, 4], [5, 6]];
-			const frozen = immutable(original);
-
-			// extract nested arrays
-			const first = frozen[0];
-			const second = frozen[1];
-			const third = frozen[2];
-
-			// re-freeze should return same reference
-			expect(immutable(first)).toBe(first);
-			expect(immutable(second)).toBe(second);
-			expect(immutable(third)).toBe(third);
-
-		});
-
-		it("should tag mixed array items (objects and arrays)", async () => {
-
-			const original = [
-				{ type: "object", value: 1 },
-				[2, 3, 4],
-				{ type: "another", value: 5 },
-				[[6, 7], [8, 9]]
-			];
-
-			const frozen = immutable(original);
-
-			// extract different types of items
-			const obj1 = frozen[0];
-			const arr1 = frozen[1];
-			const obj2 = frozen[2];
-			const nestedArr = frozen[3];
-
-			// all should return same reference when re-frozen
-			expect(immutable(obj1)).toBe(obj1);
-			expect(immutable(arr1)).toBe(arr1);
-			expect(immutable(obj2)).toBe(obj2);
-			expect(immutable(nestedArr)).toBe(nestedArr);
-
-			// verify deeply nested items are also tagged
-			const deepNested = (nestedArr as ReadonlyArray<unknown>)[0];
-			expect(immutable(deepNested)).toBe(deepNested);
 
 		});
 
@@ -1240,6 +1104,227 @@ describe("immutable() with guard", () => {
 
 			expect(result).toEqual({ a: 1, b: 2 });
 			expect(result).not.toBe(sealed);
+
+		});
+
+	});
+
+});
+
+describe("seal()", () => {
+
+	const tag = Symbol("tag");
+
+	describe("retrieving", () => {
+
+		it("should return undefined for unsealed values", async () => {
+
+			expect(seal({}, tag)).toBeUndefined();
+			expect(seal([], tag)).toBeUndefined();
+
+		});
+
+		it("should return undefined for primitives", async () => {
+
+			expect(seal(42, tag)).toBeUndefined();
+			expect(seal("text", tag)).toBeUndefined();
+			expect(seal(true, tag)).toBeUndefined();
+			expect(seal(null, tag)).toBeUndefined();
+			expect(seal(undefined, tag)).toBeUndefined();
+
+		});
+
+		it("should return sealed content", async () => {
+
+			const value = seal({}, tag, "content");
+
+			expect(seal(value, tag)).toBe("content");
+
+		});
+
+		it("should return undefined for a different seal", async () => {
+
+			const other = Symbol("other");
+			const value = seal({}, tag, "content");
+
+			expect(seal(value, other)).toBeUndefined();
+
+		});
+
+	});
+
+	describe("sealing", () => {
+
+		it("should return a deep immutable clone", async () => {
+
+			const value = { x: 1 };
+			const sealed = seal(value, tag, "content");
+
+			expect(sealed).not.toBe(value);
+			expect(sealed).toEqual({ x: 1 });
+
+		});
+
+		it("should seal objects", async () => {
+
+			const value = seal({ x: 1 }, tag, "content");
+
+			expect(seal(value, tag)).toBe("content");
+
+		});
+
+		it("should seal arrays", async () => {
+
+			const value = seal([1, 2], tag, "content");
+
+			expect(seal(value, tag)).toBe("content");
+
+		});
+
+		it("should seal with any content type", async () => {
+
+			const fn = () => {};
+
+			expect(seal(seal({}, tag, 42), tag)).toBe(42);
+			expect(seal(seal({}, tag, null), tag)).toBeNull();
+			expect(seal(seal({}, tag, fn), tag)).toBe(fn);
+
+		});
+
+		it("should deep-freeze structured content values", async () => {
+
+			const content = { nested: { value: 1 } };
+			const value = seal({}, tag, content);
+			const retrieved = seal<{ nested: { value: number } }>(value, tag);
+
+			expect(Object.isFrozen(retrieved)).toBeTruthy();
+			expect(Object.isFrozen(retrieved!.nested)).toBeTruthy();
+			expect(() => { (retrieved as any).nested.value = 2; }).toThrow(TypeError);
+
+		});
+
+		it("should not affect enumerable properties", async () => {
+
+			const value = seal({ a: 1, b: 2 }, tag, "content");
+
+			expect(Object.keys(value)).toEqual(["a", "b"]);
+
+		});
+
+		it("should deeply freeze the sealed value", async () => {
+
+			const value = seal({ x: { y: 1 } }, tag, "content");
+
+			expect(Object.isFrozen(value)).toBeTruthy();
+			expect(Object.isFrozen((value as { x: object }).x)).toBeTruthy();
+
+		});
+
+		it("should deeply freeze sealed arrays", async () => {
+
+			const value = seal([{ a: 1 }, { b: 2 }], tag, "content");
+
+			expect(Object.isFrozen(value)).toBeTruthy();
+			expect(Object.isFrozen((value as object[])[0])).toBeTruthy();
+
+		});
+
+		it("should deeply freeze nested structures at all levels", async () => {
+
+			const value = seal({ a: { b: { c: { d: 1 } } } }, tag, "content") as any;
+
+			expect(Object.isFrozen(value)).toBeTruthy();
+			expect(Object.isFrozen(value.a)).toBeTruthy();
+			expect(Object.isFrozen(value.a.b)).toBeTruthy();
+			expect(Object.isFrozen(value.a.b.c)).toBeTruthy();
+
+			expect(() => { value.a.b.c.d = 2; }).toThrow(TypeError);
+
+		});
+
+		it("should strip setters from accessor properties", async () => {
+
+			let backing = 0;
+
+			const value = seal(Object.defineProperty({}, "prop", {
+				get() { return backing; },
+				set(v: number) { backing=v; },
+				enumerable: true,
+				configurable: true
+			}), tag, "content");
+
+			const descriptor = Object.getOwnPropertyDescriptor(value, "prop")!;
+
+			expect(descriptor.get).toBeDefined();
+			expect(descriptor.set).toBeUndefined();
+
+		});
+
+	});
+
+	describe("frozen values", () => {
+
+		it("should seal already frozen objects", async () => {
+
+			const value = Object.freeze({ x: 1 });
+			const sealed = seal(value, tag, "content");
+
+			expect(seal(sealed, tag)).toBe("content");
+
+		});
+
+		it("should seal already frozen arrays", async () => {
+
+			const value = Object.freeze([1, 2]);
+			const sealed = seal(value, tag, "content");
+
+			expect(seal(sealed, tag)).toBe("content");
+
+		});
+
+		it("should preserve frozen object content", async () => {
+
+			const value = Object.freeze({ x: 1, y: 2 });
+			const sealed = seal(value, tag, "content");
+
+			expect(sealed).toEqual({ x: 1, y: 2 });
+
+		});
+
+	});
+
+	describe("multiple seals", () => {
+
+		it("should support concurrent seals on the same value", async () => {
+
+			const alpha = Symbol("alpha");
+			const beta = Symbol("beta");
+
+			const value = seal(seal({}, alpha, "first"), beta, "second");
+
+			expect(seal(value, alpha)).toBe("first");
+			expect(seal(value, beta)).toBe("second");
+
+		});
+
+		it("should not interfere across different seals", async () => {
+
+			const alpha = Symbol("alpha");
+			const beta = Symbol("beta");
+			const gamma = Symbol("gamma");
+
+			const value = seal(seal({}, alpha, "a"), beta, "b");
+
+			expect(seal(value, gamma)).toBeUndefined();
+
+		});
+
+		it("should allow overwriting a seal", async () => {
+
+			const original = seal({}, tag, "original");
+			const updated = seal(original, tag, "updated");
+
+			expect(seal(updated, tag)).toBe("updated");
 
 		});
 
