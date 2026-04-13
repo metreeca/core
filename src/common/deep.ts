@@ -15,7 +15,22 @@
  */
 
 /**
- * Deep operations on objects and arrays.
+ * Deep operations on JSON-like objects and arrays.
+ *
+ * **Recursive Partial Views**
+ *
+ * Widen a JSON-like type into a subset view that accepts partial literals at every nesting level:
+ *
+ * ```typescript
+ * import type { DeepPartial } from '@metreeca/core/deep';
+ *
+ * type Config = { server: { host: string; port: number }; tags: string[] };
+ *
+ * const overlay: DeepPartial<Config> = { server: { port: 8080 } }; // missing keys allowed
+ * ```
+ *
+ * Tuple arity, element labels, variadic segments, and index signatures are preserved while every record key is
+ * relaxed to `readonly` and optional.
  *
  * **Deep Equality**
  *
@@ -102,6 +117,28 @@ import { assert } from "./report.js";
  * This allows for efficient idempotency checking and guard memoization.
  */
 const Immutable = Symbol("immutable");
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Recursively widens a JSON-like type into a subset view.
+ *
+ * Walks the type tree distributing over unions and dispatching on each node:
+ *
+ * - **Primitives** (`undefined`, `null`, `boolean`, `number`, `string`): returned unchanged
+ * - **Tuples and arrays**: each element type is recursively widened; tuple arity, element labels, variadic segments,
+ *   and the array-versus-tuple distinction are preserved, with the `readonly` modifier applied
+ * - **Plain objects and records** (including string- and number-indexed signatures): every property becomes
+ *   `readonly` and optional, with values recursively widened
+ *
+ * @typeParam T The template type to widen
+ */
+export type DeepPartial<T> =
+	T extends undefined | null | boolean |number | string ? T
+		: T extends readonly unknown[] ? { readonly [K in keyof T]: DeepPartial<T[K]> }
+			: T extends object ? { readonly [K in keyof T]?: DeepPartial<T[K]> }
+				: T;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

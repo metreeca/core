@@ -17,7 +17,14 @@
 import { assertType, describe, expectTypeOf, test } from "vitest";
 import type { Guard } from "../index.js";
 
-import { immutable } from "./deep.js";
+import { type DeepPartial, immutable } from "./deep.js";
+
+
+type StringIndexSource = Record<string, { title: string }>;
+type StringIndexExpected = Readonly<Partial<Record<string, { readonly title?: string }>>>;
+
+type NumericIndexSource = Record<number, { value: string }>;
+type NumericIndexExpected = Readonly<Partial<Record<number, { readonly value?: string }>>>;
 
 
 describe("immutable(value)", () => {
@@ -125,6 +132,145 @@ describe("immutable(value, guard)", () => {
 		const result = immutable(value, guard);
 
 		expectTypeOf(result).toEqualTypeOf<number[]>();
+
+	});
+
+});
+
+describe("DeepPartial<T>", () => {
+
+	describe("primitive leaves", () => {
+
+		test("should preserve string, number, boolean", async () => {
+			expectTypeOf<DeepPartial<string>>().toEqualTypeOf<string>();
+			expectTypeOf<DeepPartial<number>>().toEqualTypeOf<number>();
+			expectTypeOf<DeepPartial<boolean>>().toEqualTypeOf<boolean>();
+		});
+
+		test("should preserve null and undefined", async () => {
+			expectTypeOf<DeepPartial<null>>().toEqualTypeOf<null>();
+			expectTypeOf<DeepPartial<undefined>>().toEqualTypeOf<undefined>();
+		});
+
+		test("should preserve literal types", async () => {
+			expectTypeOf<DeepPartial<"a">>().toEqualTypeOf<"a">();
+			expectTypeOf<DeepPartial<42>>().toEqualTypeOf<42>();
+			expectTypeOf<DeepPartial<true>>().toEqualTypeOf<true>();
+		});
+
+	});
+
+	describe("arrays", () => {
+
+		test("should map mutable arrays to readonly arrays of partialised elements", async () => {
+			expectTypeOf<DeepPartial<number[]>>().toEqualTypeOf<readonly number[]>();
+		});
+
+		test("should preserve readonly arrays", async () => {
+			expectTypeOf<DeepPartial<readonly number[]>>().toEqualTypeOf<readonly number[]>();
+		});
+
+		test("should partialise array element objects", async () => {
+			expectTypeOf<DeepPartial<{ x: number }[]>>()
+				.toEqualTypeOf<readonly { readonly x?: number }[]>();
+		});
+
+		test("should partialise nested arrays", async () => {
+			expectTypeOf<DeepPartial<number[][]>>()
+				.toEqualTypeOf<readonly (readonly number[])[]>();
+		});
+
+	});
+
+	describe("tuples", () => {
+
+		test("should preserve empty tuple", async () => {
+			expectTypeOf<DeepPartial<readonly []>>().toEqualTypeOf<readonly []>();
+		});
+
+		test("should partialise singleton tuple element-wise", async () => {
+			expectTypeOf<DeepPartial<readonly [{ x: number }]>>()
+				.toEqualTypeOf<readonly [{ readonly x?: number }]>();
+		});
+
+		test("should partialise multi-element tuples preserving length", async () => {
+			expectTypeOf<DeepPartial<readonly [{ x: number }, { y: string }]>>()
+				.toEqualTypeOf<readonly [{ readonly x?: number }, { readonly y?: string }]>();
+		});
+
+		test("should partialise heterogeneous tuples", async () => {
+			expectTypeOf<DeepPartial<readonly [string, { a: number }, number[]]>>()
+				.toEqualTypeOf<readonly [string, { readonly a?: number }, readonly number[]]>();
+		});
+
+		test("should preserve labelled tuple element names", async () => {
+			expectTypeOf<DeepPartial<readonly [id: string, count: number]>>()
+				.toEqualTypeOf<readonly [id: string, count: number]>();
+		});
+
+		test("should preserve rest-tail tuple shape", async () => {
+			expectTypeOf<DeepPartial<readonly [{ a: number }, ...{ b: string }[]]>>()
+				.toEqualTypeOf<readonly [{ readonly a?: number }, ...(readonly { readonly b?: string }[])]>();
+		});
+
+		test("should preserve rest-head tuple shape", async () => {
+			expectTypeOf<DeepPartial<readonly [...{ a: number }[], { b: string }]>>()
+				.toEqualTypeOf<readonly [...(readonly { readonly a?: number }[]), { readonly b?: string }]>();
+		});
+
+		test("should preserve rest-middle tuple shape", async () => {
+			expectTypeOf<DeepPartial<readonly [{ a: number }, ...{ b: string }[], { c: boolean }]>>()
+				.toEqualTypeOf<readonly [
+					{ readonly a?: number },
+					...(readonly { readonly b?: string }[]),
+					{ readonly c?: boolean },
+				]>();
+		});
+
+	});
+
+	describe("plain objects", () => {
+
+		test("should make every property optional and readonly", async () => {
+			expectTypeOf<DeepPartial<{ a: number; b: string }>>()
+				.toEqualTypeOf<{ readonly a?: number; readonly b?: string }>();
+		});
+
+		test("should recurse into nested objects", async () => {
+			expectTypeOf<DeepPartial<{ a: { b: { c: number } } }>>()
+				.toEqualTypeOf<{ readonly a?: { readonly b?: { readonly c?: number } } }>();
+		});
+
+		test("should partialise array-valued properties", async () => {
+			expectTypeOf<DeepPartial<{ items: { id: number }[] }>>()
+				.toEqualTypeOf<{ readonly items?: readonly { readonly id?: number }[] }>();
+		});
+
+		test("should preserve already-optional properties", async () => {
+			expectTypeOf<DeepPartial<{ a: number; b?: string }>>()
+				.toEqualTypeOf<{ readonly a?: number; readonly b?: string }>();
+		});
+
+	});
+
+	describe("index signatures", () => {
+
+		test("should partialise values under a string index signature", async () => {
+			expectTypeOf<DeepPartial<StringIndexSource>>().toEqualTypeOf<StringIndexExpected>();
+		});
+
+		test("should partialise values under a number index signature", async () => {
+			expectTypeOf<DeepPartial<NumericIndexSource>>().toEqualTypeOf<NumericIndexExpected>();
+		});
+
+	});
+
+	describe("unions", () => {
+
+		test("should distribute over unions", async () => {
+			expectTypeOf<DeepPartial<{ a: number } | string>>()
+				.toEqualTypeOf<{ readonly a?: number } | string>();
+		});
 
 	});
 

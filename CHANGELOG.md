@@ -13,6 +13,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `seal` function for attaching typed content to objects under symbol keys, producing deep immutable clones
 - `Eager<T>` utility type unwrapping a `Lazy<T>` reference to its eager counterpart
 - `isEager` type guard for validating eager (non-function) `Lazy<T>` values
+- `DeepPartial<T>` utility type recursively widening JSON-like types into a subset view, preserving tuple arity,
+  element labels, variadic segments, and index signatures
 
 ### Fixed
 
