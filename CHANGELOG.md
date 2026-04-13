@@ -11,6 +11,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - `nests` function for checking parent/child relationships between hierarchical URI/IRI identifiers
 - `seal` function for attaching typed content to objects under symbol keys, producing deep immutable clones
+- `Eager<T>` utility type unwrapping a `Lazy<T>` reference to its eager counterpart
+- `isEager` type guard for validating eager (non-function) `Lazy<T>` values
 
 ### Fixed
 
@@ -31,6 +33,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Rename `nested` module to `deep` (import from `@metreeca/core/deep`)
 - Split `Problem` and `createFetch` from `resource` into new `problem` module (import from `@metreeca/core/problem`)
 - Reorganize source layout: `basic/` → `common/`, `network/` → `standard/`, `async/` → `common/async/`
+- `isLazy` now accepts the type guard parameter as optional and rejects functions with non-zero arity regardless
 
 ### Removed
 

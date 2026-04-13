@@ -17,7 +17,14 @@
 /**
  * Core utility types and type guards.
  *
- * Provides primitive type guards for runtime type checking with compile-time narrowing.
+ * Bridges the gap between TypeScript's static type system and untrusted runtime data.
+ * Every guard returns a boolean and narrows its argument on success, so validation and
+ * type inference collapse into a single call at API boundaries, deserialisation sites,
+ * and other trust-crossing points.
+ *
+ * ## Primitives and built-ins
+ *
+ * Guards for language-level values and host objects.
  *
  * ```typescript
  * isDefined("value"); // true
@@ -30,13 +37,21 @@
  * isPromise(Promise.resolve()); // true
  * isIterable([1, 2, 3]); // true
  * isAsyncIterable(asyncGenerator()); // true
+ * ```
  *
- * isValue({ a: [1, 2], b: "test" }); // true (JSON value)
+ * ## JSON values
  *
+ * Complete coverage of the JSON data model: scalars, the recursive {@link Value} type,
+ * and structural guards for arrays and objects. {@link isArray} and {@link isObject}
+ * validate shape in depth through element predicates or tuple/template descriptors;
+ * object templates are closed by default, with the {@link key} wildcard turning them open.
+ *
+ * ```typescript
  * isNull(null); // true
  * isBoolean(true); // true
  * isNumber(42); // true
  * isString("hello"); // true
+ * isValue({ a: [1, 2], b: "test" }); // true (recursive JSON value)
  *
  * isArray([1, 2, 3]); // true
  * isArray([1, 2, 3], isNumber); // with element predicate
@@ -46,26 +61,42 @@
  * isObject({ a: 1 }); // true
  * isObject({ a: 1 }, isNumber); // with entry predicate
  * isObject({ a: 1 }, { a: isNumber }); // with closed template
- * isObject({ a: 1 }, { a: isNumber, [key]: isAny}); // with open template
+ * isObject({ a: 1 }, { a: isNumber, [key]: isAny }); // with open template
  * isObject({ a: 1 }, { a: isNumber, b: v => isOptional(v, isString) }); // with optional field
  * isObject({ kind: "circle" }, { kind: v => isLiteral(v, ["circle", "square"]) }); // with literal field
  * isObject({ value: 42 }, { value: v => isUnion(v, [isString, isNumber]) }); // with union field
  * isObject({}, {}); // empty object check
+ * ```
  *
+ * ## Deferred values
+ *
+ * {@link isLazy} admits values supplied either eagerly or as no-arg factories;
+ * {@link isEager} is its dual, rejecting factories and accepting only plain values.
+ * Paired with the {@link Lazy} / {@link Eager} type operators.
+ *
+ * ```typescript
  * isLazy(() => 42, isNumber); // true (no-arg function)
  * isLazy(42, isNumber); // true (plain value)
+ * isEager(42, isNumber); // true (plain value)
+ * isEager(() => 42, isNumber); // false (no-arg function rejected)
+ * ```
  *
+ * ## Composable type guards
+ *
+ * Higher-order guards that combine primitive ones into arbitrary type expressions:
+ * {@link isUnion} for `A | B`, {@link isIntersection} for `A & B`, {@link isOptional}
+ * for `T | undefined`, and {@link isLiteral} for literal and enum-like sets.
+ * {@link isAny} acts as a wildcard that always succeeds, typically used as a placeholder
+ * inside templates.
+ *
+ * ```typescript
  * isAny("test"); // true (wildcard, always succeeds)
- *
  * isOptional(undefined, isString); // true
  * isOptional("hello", isString); // true
- *
  * isLiteral("foo", "foo"); // true
  * isLiteral("foo", ["foo", "bar", "baz"]); // true (matches any)
- *
  * isUnion("test", [isString, isNumber]); // true (matches isString)
  * isUnion(42, [isString, isNumber]); // true (matches isNumber)
- *
  * isIntersection({ a: 1 }, [isObject, v => isObject(v, { a: isNumber })]); // true (satisfies all)
  * ```
  *
@@ -160,6 +191,16 @@ export type Object =
 export type Lazy<T> =
 	| T
 	| (() => T);
+
+/**
+ * The eager counterpart of a {@link Lazy} reference.
+ *
+ * Unwraps no-arg functions to their return type and passes plain values through unchanged.
+ *
+ * @typeParam T The lazy reference to unwrap
+ */
+export type Eager<T> =
+	T extends () => infer U ? U : T;
 
 
 /**
@@ -529,20 +570,49 @@ export function isObject<T extends Record<PropertyKey, unknown> = Record<Propert
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Checks if a value is a {@link Lazy} value, that is either a plain value or a no-arg function returning a value.
+ * Checks if a value is a {@link Lazy} reference.
  *
- * @typeParam T The type of the value
+ * Function values are accepted only when they declare no formal parameters, in which case they are treated as
+ * factories for the underlying value and the type guard is not invoked. Non-function values are validated by the type
+ * guard when provided, or accepted unconditionally otherwise.
+ *
+ * @typeParam T The type of the underlying value
  *
  * @param value The value to check
- * @param is A type guard function to validate the value if it is not a function
+ * @param is Optional type guard for the underlying value
  *
- * @returns True if the value is a no-arg function or satisfies the type guard; false otherwise
+ * @returns True if the value is a no-arg factory, or a non-function that satisfies the type guard; false otherwise
  *
- * Functions with a non-zero expected argument length are rejected.
+ * @see {@link isEager} for the dual guard accepting only plain values
  */
-export function isLazy<T>(value: unknown, is: Guard<T>): value is Lazy<T> {
+export function isLazy<T = unknown>(value: unknown, is?: Guard<T>): value is Lazy<T> {
 
-	return typeof value === "function" && value.length === 0 || is(value);
+	return typeof value === "function"
+		? value.length === 0
+		: (is === undefined || is(value));
+
+}
+
+/**
+ * Checks if a value is an {@link Eager} reference.
+ *
+ * Accepts only plain values; when provided, the type guard validates the value. Functions of any arity are always
+ * rejected.
+ *
+ * @typeParam T The type of the underlying value
+ *
+ * @param value The value to check
+ * @param is Optional type guard for the underlying value
+ *
+ * @returns True if the value is not a function and satisfies the type guard; false otherwise
+ *
+ * @see {@link isLazy} for the dual guard accepting no-arg factories as well
+ */
+export function isEager<T = unknown>(value: unknown, is?: Guard<T>): value is Eager<T> {
+
+	return typeof value === "function"
+		? false
+		: (is === undefined || is(value));
 
 }
 
