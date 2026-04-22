@@ -10,6 +10,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - `nests` function for checking parent/child relationships between hierarchical URI/IRI identifiers
+- `base` function for extracting the base identifier (scheme + authority + `/`) from a hierarchical URI/IRI, usable for
+	reference resolution; returns `undefined` for non-hierarchical inputs
 - `seal` function for attaching typed content to objects under symbol keys, producing deep immutable clones
 - `Eager<T>` utility type unwrapping a `Lazy<T>` reference to its eager counterpart
 - `isEager` type guard for validating eager (non-function) `Lazy<T>` values

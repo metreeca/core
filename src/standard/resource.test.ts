@@ -15,15 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import {
-	asIRI,
-	createNamespace,
-	internalize,
-	isIRI,
-	nests,
-	relativize,
-	resolve
-} from "./resource.js";
+import { asIRI, base, createNamespace, internalize, isIRI, nests, relativize, resolve } from "./resource.js";
 
 
 const iris = {
@@ -175,7 +167,6 @@ describe("isIRI()", () => {
 
 });
 
-
 describe("asIRI()", () => {
 
 	describe("hierarchical variant", () => {
@@ -291,6 +282,196 @@ describe("asIRI()", () => {
 
 });
 
+
+describe("nests()", () => {
+
+	describe("same-origin hierarchical URIs", () => {
+
+		it("should return true when parent equals child", async () => {
+			expect(nests("http://example.com/a/b", "http://example.com/a/b")).toBeTruthy();
+			expect(nests("http://example.com/", "http://example.com/")).toBeTruthy();
+			expect(nests("http://example.com/a", "http://example.com/a")).toBeTruthy();
+		});
+
+		it("should return true when child extends parent path", async () => {
+			expect(nests("http://example.com/a", "http://example.com/a/b")).toBeTruthy();
+			expect(nests("http://example.com/a/b", "http://example.com/a/b/c")).toBeTruthy();
+			expect(nests("http://example.com/", "http://example.com/a/b")).toBeTruthy();
+		});
+
+		it("should return false when child path is not under parent", async () => {
+			expect(nests("http://example.com/a/b", "http://example.com/a")).toBeFalsy();
+			expect(nests("http://example.com/a/b", "http://example.com/c")).toBeFalsy();
+			expect(nests("http://example.com/a/b", "http://example.com/a/c")).toBeFalsy();
+		});
+
+		it("should require segment boundary match", async () => {
+			expect(nests("http://example.com/a/b", "http://example.com/a/bc")).toBeFalsy();
+			expect(nests("http://example.com/a/b", "http://example.com/a/bcd")).toBeFalsy();
+			expect(nests("http://example.com/ab", "http://example.com/abc")).toBeFalsy();
+		});
+
+	});
+
+	describe("query strings and fragments", () => {
+
+		it("should ignore query strings on parent", async () => {
+			expect(nests("http://example.com/a?q=1", "http://example.com/a/b")).toBeTruthy();
+		});
+
+		it("should ignore query strings on child", async () => {
+			expect(nests("http://example.com/a", "http://example.com/a/b?q=1")).toBeTruthy();
+		});
+
+		it("should ignore fragments on parent", async () => {
+			expect(nests("http://example.com/a#frag", "http://example.com/a/b")).toBeTruthy();
+		});
+
+		it("should ignore fragments on child", async () => {
+			expect(nests("http://example.com/a", "http://example.com/a/b#frag")).toBeTruthy();
+		});
+
+		it("should ignore query strings and fragments on both", async () => {
+			expect(nests("http://example.com/a?q=1#f1", "http://example.com/a/b?q=2#f2")).toBeTruthy();
+		});
+
+	});
+
+	describe("different origins", () => {
+
+		it("should return false for different schemes", async () => {
+			expect(nests("http://example.com/a", "https://example.com/a/b")).toBeFalsy();
+		});
+
+		it("should return false for different authorities", async () => {
+			expect(nests("http://example.com/a", "http://other.com/a/b")).toBeFalsy();
+		});
+
+		it("should return false for different ports", async () => {
+			expect(nests("http://example.com/a", "http://example.com:8080/a/b")).toBeFalsy();
+		});
+
+	});
+
+	describe("non-hierarchical identifiers", () => {
+
+		it("should return false for opaque URIs", async () => {
+			expect(nests("urn:example:a", "urn:example:a:b")).toBeFalsy();
+			expect(nests("mailto:user@example.com", "mailto:user@example.com")).toBeFalsy();
+		});
+
+		it("should return false for internal references", async () => {
+			expect(nests("/a/b", "/a/b/c")).toBeFalsy();
+		});
+
+		it("should return false for relative references", async () => {
+			expect(nests("a/b", "a/b/c")).toBeFalsy();
+		});
+
+	});
+
+	describe("path normalization", () => {
+
+		it("should normalize dot segments before comparison", async () => {
+			expect(nests("http://example.com/a/b", "http://example.com/a/b/./c")).toBeTruthy();
+			expect(nests("http://example.com/a/./b", "http://example.com/a/b/c")).toBeTruthy();
+		});
+
+		it("should normalize double-dot segments before comparison", async () => {
+			expect(nests("http://example.com/a/b", "http://example.com/a/b/c/../d")).toBeTruthy();
+			expect(nests("http://example.com/a/b/../c", "http://example.com/a/c/d")).toBeTruthy();
+		});
+
+	});
+
+});
+
+
+describe("base()", () => {
+
+	describe("hierarchical URIs with authority", () => {
+
+		it("should extract base with trailing slash", async () => {
+			expect(base("http://example.com/path")).toBe("http://example.com/");
+			expect(base("https://example.com/a/b/c")).toBe("https://example.com/");
+		});
+
+		it("should preserve port", async () => {
+			expect(base("http://example.com:8080/path")).toBe("http://example.com:8080/");
+		});
+
+		it("should strip query and fragment", async () => {
+			expect(base("http://example.com/path?q=1")).toBe("http://example.com/");
+			expect(base("http://example.com/path#frag")).toBe("http://example.com/");
+			expect(base("http://example.com/path?q=1#frag")).toBe("http://example.com/");
+		});
+
+		it("should return the base unchanged when IRI is already the base", async () => {
+			expect(base("http://example.com/")).toBe("http://example.com/");
+			expect(base("https://example.com/")).toBe("https://example.com/");
+		});
+
+	});
+
+	describe("hierarchical URIs without authority", () => {
+
+		it("should return scheme with trailing slash", async () => {
+			expect(base("app:/path")).toBe("app:/");
+			expect(base("app:/a/b/c")).toBe("app:/");
+		});
+
+		it("should return the base unchanged for scheme:/ alone", async () => {
+			expect(base("app:/")).toBe("app:/");
+		});
+
+	});
+
+	describe("hierarchical URIs with empty authority", () => {
+
+		it("should preserve empty authority with trailing slash", async () => {
+			expect(base("file:///path/to/file")).toBe("file:///");
+		});
+
+	});
+
+	describe("invalid inputs", () => {
+
+		it("should return undefined for opaque URIs", async () => {
+			expect(base("urn:example:resource")).toBeUndefined();
+			expect(base("mailto:user@example.com")).toBeUndefined();
+		});
+
+		it("should return undefined for internal references", async () => {
+			expect(base("/a/b")).toBeUndefined();
+		});
+
+		it("should return undefined for relative references", async () => {
+			expect(base("../path")).toBeUndefined();
+			expect(base("path")).toBeUndefined();
+		});
+
+		it("should return undefined for non-hierarchical absolute references without root-relative path", async () => {
+			expect(base("app:path")).toBeUndefined();
+		});
+
+	});
+
+	describe("usability as base", () => {
+
+		it("should return a value usable as a base for resolve", async () => {
+			const iri = base("http://example.com/a/b/c");
+			expect(resolve(iri!, asIRI("x/y", "relative"))).toBe("http://example.com/x/y");
+		});
+
+		it("should return a valid hierarchical IRI", async () => {
+			expect(isIRI(base("http://example.com/a/b/c"), "hierarchical")).toBe(true);
+			expect(isIRI(base("app:/a/b"), "hierarchical")).toBe(true);
+			expect(isIRI(base("file:///a/b"), "hierarchical")).toBe(true);
+		});
+
+	});
+
+});
 
 describe("resolve()", () => {
 
@@ -526,110 +707,6 @@ describe("relativize()", () => {
 });
 
 
-describe("nests()", () => {
-
-	describe("same-origin hierarchical URIs", () => {
-
-		it("should return true when parent equals child", async () => {
-			expect(nests("http://example.com/a/b", "http://example.com/a/b")).toBeTruthy();
-			expect(nests("http://example.com/", "http://example.com/")).toBeTruthy();
-			expect(nests("http://example.com/a", "http://example.com/a")).toBeTruthy();
-		});
-
-		it("should return true when child extends parent path", async () => {
-			expect(nests("http://example.com/a", "http://example.com/a/b")).toBeTruthy();
-			expect(nests("http://example.com/a/b", "http://example.com/a/b/c")).toBeTruthy();
-			expect(nests("http://example.com/", "http://example.com/a/b")).toBeTruthy();
-		});
-
-		it("should return false when child path is not under parent", async () => {
-			expect(nests("http://example.com/a/b", "http://example.com/a")).toBeFalsy();
-			expect(nests("http://example.com/a/b", "http://example.com/c")).toBeFalsy();
-			expect(nests("http://example.com/a/b", "http://example.com/a/c")).toBeFalsy();
-		});
-
-		it("should require segment boundary match", async () => {
-			expect(nests("http://example.com/a/b", "http://example.com/a/bc")).toBeFalsy();
-			expect(nests("http://example.com/a/b", "http://example.com/a/bcd")).toBeFalsy();
-			expect(nests("http://example.com/ab", "http://example.com/abc")).toBeFalsy();
-		});
-
-	});
-
-	describe("query strings and fragments", () => {
-
-		it("should ignore query strings on parent", async () => {
-			expect(nests("http://example.com/a?q=1", "http://example.com/a/b")).toBeTruthy();
-		});
-
-		it("should ignore query strings on child", async () => {
-			expect(nests("http://example.com/a", "http://example.com/a/b?q=1")).toBeTruthy();
-		});
-
-		it("should ignore fragments on parent", async () => {
-			expect(nests("http://example.com/a#frag", "http://example.com/a/b")).toBeTruthy();
-		});
-
-		it("should ignore fragments on child", async () => {
-			expect(nests("http://example.com/a", "http://example.com/a/b#frag")).toBeTruthy();
-		});
-
-		it("should ignore query strings and fragments on both", async () => {
-			expect(nests("http://example.com/a?q=1#f1", "http://example.com/a/b?q=2#f2")).toBeTruthy();
-		});
-
-	});
-
-	describe("different origins", () => {
-
-		it("should return false for different schemes", async () => {
-			expect(nests("http://example.com/a", "https://example.com/a/b")).toBeFalsy();
-		});
-
-		it("should return false for different authorities", async () => {
-			expect(nests("http://example.com/a", "http://other.com/a/b")).toBeFalsy();
-		});
-
-		it("should return false for different ports", async () => {
-			expect(nests("http://example.com/a", "http://example.com:8080/a/b")).toBeFalsy();
-		});
-
-	});
-
-	describe("non-hierarchical identifiers", () => {
-
-		it("should return false for opaque URIs", async () => {
-			expect(nests("urn:example:a", "urn:example:a:b")).toBeFalsy();
-			expect(nests("mailto:user@example.com", "mailto:user@example.com")).toBeFalsy();
-		});
-
-		it("should return false for internal references", async () => {
-			expect(nests("/a/b", "/a/b/c")).toBeFalsy();
-		});
-
-		it("should return false for relative references", async () => {
-			expect(nests("a/b", "a/b/c")).toBeFalsy();
-		});
-
-	});
-
-	describe("path normalization", () => {
-
-		it("should normalize dot segments before comparison", async () => {
-			expect(nests("http://example.com/a/b", "http://example.com/a/b/./c")).toBeTruthy();
-			expect(nests("http://example.com/a/./b", "http://example.com/a/b/c")).toBeTruthy();
-		});
-
-		it("should normalize double-dot segments before comparison", async () => {
-			expect(nests("http://example.com/a/b", "http://example.com/a/b/c/../d")).toBeTruthy();
-			expect(nests("http://example.com/a/b/../c", "http://example.com/a/c/d")).toBeTruthy();
-		});
-
-	});
-
-});
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 describe("namespace", () => {
@@ -756,4 +833,3 @@ describe("namespace", () => {
 	});
 
 });
-

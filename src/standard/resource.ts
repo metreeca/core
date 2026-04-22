@@ -67,22 +67,27 @@
  * **Reference Operations**
  *
  * ```typescript
- * import { resolve, relativize, internalize, asIRI } from "@metreeca/core/resource";
+ * import { base, resolve, relativize, internalize, asIRI } from "@metreeca/core/resource";
  *
- * const base = asIRI("http://example.com/a/b/c", "absolute");
+ * const iri = asIRI("http://example.com/a/b/c", "absolute");
  *
  * // Resolve relative references against base
  *
- * resolve(base, asIRI("../d", "relative"));  // "http://example.com/a/d"
- * resolve(base, asIRI("/d", "internal"));    // "http://example.com/d"
+ * resolve(iri, asIRI("../d", "relative"));  // "http://example.com/a/d"
+ * resolve(iri, asIRI("/d", "internal"));    // "http://example.com/d"
  *
  * // Convert absolute to root-relative (internal) path
  *
- * internalize(base, asIRI("http://example.com/x/y", "absolute"));  // "/x/y"
+ * internalize(iri, asIRI("http://example.com/x/y", "absolute"));  // "/x/y"
  *
  * // Convert absolute to relative path
  *
- * relativize(base, asIRI("http://example.com/a/d", "absolute"));   // "../d"
+ * relativize(iri, asIRI("http://example.com/a/d", "absolute"));   // "../d"
+ *
+ * // Extract the base identifier usable for reference resolution
+ *
+ * base(iri);                                                      // "http://example.com/"
+ * base(asIRI("/a/b", "internal"));                                // undefined
  * ```
  *
  * **Namespace Objects**
@@ -408,6 +413,41 @@ export function nests(parent: string | IRI, child: string | IRI): boolean {
 
 }
 
+
+/**
+ * Extracts the base identifier from a hierarchical identifier.
+ *
+ * Returns the scheme and authority components (the "origin" per RFC 6454) followed by a trailing slash,
+ * suitable for use as a base identifier in reference resolution. Path, query, and fragment components
+ * are discarded.
+ *
+ * - **With authority** (for example, `http://example.org/a/b?q#f`): returns `scheme://authority/`
+ * - **Without authority** (for example, `app:/a/b`): returns `scheme:/`
+ * - **Empty authority** (for example, `file:///a/b`): returns `scheme:///`
+ *
+ * @param iri The hierarchical identifier to extract the base from
+ *
+ * @returns The base as a hierarchical identifier terminated by a trailing slash, or `undefined` if `iri` is not
+ *   a valid hierarchical identifier (opaque URIs, internal paths, or relative references)
+ *
+ * @see {@link https://www.rfc-editor.org/rfc/rfc6454#section-4 RFC 6454 § 4 - Origin of a URI}
+ */
+export function base(iri: string | IRI): undefined | IRI {
+
+	const normalized = normalize(iri, "hierarchical");
+
+	if ( normalized === undefined ) { return undefined; } else {
+
+		const { protocol, host } = new URL(normalized);
+
+		const hasAuthority = normalized.charAt(normalized.indexOf(":")+2) === "/";
+
+		return hasAuthority
+			? `${protocol}//${host}/`
+			: `${protocol}/`;
+
+	}
+}
 
 /**
  * Resolves a reference against a base identifier.
