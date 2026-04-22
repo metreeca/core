@@ -30,6 +30,7 @@
     "./resource": "./dist/standard/resource.js",
     "./problem": "./dist/standard/problem.js",
     "./language": "./dist/standard/language.js",
+    "./base64": "./dist/standard/base64.js",
     "./async": "./dist/common/async/index.js",
     "./order": "./dist/functional/order.js",
     "./relay": "./dist/functional/relay.js",

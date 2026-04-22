@@ -4,8 +4,8 @@
 
 Essential TypeScript abstractions.
 
-**@metreeca/core** is a foundational TypeScript toolkit with clean, minimalist APIs for common operations, standard
-datatypes and functional patterns.
+**@metreeca/core** is a foundational TypeScript toolkit with clean, minimalist APIs for common operations, web
+standards and functional patterns.
 
 # Installation
 
@@ -20,21 +20,45 @@ npm install @metreeca/core
 
 # Usage
 
-| Module                                                                           | Description                              |
-|----------------------------------------------------------------------------------|------------------------------------------|
-| [@metreeca/core](https://metreeca.github.io/core/modules.html)                   | Utility types and type guards            |
-| **Common Operations**                                                            |                                          |
-| [@metreeca/core/deep](https://metreeca.github.io/core/modules/deep.html)         | Deep operations on objects and arrays    |
-| [@metreeca/core/report](https://metreeca.github.io/core/modules/report.html)     | Execution reporting and error handling   |
-| [@metreeca/core/async](https://metreeca.github.io/core/modules/async.html)       | Asynchronous coordination primitives     |
-| **Standard Datatypes**                                                           |                                          |
-| [@metreeca/core/resource](https://metreeca.github.io/core/modules/resource.html) | RFC 3987 resource identifiers            |
-| [@metreeca/core/language](https://metreeca.github.io/core/modules/language.html) | BCP 47 language tags and ranges          |
-| [@metreeca/core/problem](https://metreeca.github.io/core/modules/problem.html)   | RFC 7807 problem details for HTTP APIs   |
-| **Functional Patterns**                                                          |                                          |
-| [@metreeca/core/order](https://metreeca.github.io/core/modules/order.html)       | Composable comparison functions          |
-| [@metreeca/core/relay](https://metreeca.github.io/core/modules/relay.html)       | Type-safe relay for discriminated unions |
-| [@metreeca/core/state](https://metreeca.github.io/core/modules/state.html)       | Type-safe immutable state management     |
+| Module                              | Description                              |
+|-------------------------------------|------------------------------------------|
+| [@metreeca/core][core]              | Utility types and type guards            |
+| **Common Operations**               |                                          |
+| [@metreeca/core/deep][deep]         | Deep operations on objects and arrays    |
+| [@metreeca/core/report][report]     | Execution reporting and error handling   |
+| [@metreeca/core/async][async]       | Asynchronous coordination primitives     |
+| **Web Standards**                   |                                          |
+| [@metreeca/core/resource][resource] | RFC 3987 resource identifiers            |
+| [@metreeca/core/language][language] | BCP 47 language tags and ranges          |
+| [@metreeca/core/problem][problem]   | RFC 7807 problem details for HTTP APIs   |
+| [@metreeca/core/base64][base64]     | RFC 4648 URL-safe base64 codec           |
+| **Functional Patterns**             |                                          |
+| [@metreeca/core/order][order]       | Composable comparison functions          |
+| [@metreeca/core/relay][relay]       | Type-safe relay for discriminated unions |
+| [@metreeca/core/state][state]       | Type-safe immutable state management     |
+
+[core]: https://metreeca.github.io/core/modules.html
+
+[deep]: https://metreeca.github.io/core/modules/deep.html
+
+[report]: https://metreeca.github.io/core/modules/report.html
+
+[async]: https://metreeca.github.io/core/modules/async.html
+
+[resource]: https://metreeca.github.io/core/modules/resource.html
+
+[language]: https://metreeca.github.io/core/modules/language.html
+
+[problem]: https://metreeca.github.io/core/modules/problem.html
+
+[base64]: https://metreeca.github.io/core/modules/base64.html
+
+[order]: https://metreeca.github.io/core/modules/order.html
+
+[relay]: https://metreeca.github.io/core/modules/relay.html
+
+[state]: https://metreeca.github.io/core/modules/state.html
+
 
 # Support
 

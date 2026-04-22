@@ -15,6 +15,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `isEager` type guard for validating eager (non-function) `Lazy<T>` values
 - `DeepPartial<T>` utility type recursively widening JSON-like types into a subset view, preserving tuple arity,
   element labels, variadic segments, and index signatures
+- `encodeBase64` / `decodeBase64` functions for URL-safe base64 encoding of UTF-8 text (RFC 4648 § 5), exported
+  from the new `@metreeca/core/base64` module
 
 ### Fixed
 
