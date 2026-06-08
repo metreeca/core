@@ -38,6 +38,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Rename `error` module to `report` (import from `@metreeca/core/report`)
 - Rename `nested` module to `deep` (import from `@metreeca/core/deep`)
 - Split `Problem` and `createFetch` from `resource` into new `problem` module (import from `@metreeca/core/problem`)
+- `Problem` now cites RFC 9457 (which obsoletes RFC 7807) as its reference standard; the wire format is unchanged
 - Reorganize source layout: `basic/` → `common/`, `network/` → `standard/`, `async/` → `common/async/`
 - `isLazy` now accepts the type guard parameter as optional and rejects functions with non-zero arity regardless
 

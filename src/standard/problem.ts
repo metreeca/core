@@ -15,7 +15,7 @@
  */
 
 /**
- * RFC 7807 problem details for HTTP APIs.
+ * RFC 9457 problem details for HTTP APIs.
  *
  * Provides the {@link Problem} type for structured, machine-readable error information in HTTP responses
  * and a guarded {@link createFetch} wrapper with consistent promise semantics.
@@ -52,7 +52,7 @@
  *
  * @module
  *
- * @see {@link https://datatracker.ietf.org/doc/html/rfc7807 RFC 7807 - Problem Details for HTTP APIs}
+ * @see {@link https://www.rfc-editor.org/rfc/rfc9457 RFC 9457 - Problem Details for HTTP APIs}
  */
 
 import { immutable } from "../common/deep.js";
@@ -62,11 +62,11 @@ import type { Value } from "../index.js";
 /**
  * Problem Details for HTTP APIs.
  *
- * Standardized format for machine-readable error information in HTTP responses, as defined by RFC 7807.
- * All fields are optional, allowing flexibility in error reporting. Use `detail` for human-readable
- * occurrence-specific information, and `report` for machine-readable data.
+ * Standardized format for machine-readable error information in HTTP responses, as defined by RFC 9457
+ * (which obsoletes RFC 7807). All fields are optional, allowing flexibility in error reporting. Use `detail`
+ * for human-readable occurrence-specific information, and `report` for machine-readable data.
  *
- * @see {@link https://datatracker.ietf.org/doc/html/rfc7807 RFC 7807 - Problem Details for HTTP APIs}
+ * @see {@link https://www.rfc-editor.org/rfc/rfc9457 RFC 9457 - Problem Details for HTTP APIs}
  */
 export interface Problem {
 

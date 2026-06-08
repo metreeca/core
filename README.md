@@ -30,7 +30,7 @@ npm install @metreeca/core
 | **Web Standards**                   |                                          |
 | [@metreeca/core/resource][resource] | RFC 3987 resource identifiers            |
 | [@metreeca/core/language][language] | BCP 47 language tags and ranges          |
-| [@metreeca/core/problem][problem]   | RFC 7807 problem details for HTTP APIs   |
+| [@metreeca/core/problem][problem]   | RFC 9457 problem details for HTTP APIs   |
 | [@metreeca/core/base64][base64]     | RFC 4648 URL-safe base64 codec           |
 | **Functional Patterns**             |                                          |
 | [@metreeca/core/order][order]       | Composable comparison functions          |
