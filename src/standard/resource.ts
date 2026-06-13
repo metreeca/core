@@ -135,80 +135,6 @@ const SchemePattern = /^[a-z][a-z0-9+.-]*:/i;
  */
 const ExcludedPattern = /[\x00-\x1F\x7F-\x9F\s<>"{}|\\^`]/;
 
-/**
- * Validates and normalizes a reference.
- *
- * Performs syntax validation (string type, excluded characters), path normalization
- * per RFC 3986 § 5.2.4 (Remove Dot Segments), and variant-specific validation.
- *
- * @param value The value to validate and normalize
- * @param variant The identifier variant
- *
- * @returns The validated and normalized reference, or `undefined` if invalid
- */
-function normalize(value: unknown, variant: Variant): IRI | undefined {
-
-	// syntax validation
-
-	const validSyntax = isString(value) && !ExcludedPattern.test(value);
-	const hasScheme = validSyntax && SchemePattern.test(value);
-
-	// path normalization (URL API silently clips excessive `..` at root)
-
-	const normalized = !validSyntax ? undefined
-		: hasScheme ? parseURL(value, url => url.href)
-			: value.startsWith("/") ? parseURL(value, url => url.pathname+url.search+url.hash, "x:/")
-				: value; // relative paths: keep `.` and `..` for later resolution
-
-	if ( normalized === undefined ) { return undefined; }
-
-	// variant validation (hierarchy: hierarchical ⊂ absolute ⊂ internal ⊂ relative)
-
-	const isHierarchical = hasScheme && normalized.charAt(normalized.indexOf(":")+1) === "/";
-	const isAbsolute = hasScheme && normalized.indexOf(":") < normalized.length-1;
-	const isInternal = isAbsolute || normalized.startsWith("/");
-
-	const valid = variant === "hierarchical" && isHierarchical
-		|| variant === "absolute" && isAbsolute
-		|| variant === "internal" && isInternal
-		|| variant === "relative";
-
-	return valid ? normalized : undefined;
-
-
-	function parseURL(ref: string, extract: (url: URL) => string, base?: string): string | undefined {
-		try { return extract(new URL(ref, base)); } catch { return undefined; }
-	}
-
-}
-
-/**
- * Resolves a reference against a base URL.
- *
- * Aligns with standard URL API semantics: excessive `..` segments that would
- * go above root are silently clipped rather than throwing errors.
- *
- * @param base The parsed base URL
- * @param reference The normalized reference string
- *
- * @returns The resolved URL
- */
-function merge(base: URL, reference: string): URL {
-	return new URL(reference, base);
-}
-
-/**
- * Throws a RangeError for an invalid reference.
- *
- * @param value The invalid value
- * @param variant The expected variant
- *
- * @returns Never (always throws)
- */
-function invalid(value: unknown, variant: Variant): never {
-	return error(new RangeError(`invalid ${variant} reference <${value}>`));
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -656,4 +582,81 @@ export function createNamespace<const T extends readonly string[]>(namespace: st
 
 	})) as Namespace<T>;
 
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Validates and normalizes a reference.
+ *
+ * Performs syntax validation (string type, excluded characters), path normalization
+ * per RFC 3986 § 5.2.4 (Remove Dot Segments), and variant-specific validation.
+ *
+ * @param value The value to validate and normalize
+ * @param variant The identifier variant
+ *
+ * @returns The validated and normalized reference, or `undefined` if invalid
+ */
+function normalize(value: unknown, variant: Variant): IRI | undefined {
+
+	// syntax validation
+
+	const validSyntax = isString(value) && !ExcludedPattern.test(value);
+	const hasScheme = validSyntax && SchemePattern.test(value);
+
+	// path normalization (URL API silently clips excessive `..` at root)
+
+	const normalized = !validSyntax ? undefined
+		: hasScheme ? parseURL(value, url => url.href)
+			: value.startsWith("/") ? parseURL(value, url => url.pathname+url.search+url.hash, "x:/")
+				: value; // relative paths: keep `.` and `..` for later resolution
+
+	if ( normalized === undefined ) { return undefined; }
+
+	// variant validation (hierarchy: hierarchical ⊂ absolute ⊂ internal ⊂ relative)
+
+	const isHierarchical = hasScheme && normalized.charAt(normalized.indexOf(":")+1) === "/";
+	const isAbsolute = hasScheme && normalized.indexOf(":") < normalized.length-1;
+	const isInternal = isAbsolute || normalized.startsWith("/");
+
+	const valid = variant === "hierarchical" && isHierarchical
+		|| variant === "absolute" && isAbsolute
+		|| variant === "internal" && isInternal
+		|| variant === "relative";
+
+	return valid ? normalized : undefined;
+
+
+	function parseURL(ref: string, extract: (url: URL) => string, base?: string): string | undefined {
+		try { return extract(new URL(ref, base)); } catch { return undefined; }
+	}
+
+}
+
+/**
+ * Resolves a reference against a base URL.
+ *
+ * Aligns with standard URL API semantics: excessive `..` segments that would
+ * go above root are silently clipped rather than throwing errors.
+ *
+ * @param base The parsed base URL
+ * @param reference The normalized reference string
+ *
+ * @returns The resolved URL
+ */
+function merge(base: URL, reference: string): URL {
+	return new URL(reference, base);
+}
+
+/**
+ * Throws a RangeError for an invalid reference.
+ *
+ * @param value The invalid value
+ * @param variant The expected variant
+ *
+ * @returns Never (always throws)
+ */
+function invalid(value: unknown, variant: Variant): never {
+	return error(new RangeError(`invalid ${variant} reference <${value}>`));
 }
