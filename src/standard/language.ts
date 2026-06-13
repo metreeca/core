@@ -18,43 +18,35 @@
  * BCP 47 language tags and ranges.
  *
  * Provides branded types and utilities for working with BCP 47 language tags ({@link Tag}) and RFC 4647 language
- * ranges ({@link TagRange}). Use {@link asTag} and {@link asTagRange} to create validated instances, {@link isTag} and
- * {@link isTagRange} as type guards, and {@link matchTag} to test tags against range patterns.
+ * ranges ({@link TagRange}). Use {@link isTag} and {@link isTagRange} as type guards, and {@link matchTag} to test tags
+ * against range patterns.
  *
  * **Language Tags**
  *
  * ```typescript
- * import { isTag, asTag } from "@metreeca/core/language";
+ * import { isTag } from "@metreeca/core/language";
  *
  * if (isTag(value)) {
  *   // value is typed as Tag
  * }
- *
- * const languageTag = asTag("en-US");      // US English
- * const simpleTag = asTag("fr");           // French
- * const complexTag = asTag("zh-Hans-CN");  // Simplified Chinese (China)
  * ```
  *
  * **Language Ranges**
  *
  * ```typescript
- * import { isTagRange, asTagRange } from "@metreeca/core/language";
+ * import { isTagRange } from "@metreeca/core/language";
  *
  * if (isTagRange(value)) {
  *   // value is typed as TagRange
  * }
- *
- * const wildcard = asTagRange("*");       // matches any language
- * const english = asTagRange("en-*");     // matches any English variant
- * const swiss = asTagRange("*-CH");       // matches any language in Switzerland
  * ```
  *
  * **Matching**
  *
  * ```typescript
- * import { matchTag, asTag, asTagRange } from "@metreeca/core/language";
+ * import { matchTag } from "@metreeca/core/language";
  *
- * matchTag(asTag("de-CH"), asTagRange("de-*"));  // true - Swiss German matches German range
+ * matchTag("de-CH", "de-*");  // true - Swiss German matches German range
  * ```
  *
  * @module
@@ -65,6 +57,7 @@
  */
 
 
+import { assert } from "../common/report.js";
 import { isString } from "../index.js";
 
 
@@ -124,7 +117,7 @@ const TagRangePattern = /^(?:[a-z]{1,8}|\*)(?:-(?:[a-z0-9]{1,8}|\*))*$/i;
  * > [!WARNING]
  * > This is a type alias for documentation purposes only. Branding was considered but not adopted due to
  * > interoperability issues with tools relying on static code analysis. Values must be validated at runtime
- * > using {@link isTag} or {@link asTag}.
+ * > using {@link isTag}.
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc5646.html RFC 5646 - Tags for Identifying Languages}
  * @see {@link https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes ISO 639-2 Language Codes}
@@ -149,7 +142,7 @@ export type Tag = string
  * > [!WARNING]
  * > This is a type alias for documentation purposes only. Branding was considered but not adopted due to
  * > interoperability issues with tools relying on static code analysis. Values must be validated at runtime
- * > using {@link isTagRange} or {@link asTagRange}.
+ * > using {@link isTagRange}.
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc4647.html RFC 4647 - Matching of Language Tags}
  * @see {@link Tag}
@@ -191,66 +184,6 @@ export function isTagRange(value: unknown): value is TagRange {
 }
 
 
-/**
- * Creates a validated language tag from a string.
- *
- * Validates language tags according to BCP 47/RFC 5646.
- *
- * @param value The value to convert to a language tag
- *
- * @returns The validated language tag
- *
- * @throws TypeError If the value is not a string
- * @throws RangeError If the value is not a valid BCP 47 language tag
- *
- * @see {@link isTag} for validation rules
- * @see {@link Tag}
- * @see {@link TagRange}
- */
-export function asTag(value: string): Tag {
-
-	if ( !isString(value) ) {
-		throw new TypeError("expected string");
-	}
-
-	if ( !isTag(value) ) {
-		throw new RangeError(`invalid language tag <${value}>`);
-	}
-
-	return value;
-}
-
-/**
- * Creates a validated language range from a string.
- *
- * Validates extended language ranges according to RFC 4647 § 2.2.
- * An extended language range allows `*` as a wildcard for any subtag (e.g., `en-*`, `*-CH`).
- *
- * @param value The value to convert to a language range
- *
- * @returns The validated language range
- *
- * @throws TypeError If the value is not a string
- * @throws RangeError If the value is not a valid language range
- *
- * @see {@link isTagRange} for validation rules
- * @see {@link Tag}
- * @see {@link TagRange}
- */
-export function asTagRange(value: string): TagRange {
-
-	if ( !isString(value) ) {
-		throw new TypeError("expected string");
-	}
-
-	if ( !isTagRange(value) ) {
-		throw new RangeError(`invalid language range <${value}>`);
-	}
-
-	return value;
-}
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -267,15 +200,17 @@ export function asTagRange(value: string): TagRange {
  *
  * @returns `true` if the tag matches the range pattern; `false` otherwise
  *
+ * @throws TypeError If `tag` is not a valid language tag or `range` is not a valid language range
+ *
  * @example
  *
  * ```typescript
- * import { matchTag, asTag, asTagRange } from "@metreeca/core/language";
+ * import { matchTag } from "@metreeca/core/language";
  *
- * matchTag(asTag("de-DE"), asTagRange("de-*-DE"));        // true
- * matchTag(asTag("de-Latn-DE"), asTagRange("de-*-DE"));   // true
- * matchTag(asTag("de"), asTagRange("de-*-DE"));           // false - missing 'DE'
- * matchTag(asTag("de-x-DE"), asTagRange("de-*-DE"));      // false - singleton 'x' blocks
+ * matchTag("de-DE", "de-*-DE");        // true
+ * matchTag("de-Latn-DE", "de-*-DE");   // true
+ * matchTag("de", "de-*-DE");           // false - missing 'DE'
+ * matchTag("de-x-DE", "de-*-DE");      // false - singleton 'x' blocks
  * ```
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc4647.html#section-3.3.2 RFC 4647 § 3.3.2 - Extended Filtering}
@@ -284,8 +219,8 @@ export function asTagRange(value: string): TagRange {
  */
 export function matchTag(tag: string | Tag, range: string | TagRange): boolean {
 
-	const tagSubtags = asTag(tag).toLowerCase().split("-");
-	const rangeSubtags = asTagRange(range).toLowerCase().split("-");
+	const tagSubtags = assert(tag, isTag).toLowerCase().split("-");
+	const rangeSubtags = assert(range, isTagRange).toLowerCase().split("-");
 
 	const [firstTag, ...restTag] = tagSubtags;
 	const [firstRange, ...restRange] = rangeSubtags;

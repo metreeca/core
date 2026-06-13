@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { asTag, asTagRange, isTag, isTagRange, matchTag } from "./language.js";
+import { isTag, isTagRange, matchTag } from "./language.js";
 
 
 const tags = {
@@ -130,69 +130,6 @@ describe("isRange()", () => {
 });
 
 
-describe("asTag()", () => {
-
-	it("should create branded laguage tags from valid strings", () => {
-		tags.valid.forEach(value => {
-			expect(() => asTag(value)).not.toThrow();
-			const result = asTag(value);
-			expect(typeof result).toBe("string");
-			expect(result).toBe(value);
-		});
-	});
-
-	it("should throw RangeError for invalid language tags", () => {
-		tags.invalid.forEach(({ value }) => {
-			expect(() => asTag(value)).toThrow(RangeError);
-		});
-	});
-
-	it("should throw RangeError with descriptive message", () => {
-		expect(() => asTag("invalid tag")).toThrow("invalid language tag <invalid tag>");
-	});
-
-	it("should throw TypeError for non-string values", async () => {
-		expect(() => asTag(null as unknown as string)).toThrow(TypeError);
-		expect(() => asTag(undefined as unknown as string)).toThrow(TypeError);
-		expect(() => asTag(123 as unknown as string)).toThrow(TypeError);
-		expect(() => asTag({} as unknown as string)).toThrow(TypeError);
-		expect(() => asTag([] as unknown as string)).toThrow(TypeError);
-	});
-
-});
-
-describe("asTagRange()", () => {
-
-	it("should create branded language ranges from valid strings", () => {
-		ranges.valid.forEach(value => {
-			expect(() => asTagRange(value)).not.toThrow();
-			const result = asTagRange(value);
-			expect(typeof result).toBe("string");
-			expect(result).toBe(value);
-		});
-	});
-
-	it("should throw RangeError for invalid language ranges", () => {
-		ranges.invalid.forEach(({ value }) => {
-			expect(() => asTagRange(value)).toThrow(RangeError);
-		});
-	});
-
-	it("should throw RangeError with descriptive message", () => {
-		expect(() => asTagRange("invalid range")).toThrow("invalid language range <invalid range>");
-	});
-
-	it("should throw TypeError for non-string values", async () => {
-		expect(() => asTagRange(null as unknown as string)).toThrow(TypeError);
-		expect(() => asTagRange(undefined as unknown as string)).toThrow(TypeError);
-		expect(() => asTagRange(123 as unknown as string)).toThrow(TypeError);
-		expect(() => asTagRange({} as unknown as string)).toThrow(TypeError);
-		expect(() => asTagRange([] as unknown as string)).toThrow(TypeError);
-	});
-
-});
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 describe("matches()", () => {
@@ -202,9 +139,9 @@ describe("matches()", () => {
 	describe("wildcard range", () => {
 
 		it("should match any non-empty tag with '*' range", async () => {
-			expect(matchTag(asTag("en"), asTagRange("*"))).toBe(true);
-			expect(matchTag(asTag("en-US"), asTagRange("*"))).toBe(true);
-			expect(matchTag(asTag("zh-Hans-CN"), asTagRange("*"))).toBe(true);
+			expect(matchTag("en", "*")).toBe(true);
+			expect(matchTag("en-US", "*")).toBe(true);
+			expect(matchTag("zh-Hans-CN", "*")).toBe(true);
 		});
 
 	});
@@ -212,26 +149,26 @@ describe("matches()", () => {
 	describe("basic matching", () => {
 
 		it("should match exact tags", async () => {
-			expect(matchTag(asTag("en"), asTagRange("en"))).toBe(true);
-			expect(matchTag(asTag("de"), asTagRange("de"))).toBe(true);
-			expect(matchTag(asTag("zh-Hans"), asTagRange("zh-Hans"))).toBe(true);
+			expect(matchTag("en", "en")).toBe(true);
+			expect(matchTag("de", "de")).toBe(true);
+			expect(matchTag("zh-Hans", "zh-Hans")).toBe(true);
 		});
 
 		it("should match tags with additional subtags", async () => {
-			expect(matchTag(asTag("en-US"), asTagRange("en"))).toBe(true);
-			expect(matchTag(asTag("en-GB"), asTagRange("en"))).toBe(true);
-			expect(matchTag(asTag("zh-Hans-CN"), asTagRange("zh"))).toBe(true);
-			expect(matchTag(asTag("zh-Hans-CN"), asTagRange("zh-Hans"))).toBe(true);
+			expect(matchTag("en-US", "en")).toBe(true);
+			expect(matchTag("en-GB", "en")).toBe(true);
+			expect(matchTag("zh-Hans-CN", "zh")).toBe(true);
+			expect(matchTag("zh-Hans-CN", "zh-Hans")).toBe(true);
 		});
 
 		it("should not match when first subtags differ", async () => {
-			expect(matchTag(asTag("en"), asTagRange("de"))).toBe(false);
-			expect(matchTag(asTag("fr"), asTagRange("en"))).toBe(false);
+			expect(matchTag("en", "de")).toBe(false);
+			expect(matchTag("fr", "en")).toBe(false);
 		});
 
 		it("should not match when tag has fewer subtags than range", async () => {
-			expect(matchTag(asTag("en"), asTagRange("en-US"))).toBe(false);
-			expect(matchTag(asTag("zh"), asTagRange("zh-Hans"))).toBe(false);
+			expect(matchTag("en", "en-US")).toBe(false);
+			expect(matchTag("zh", "zh-Hans")).toBe(false);
 		});
 
 	});
@@ -239,9 +176,9 @@ describe("matches()", () => {
 	describe("case insensitivity", () => {
 
 		it("should match case-insensitively", async () => {
-			expect(matchTag(asTag("en-US"), asTagRange("EN-us"))).toBe(true);
-			expect(matchTag(asTag("EN-US"), asTagRange("en-us"))).toBe(true);
-			expect(matchTag(asTag("zh-Hans"), asTagRange("ZH-HANS"))).toBe(true);
+			expect(matchTag("en-US", "EN-us")).toBe(true);
+			expect(matchTag("EN-US", "en-us")).toBe(true);
+			expect(matchTag("zh-Hans", "ZH-HANS")).toBe(true);
 		});
 
 	});
@@ -251,33 +188,33 @@ describe("matches()", () => {
 		// RFC 4647 § 3.3.2 example: "de-*-DE"
 
 		it("should match tags per RFC 4647 de-*-DE example", async () => {
-			const r = asTagRange("de-*-DE");
+			const r = "de-*-DE";
 
-			expect(matchTag(asTag("de-DE"), r)).toBe(true);
-			expect(matchTag(asTag("de-Latn-DE"), r)).toBe(true);
-			expect(matchTag(asTag("de-Latf-DE"), r)).toBe(true);
-			expect(matchTag(asTag("de-DE-x-goethe"), r)).toBe(true);
-			expect(matchTag(asTag("de-Latn-DE-1996"), r)).toBe(true);
-			expect(matchTag(asTag("de-Deva-DE"), r)).toBe(true);
+			expect(matchTag("de-DE", r)).toBe(true);
+			expect(matchTag("de-Latn-DE", r)).toBe(true);
+			expect(matchTag("de-Latf-DE", r)).toBe(true);
+			expect(matchTag("de-DE-x-goethe", r)).toBe(true);
+			expect(matchTag("de-Latn-DE-1996", r)).toBe(true);
+			expect(matchTag("de-Deva-DE", r)).toBe(true);
 		});
 
 		it("should not match non-conforming tags per RFC 4647 de-*-DE example", async () => {
-			const r = asTagRange("de-*-DE");
+			const r = "de-*-DE";
 
-			expect(matchTag(asTag("de"), r)).toBe(false);           // missing 'DE'
-			expect(matchTag(asTag("de-x-DE"), r)).toBe(false);      // singleton 'x' blocks
-			expect(matchTag(asTag("de-Deva"), r)).toBe(false);      // 'Deva' != 'DE'
+			expect(matchTag("de", r)).toBe(false);           // missing 'DE'
+			expect(matchTag("de-x-DE", r)).toBe(false);      // singleton 'x' blocks
+			expect(matchTag("de-Deva", r)).toBe(false);      // 'Deva' != 'DE'
 		});
 
 		it("should handle wildcards in different positions", async () => {
-			expect(matchTag(asTag("en-US"), asTagRange("*-US"))).toBe(true);
-			expect(matchTag(asTag("de-CH"), asTagRange("*-CH"))).toBe(true);
-			expect(matchTag(asTag("fr-Latn-CH"), asTagRange("*-CH"))).toBe(true);
+			expect(matchTag("en-US", "*-US")).toBe(true);
+			expect(matchTag("de-CH", "*-CH")).toBe(true);
+			expect(matchTag("fr-Latn-CH", "*-CH")).toBe(true);
 		});
 
 		it("should handle multiple wildcards", async () => {
-			expect(matchTag(asTag("en-Latn-US"), asTagRange("*-*-US"))).toBe(true);
-			expect(matchTag(asTag("de-Latn-DE-1996"), asTagRange("de-*-*"))).toBe(true);
+			expect(matchTag("en-Latn-US", "*-*-US")).toBe(true);
+			expect(matchTag("de-Latn-DE-1996", "de-*-*")).toBe(true);
 		});
 
 	});
@@ -286,14 +223,14 @@ describe("matches()", () => {
 
 		it("should fail match when singleton subtag blocks required match", async () => {
 			// per RFC 4647: singleton (single letter/digit including 'x') blocks further matching
-			expect(matchTag(asTag("de-x-DE"), asTagRange("de-*-DE"))).toBe(false);
-			expect(matchTag(asTag("en-a-value-US"), asTagRange("en-*-US"))).toBe(false);
+			expect(matchTag("de-x-DE", "de-*-DE")).toBe(false);
+			expect(matchTag("en-a-value-US", "en-*-US")).toBe(false);
 		});
 
 		it("should allow singleton after all range subtags matched", async () => {
 			// singleton in tag is fine if all range subtags already matched
-			expect(matchTag(asTag("de-DE-x-goethe"), asTagRange("de-*-DE"))).toBe(true);
-			expect(matchTag(asTag("en-US-x-private"), asTagRange("en-US"))).toBe(true);
+			expect(matchTag("de-DE-x-goethe", "de-*-DE")).toBe(true);
+			expect(matchTag("en-US-x-private", "en-US")).toBe(true);
 		});
 
 	});
