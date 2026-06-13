@@ -78,6 +78,23 @@
  * frozenFn.config.port = 8080; // throws Error
  * ```
  *
+ * **Stable Identity**
+ *
+ * Cloning is idempotent at every depth: each frozen object and array is branded, so re-freezing a clone, or any nested
+ * member extracted from it, returns the same reference rather than a fresh copy. A frozen member keeps its identity
+ * even when reached through another path or nested into a new structure:
+ *
+ * ```typescript
+ * import { immutable } from '@metreeca/core/deep';
+ *
+ * const frozen = immutable({ inner: { p: 1 } });
+ *
+ * immutable(frozen) === frozen;             // true (whole graph)
+ * immutable(frozen.inner) === frozen.inner; // true (nested member)
+ *
+ * immutable({ ref: frozen.inner }).ref === frozen.inner; // true (member nested into a new structure)
+ * ```
+ *
  * **Type-Safe Freezing**
  *
  * Validate and freeze with optional type guards:
@@ -113,8 +130,9 @@ import { assert } from "./report.js";
 /**
  * Symbol used to tag objects that have been made immutable.
  *
- * Stores `immutable` function reference if no guard was provided, or the guard function itself.
- * This allows for efficient idempotency checking and guard memoization.
+ * Every cloned object and array in a frozen graph carries this tag, enabling deep idempotency checks and guard reuse:
+ * the top-level clone stores the guard function when one was supplied, otherwise the `immutable` function reference;
+ * nested clones always store the `immutable` reference (the default brand).
  */
 const Immutable = Symbol("immutable");
 
@@ -200,8 +218,10 @@ export function equals(x: unknown, y: unknown, equal: (x: unknown, y: unknown) =
  * - **Returned as-is**: primitives, functions, and non-plain objects (for example, `Date`, `Map`, `Set`, class
  *   instances, or objects with `null` prototype)
  *
- * This function is idempotent: calling it multiple times on the same value returns the same reference after the first
- * call, making it safe and efficient to use defensively.
+ * This function is idempotent at every depth: every cloned object and array is branded internally, so calling it again
+ * on a frozen clone, or on any nested member extracted from one, returns the same reference. Members reached through
+ * multiple paths, or extracted and re-nested into another structure, keep a stable identity. This makes it safe and
+ * efficient to use defensively.
  *
  * > [!CAUTION]
  * > **Circular references are not supported**. Do not pass objects with cycles.
@@ -231,6 +251,9 @@ export function immutable<T>(value: T): T;
  * - **Plain objects and arrays**: memoizes validation; subsequent calls with the same guard skip re-validation and
  *   return the same reference; calls with a different guard trigger revalidation and rebranding
  * - **Other values**: validated on every call
+ *
+ * The guard brands only the top-level clone; nested members carry the default brand, so they remain stable under
+ * guard-less {@link immutable} calls while a guarded call on a nested member revalidates it.
  *
  * > [!CAUTION]
  * > **Circular references are not supported**. Do not pass objects with cycles.
@@ -283,6 +306,10 @@ export function seal<T>(value: unknown, seal: symbol): undefined | T;
 /**
  * Seals `content` on `value` under the given `seal`.
  *
+ * Both the sealed clone and any object or array `content` are deep-frozen and branded at every depth, so
+ * {@link immutable} returns them unchanged: the result, its members, the `content`, and the `content` members all
+ * keep a stable identity across calls.
+ *
  * @typeParam V The type of the value being sealed
  *
  * @param value The value to seal
@@ -308,30 +335,17 @@ export function seal(value: unknown, seal: symbol, content?: unknown): unknown {
 
 	} else { // clone, seal, and deep-freeze
 
-		const sealed: object = isArray(value) ? [] : {};
+		const accumulator: object = isArray(value) ? [] : {};
 
-		// apply caller's seal
+		const sealed = Object.defineProperty(seal === Immutable ? accumulator : branded(accumulator), seal, {
 
-		Object.defineProperty(sealed, seal, {
-
-			value: isArray(content) ? freeze([], content)
-				: isObject(content) ? freeze({}, content)
+			value: isArray(content) ? freeze(branded([]), content)
+				: isObject(content) ? freeze(branded({}), content)
 					: content,
 
 			enumerable: false
 
 		});
-
-		// apply immutable brand
-
-		if ( seal !== Immutable ) {
-			Object.defineProperty(sealed, Immutable, {
-				value: immutable,
-				enumerable: false
-			});
-		}
-
-		// clone properties and freeze
 
 		return freeze(sealed, value);
 
@@ -353,17 +367,23 @@ export function seal(value: unknown, seal: symbol, content?: unknown): unknown {
 					const child = descriptor.value;
 
 					Object.defineProperty(target, key, {
-						value: isArray(child) ? (Immutable in child ? child : freeze([], child))
-							: isObject(child) ? (Immutable in child ? child : freeze({}, child))
+
+						value: isArray(child) ? (Immutable in child ? child : freeze(branded([]), child))
+							: isObject(child) ? (Immutable in child ? child : freeze(branded({}), child))
 								: child,
+
 						enumerable: descriptor.enumerable
+
 					});
 
 				} else { // accessor property: preserve getter only
 
 					Object.defineProperty(target, key, {
+
 						get: descriptor.get,
+
 						enumerable: descriptor.enumerable
+
 					});
 
 				}
@@ -374,6 +394,17 @@ export function seal(value: unknown, seal: symbol, content?: unknown): unknown {
 
 		return Object.freeze(target);
 
+	}
+
+
+	function branded(object: object): object {
+		return Object.defineProperty(object, Immutable, {
+
+			value: immutable,
+
+			enumerable: false
+
+		});
 	}
 
 }

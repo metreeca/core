@@ -629,6 +629,90 @@ describe("immutable()", () => {
 
 	});
 
+	describe("Deep stable references", () => {
+
+		it("should keep a nested object stable across immutable()", async () => {
+
+			const frozen = immutable({ inner: { p: 1 } });
+
+			expect(immutable(frozen.inner)).toBe(frozen.inner);
+
+		});
+
+		it("should keep a nested array stable across immutable()", async () => {
+
+			const frozen = immutable({ items: [1, 2, 3] });
+
+			expect(immutable(frozen.items)).toBe(frozen.items);
+
+		});
+
+		it("should keep members stable at every nesting level", async () => {
+
+			const frozen = immutable({ a: { b: { c: 1 } } });
+
+			expect(immutable(frozen.a)).toBe(frozen.a);
+			expect(immutable(frozen.a.b)).toBe(frozen.a.b);
+
+		});
+
+		it("should preserve nested member identity when re-freezing the whole structure", async () => {
+
+			const frozen1 = immutable({ user: { name: "Alice" } });
+			const frozen2 = immutable(frozen1);
+
+			expect(frozen2.user).toBe(frozen1.user);
+
+		});
+
+		it("should share identity when a frozen member is nested into a new structure", async () => {
+
+			const a = immutable({ x: { p: 1 } });
+			const b = immutable({ y: a.x });
+
+			expect(b.y).toBe(a.x);
+
+		});
+
+		it("should brand nested members with the default brand, not the root guard", async () => {
+
+			const isUser = (v: unknown): v is { name: string; profile: { name: string } } =>
+				isObject(v, { name: isString, profile: p => isObject(p, { name: isString }) });
+
+			const root = immutable({ name: "Alice", profile: { name: "Bob" } }, isUser);
+
+			// nested member carries the default brand: stable under a guard-less call
+			expect(immutable(root.profile)).toBe(root.profile);
+
+			// root retains guard branding: memoized under the same guard
+			expect(immutable(root, isUser)).toBe(root);
+
+		});
+
+		it("should preserve identity and guard branding of a guard-branded member nested in a mutable argument", async () => {
+
+			let validations = 0;
+			const isPoint = (v: unknown): v is { x: number } => {
+				validations++;
+				return isObject(v, { x: isNumber });
+			};
+
+			const component = immutable({ x: 1 }, isPoint);
+			validations = 0; // ignore the validation from building the component
+
+			const frozen = immutable({ component }); // mutable argument wrapping the guard-branded component
+
+			// identity preserved: the component is kept by reference, not re-cloned
+			expect(frozen.component).toBe(component);
+
+			// guard branding preserved: the same guard is memoized, no revalidation
+			expect(immutable(frozen.component, isPoint)).toBe(component);
+			expect(validations).toBe(0);
+
+		});
+
+	});
+
 	describe("Property Descriptors", () => {
 
 		it("should handle non-enumerable properties on objects", async () => {
@@ -1200,6 +1284,17 @@ describe("seal()", () => {
 			expect(Object.isFrozen(retrieved)).toBeTruthy();
 			expect(Object.isFrozen(retrieved!.nested)).toBeTruthy();
 			expect(() => { (retrieved as any).nested.value = 2; }).toThrow(TypeError);
+
+		});
+
+		it("should brand structured content for idempotency at every depth", async () => {
+
+			const content = { nested: { value: 1 } };
+			const value = seal({}, tag, content);
+			const retrieved = seal<{ nested: { value: number } }>(value, tag)!;
+
+			expect(immutable(retrieved)).toBe(retrieved); // top object branded, not re-cloned
+			expect(immutable(retrieved.nested)).toBe(retrieved.nested); // descendant branded
 
 		});
 
