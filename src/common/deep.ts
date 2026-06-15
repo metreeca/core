@@ -153,7 +153,7 @@ const Immutable = Symbol("immutable");
  * @typeParam T The template type to widen
  */
 export type DeepPartial<T> =
-	T extends undefined | null | boolean |number | string ? T
+	T extends undefined | null | boolean | number | string ? T
 		: T extends readonly unknown[] ? { readonly [K in keyof T]: DeepPartial<T[K]> }
 			: T extends object ? { readonly [K in keyof T]?: DeepPartial<T[K]> }
 				: T;

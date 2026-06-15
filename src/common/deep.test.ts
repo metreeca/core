@@ -1343,7 +1343,7 @@ describe("seal()", () => {
 
 			const value = seal(Object.defineProperty({}, "prop", {
 				get() { return backing; },
-				set(v: number) { backing=v; },
+				set(v: number) { backing = v; },
 				enumerable: true,
 				configurable: true
 			}), tag, "content");

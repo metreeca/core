@@ -11,14 +11,14 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - `nests` function for checking parent/child relationships between hierarchical URI/IRI identifiers
 - `base` function for extracting the base identifier (scheme + authority + `/`) from a hierarchical URI/IRI, usable for
-	reference resolution; returns `undefined` for non-hierarchical inputs
+  reference resolution; returns `undefined` for non-hierarchical inputs
 - `seal` function for attaching typed content to objects under symbol keys, producing deep immutable clones
 - `Eager<T>` utility type unwrapping a `Lazy<T>` reference to its eager counterpart
 - `isEager` type guard for validating eager (non-function) `Lazy<T>` values
-- `DeepPartial<T>` utility type recursively widening JSON-like types into a subset view, preserving tuple arity,
-  element labels, variadic segments, and index signatures
-- `encodeBase64` / `decodeBase64` functions for URL-safe base64 encoding of UTF-8 text (RFC 4648 § 5), exported
-  from the new `@metreeca/core/base64` module
+- `DeepPartial<T>` utility type recursively widening JSON-like types into a subset view, preserving tuple arity, element
+  labels, variadic segments, and index signatures
+- `encodeBase64` / `decodeBase64` functions for URL-safe base64 encoding of UTF-8 text (RFC 4648 § 5), exported from the
+  new `@metreeca/core/base64` module
 - `createScope` factory and `Scope` type for identity-keyed numeric variable allocation, exported from the new
   `@metreeca/core/scope` module
 
@@ -30,8 +30,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - `equals` now short-circuits on reference-identical arguments, skipping deep traversal entirely
 - `manageState` now throws `TypeError` instead of `Error` for invalid instances
-- `Namespace` is now an object type accessed via property lookup (`ns.term`, `ns["term"]`) instead of a callable;
-  the namespace IRI is retrieved via `ns[""]` instead of `ns()`
+- `Namespace` is now an object type accessed via property lookup (`ns.term`, `ns["term"]`) instead of a callable; the
+  namespace IRI is retrieved via `ns[""]` instead of `ns()`
 - `Terms<T>` type merged into `Namespace<T>`
 - `createRelay` now returns immutable values, deep-freezing structured results (objects, arrays)
 - `createState`, `createNamespace`, `createMutex`, `createThrottle`, and `manageState` now return immutable objects

@@ -4,8 +4,8 @@
 
 Essential TypeScript abstractions.
 
-**@metreeca/core** is a foundational TypeScript toolkit with clean, minimalist APIs for common operations, web
-standards and functional patterns.
+**@metreeca/core** is a foundational TypeScript toolkit with clean, minimalist APIs for common operations, web standards
+and functional patterns.
 
 # Installation
 
