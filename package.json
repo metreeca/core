@@ -27,6 +27,7 @@
     ".": "./dist/index.js",
     "./deep": "./dist/common/deep.js",
     "./report": "./dist/common/report.js",
+    "./scope": "./dist/common/scope.js",
     "./resource": "./dist/standard/resource.js",
     "./problem": "./dist/standard/problem.js",
     "./language": "./dist/standard/language.js",
