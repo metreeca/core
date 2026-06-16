@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createScope } from "./scope.js";
 
 
@@ -88,6 +88,32 @@ describe("createScope()", () => {
 		it("should allocate ids independently per scope", async () => {
 			const key = {};
 			expect([createScope().variable(key), createScope().variable(key)]).toEqual([0, 0]);
+		});
+
+	});
+
+
+	describe("mapped allocation", () => {
+
+		it("should pass each id through the mapper", async () => {
+			const scope = createScope(index => `v${index}`);
+			expect([scope.variable(), scope.variable()]).toEqual(["v0", "v1"]);
+		});
+
+		it("should cache the mapped value on a repeat hit", async () => {
+			const scope = createScope(() => ({}));
+			const key = {};
+			expect(scope.variable(key)).toBe(scope.variable(key));
+		});
+
+		it("should invoke the mapper once per allocated id", async () => {
+			const mapper = vi.fn((index: number) => index);
+			const scope = createScope(mapper);
+			const key = {};
+			scope.variable(key);
+			scope.variable(key);
+			scope.variable();
+			expect(mapper).toHaveBeenCalledTimes(2);
 		});
 
 	});
