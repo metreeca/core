@@ -59,6 +59,11 @@ import { immutable } from "../common/deep.js";
 import type { Value } from "../index.js";
 
 
+const FetchSeal = Symbol("fetch");
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /**
  * Problem Details for HTTP APIs.
  *
@@ -128,103 +133,114 @@ export interface Problem {
  * If response body parsing fails, promise rejects with {@link Problem} containing the original response `status`
  * and `statusText`.
  *
+ * > [!NOTE]
+ * >
+ * > Wrapping is idempotent: a `base` already produced by {@link createFetch} is returned unchanged rather than
+ * > wrapped again, so guards never stack and composition collapses to a single guard.
+ *
  * @param base The fetch function to wrap
  *
  * @returns Fetch function whose promises reject with {@link immutable} {@link Problem} exceptions for all error
  *     conditions
  */
 export function createFetch(base: typeof fetch): typeof fetch {
-	return (input: RequestInfo | URL, init?: RequestInit) => base(input, init)
 
-		.catch(error => {
+	return FetchSeal in base ? base : Object.defineProperty(wrap(base), FetchSeal, { value: true });
 
-			throw immutable<Problem>({
+	function wrap(base: typeof fetch): typeof fetch {
+		return (input: RequestInfo | URL, init?: RequestInit) => base(input, init)
 
-				status: 0,
-				detail: `fetch error <${error}>`
+			.catch(error => {
 
-			});
+				throw immutable<Problem>({
 
-		})
+					status: 0,
+					detail: `fetch error <${error}>`
 
-		.then(response => {
+				});
 
-			if ( response.ok ) {
+			})
 
-				return response;
+			.then(response => {
 
-			} else {
+				if ( response.ok ) {
 
-				const mime = response.headers.get("Content-Type");
-
-				if ( mime?.match(/^text\/plain\b/i) ) {
-
-					return response.text()
-
-						.catch(_ => {
-
-							throw immutable<Problem>({
-
-								status: response.status,
-								detail: response.statusText
-
-							});
-
-						})
-
-						.then(value => {
-
-							throw immutable<Problem>({
-
-								status: response.status,
-								detail: response.statusText,
-
-								report: value
-
-							});
-
-						});
-
-				} else if ( mime?.match(/[\/+]json\b/i) ) {
-
-					return response.json()
-
-						.catch(_ => {
-
-							throw immutable<Problem>({
-
-								status: response.status,
-								detail: response.statusText
-
-							});
-
-						})
-
-						.then(value => {
-
-							throw immutable<Problem>({
-
-								status: response.status,
-								detail: response.statusText,
-
-								report: value
-
-							});
-
-						});
+					return response;
 
 				} else {
 
-					throw immutable<Problem>({
+					const mime = response.headers.get("Content-Type");
 
-						status: response.status,
-						detail: response.statusText
+					if ( mime?.match(/^text\/plain\b/i) ) {
 
-					});
+						return response.text()
+
+							.catch(_ => {
+
+								throw immutable<Problem>({
+
+									status: response.status,
+									detail: response.statusText
+
+								});
+
+							})
+
+							.then(value => {
+
+								throw immutable<Problem>({
+
+									status: response.status,
+									detail: response.statusText,
+
+									report: value
+
+								});
+
+							});
+
+					} else if ( mime?.match(/[\/+]json\b/i) ) {
+
+						return response.json()
+
+							.catch(_ => {
+
+								throw immutable<Problem>({
+
+									status: response.status,
+									detail: response.statusText
+
+								});
+
+							})
+
+							.then(value => {
+
+								throw immutable<Problem>({
+
+									status: response.status,
+									detail: response.statusText,
+
+									report: value
+
+								});
+
+							});
+
+					} else {
+
+						throw immutable<Problem>({
+
+							status: response.status,
+							detail: response.statusText
+
+						});
+
+					}
 
 				}
 
-			}
+			});
+	}
 
-		});
 }

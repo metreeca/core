@@ -33,6 +33,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `Namespace` is now an object type accessed via property lookup (`ns.term`, `ns["term"]`) instead of a callable; the
   namespace IRI is retrieved via `ns[""]` instead of `ns()`
 - `Terms<T>` type merged into `Namespace<T>`
+- `createFetch` is now idempotent: wrapping a fetch function already produced by `createFetch` returns it unchanged
+  instead of stacking guards, so composition collapses to a single guard
 - `createRelay` now returns immutable values, deep-freezing structured results (objects, arrays)
 - `createState`, `createNamespace`, `createMutex`, `createThrottle`, and `manageState` now return immutable objects
 - `Manager.capture()` now returns an immutable version snapshot

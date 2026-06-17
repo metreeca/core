@@ -351,4 +351,106 @@ describe("fetcher()", () => {
 
 	});
 
+	describe("idempotent under composition", () => {
+
+		it("should return an already-guarded fetch unchanged", async () => {
+			const mockFetch = vi.fn<typeof fetch>();
+			const guard = createFetch(mockFetch);
+
+			expect(createFetch(guard)).toBe(guard);
+		});
+
+		it("should preserve fetch-exception Problem when double-wrapped", async () => {
+			const mockFetch = vi.fn<typeof fetch>().mockRejectedValue(new Error("Network error"));
+			const guard = createFetch(createFetch(mockFetch));
+
+			await expect(guard("https://api.example.com/data"))
+				.rejects
+				.toMatchObject({
+					status: 0,
+					detail: "fetch error <Error: Network error>"
+				});
+		});
+
+		it("should preserve non-ok text Problem when double-wrapped", async () => {
+			const mockResponse = {
+				ok: false,
+				status: 404,
+				statusText: "Not Found",
+				headers: {
+					get: vi.fn().mockReturnValue("text/plain")
+				},
+				text: vi.fn().mockResolvedValue("Resource not found")
+			} as unknown as Response;
+
+			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
+			const guard = createFetch(createFetch(mockFetch));
+
+			await expect(guard("https://api.example.com/missing"))
+				.rejects
+				.toMatchObject({
+					status: 404,
+					detail: "Not Found",
+					report: "Resource not found"
+				});
+		});
+
+		it("should preserve non-ok JSON report Problem when double-wrapped", async () => {
+			const reportData = { errors: ["field1", "field2"] };
+			const mockResponse = {
+				ok: false,
+				status: 422,
+				statusText: "Unprocessable Entity",
+				headers: {
+					get: vi.fn().mockReturnValue("application/json")
+				},
+				json: vi.fn().mockResolvedValue(reportData)
+			} as unknown as Response;
+
+			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
+			const guard = createFetch(createFetch(mockFetch));
+
+			await expect(guard("https://api.example.com/data"))
+				.rejects
+				.toMatchObject({
+					status: 422,
+					report: reportData
+				});
+		});
+
+		it("should resolve ok responses unchanged when double-wrapped", async () => {
+			const mockResponse = { ok: true, status: 200, statusText: "OK" } as Response;
+			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
+			const guard = createFetch(createFetch(mockFetch));
+
+			const result = await guard("https://api.example.com/data");
+
+			expect(result).toBe(mockResponse);
+		});
+
+		it("should not re-wrap a JSON report that structurally resembles a Problem", async () => {
+			const reportData = { status: 404, detail: "inner detail" };
+			const mockResponse = {
+				ok: false,
+				status: 500,
+				statusText: "Internal Server Error",
+				headers: {
+					get: vi.fn().mockReturnValue("application/json")
+				},
+				json: vi.fn().mockResolvedValue(reportData)
+			} as unknown as Response;
+
+			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
+			const guard = createFetch(createFetch(mockFetch));
+
+			await expect(guard("https://api.example.com/data"))
+				.rejects
+				.toMatchObject({
+					status: 500,
+					report: reportData
+				});
+		});
+
+	});
+
 });
