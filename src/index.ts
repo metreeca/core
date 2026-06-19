@@ -41,7 +41,7 @@
  *
  * ## JSON values
  *
- * Complete coverage of the JSON data model: scalars, the recursive {@link Value} type,
+ * Complete coverage of the JSON data model: the recursive {@link Value} type, its {@link Scalar} leaves,
  * and structural guards for arrays and objects. {@link isArray} and {@link isObject}
  * validate shape in depth through element predicates or tuple/template descriptors;
  * object templates are closed by default, with the {@link key} wildcard turning them open.
@@ -51,6 +51,7 @@
  * isBoolean(true); // true
  * isNumber(42); // true
  * isString("hello"); // true
+ * isScalar(42); // true (boolean, number, or string)
  * isValue({ a: [1, 2], b: "test" }); // true (recursive JSON value)
  *
  * isArray([1, 2, 3]); // true
@@ -158,11 +159,20 @@ export type Identifier =
  */
 export type Value =
 	| null
+	| Scalar
+	| Array
+	| Object
+
+/**
+ * Immutable JSON scalar.
+ *
+ * Represents a non-null atomic JSON value: a `boolean`, `number`, or `string`. Complements the structured
+ * {@link Array} and {@link Object} members of {@link Value}.
+ */
+export type Scalar =
 	| boolean
 	| number
 	| string
-	| Array
-	| Object
 
 /**
  * Immutable JSON array.
@@ -379,9 +389,7 @@ export function isAsyncIterable<T = unknown>(value: unknown): value is AsyncIter
 export function isValue(value: unknown): value is Value {
 
 	return isNull(value)
-		|| isBoolean(value)
-		|| isNumber(value)
-		|| isString(value)
+		|| isScalar(value)
 		|| isArray(value, isValue)
 		|| isObject(value, isValue);
 
@@ -397,6 +405,23 @@ export function isValue(value: unknown): value is Value {
 export function isNull(value: unknown): value is null {
 
 	return value === null;
+
+}
+
+/**
+ * Checks if a value is a JSON scalar.
+ *
+ * @param value The value to check
+ *
+ * @returns True if the value is a boolean, a finite number, or a string; false otherwise
+ *
+ * @see {@link Scalar}
+ */
+export function isScalar(value: unknown): value is Scalar {
+
+	return isBoolean(value)
+		|| isNumber(value)
+		|| isString(value);
 
 }
 

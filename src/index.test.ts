@@ -35,6 +35,7 @@ import {
 	isOptional,
 	isPromise,
 	isRegExp,
+	isScalar,
 	isString,
 	isSymbol,
 	isUnion,
@@ -370,6 +371,47 @@ describe("isNull()", () => {
 		expect(isNull(false)).toBeFalsy();
 		expect(isNull({})).toBeFalsy();
 		expect(isNull([])).toBeFalsy();
+	});
+
+});
+
+describe("isScalar()", () => {
+
+	it("should return true for booleans", () => {
+		expect(isScalar(true)).toBeTruthy();
+		expect(isScalar(false)).toBeTruthy();
+	});
+
+	it("should return true for finite numbers", () => {
+		expect(isScalar(0)).toBeTruthy();
+		expect(isScalar(123)).toBeTruthy();
+		expect(isScalar(-456.78)).toBeTruthy();
+	});
+
+	it("should return true for strings", () => {
+		expect(isScalar("")).toBeTruthy();
+		expect(isScalar("test")).toBeTruthy();
+	});
+
+	it("should return false for null", () => {
+		expect(isScalar(null)).toBeFalsy();
+	});
+
+	it("should return false for non-finite numbers", () => {
+		expect(isScalar(NaN)).toBeFalsy();
+		expect(isScalar(Infinity)).toBeFalsy();
+		expect(isScalar(-Infinity)).toBeFalsy();
+	});
+
+	it("should return false for structured values", () => {
+		expect(isScalar([])).toBeFalsy();
+		expect(isScalar({})).toBeFalsy();
+	});
+
+	it("should return false for non-JSON primitives", () => {
+		expect(isScalar(undefined)).toBeFalsy();
+		expect(isScalar(Symbol())).toBeFalsy();
+		expect(isScalar(() => {})).toBeFalsy();
 	});
 
 });
