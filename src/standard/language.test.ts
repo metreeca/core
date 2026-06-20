@@ -55,12 +55,7 @@ const ranges = {
 		"*",
 		"en",
 		"en-US",
-		"en-*",
-		"*-CH",
-		"de-*-DE",
 		"zh-Hans-CN",
-		"*-*",
-		"*-*-*",
 		"a",
 		"abcdefgh",
 		"en-12345678"
@@ -71,6 +66,11 @@ const ranges = {
 		{ value: "-en", reason: "leading hyphen" },
 		{ value: "en-", reason: "trailing hyphen" },
 		{ value: "en--US", reason: "double hyphen" },
+		{ value: "en-*", reason: "trailing wildcard (extended range)" },
+		{ value: "*-CH", reason: "leading wildcard (extended range)" },
+		{ value: "de-*-DE", reason: "interior wildcard (extended range)" },
+		{ value: "*-*", reason: "wildcard subtags (extended range)" },
+		{ value: "*-*-*", reason: "wildcard subtags (extended range)" },
 		{ value: "toolongsub", reason: "subtag > 8 chars" },
 		{ value: "en-123456789", reason: "subtag > 8 chars" },
 		{ value: "en_US", reason: "underscore separator" },
@@ -105,7 +105,7 @@ describe("isTag()", () => {
 
 });
 
-describe("isRange()", () => {
+describe("isTagRange()", () => {
 
 	it("should return true for valid language ranges", () => {
 		ranges.valid.forEach(value => {
@@ -132,13 +132,13 @@ describe("isRange()", () => {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-describe("matches()", () => {
+describe("matchTag()", () => {
 
-	// RFC 4647 § 3.3.2 Extended Filtering test cases
+	// RFC 4647 § 3.3.1 Basic Filtering test cases
 
 	describe("wildcard range", () => {
 
-		it("should match any non-empty tag with '*' range", async () => {
+		it("should match any tag with '*' range", async () => {
 			expect(matchTag("en", "*")).toBe(true);
 			expect(matchTag("en-US", "*")).toBe(true);
 			expect(matchTag("zh-Hans-CN", "*")).toBe(true);
@@ -146,29 +146,44 @@ describe("matches()", () => {
 
 	});
 
-	describe("basic matching", () => {
+	describe("exact match", () => {
 
-		it("should match exact tags", async () => {
+		it("should match equal tags", async () => {
 			expect(matchTag("en", "en")).toBe(true);
 			expect(matchTag("de", "de")).toBe(true);
 			expect(matchTag("zh-Hans", "zh-Hans")).toBe(true);
+			expect(matchTag("en-US", "en-US")).toBe(true);
 		});
 
-		it("should match tags with additional subtags", async () => {
+	});
+
+	describe("prefix match", () => {
+
+		it("should match a range that is a subtag prefix of the tag", async () => {
 			expect(matchTag("en-US", "en")).toBe(true);
 			expect(matchTag("en-GB", "en")).toBe(true);
 			expect(matchTag("zh-Hans-CN", "zh")).toBe(true);
 			expect(matchTag("zh-Hans-CN", "zh-Hans")).toBe(true);
+			expect(matchTag("en-US-x-private", "en-US")).toBe(true);
 		});
+
+	});
+
+	describe("non-matching", () => {
 
 		it("should not match when first subtags differ", async () => {
 			expect(matchTag("en", "de")).toBe(false);
 			expect(matchTag("fr", "en")).toBe(false);
 		});
 
-		it("should not match when tag has fewer subtags than range", async () => {
+		it("should not match when the range is longer than the tag", async () => {
 			expect(matchTag("en", "en-US")).toBe(false);
 			expect(matchTag("zh", "zh-Hans")).toBe(false);
+		});
+
+		it("should not match a prefix that does not align to a subtag boundary", async () => {
+			expect(matchTag("deu", "de")).toBe(false);
+			expect(matchTag("eng", "en")).toBe(false);
 		});
 
 	});
@@ -179,58 +194,26 @@ describe("matches()", () => {
 			expect(matchTag("en-US", "EN-us")).toBe(true);
 			expect(matchTag("EN-US", "en-us")).toBe(true);
 			expect(matchTag("zh-Hans", "ZH-HANS")).toBe(true);
+			expect(matchTag("DE-CH", "de")).toBe(true);
 		});
 
 	});
 
-	describe("extended filtering with wildcards", () => {
+	describe("validation", () => {
 
-		// RFC 4647 § 3.3.2 example: "de-*-DE"
-
-		it("should match tags per RFC 4647 de-*-DE example", async () => {
-			const r = "de-*-DE";
-
-			expect(matchTag("de-DE", r)).toBe(true);
-			expect(matchTag("de-Latn-DE", r)).toBe(true);
-			expect(matchTag("de-Latf-DE", r)).toBe(true);
-			expect(matchTag("de-DE-x-goethe", r)).toBe(true);
-			expect(matchTag("de-Latn-DE-1996", r)).toBe(true);
-			expect(matchTag("de-Deva-DE", r)).toBe(true);
+		it("should throw for an invalid tag", async () => {
+			expect(() => matchTag("en_US", "en")).toThrow();
 		});
 
-		it("should not match non-conforming tags per RFC 4647 de-*-DE example", async () => {
-			const r = "de-*-DE";
-
-			expect(matchTag("de", r)).toBe(false);           // missing 'DE'
-			expect(matchTag("de-x-DE", r)).toBe(false);      // singleton 'x' blocks
-			expect(matchTag("de-Deva", r)).toBe(false);      // 'Deva' != 'DE'
+		it("should throw for an invalid range", async () => {
+			expect(() => matchTag("de-CH", "de-*")).toThrow();
 		});
 
-		it("should handle wildcards in different positions", async () => {
-			expect(matchTag("en-US", "*-US")).toBe(true);
-			expect(matchTag("de-CH", "*-CH")).toBe(true);
-			expect(matchTag("fr-Latn-CH", "*-CH")).toBe(true);
-		});
-
-		it("should handle multiple wildcards", async () => {
-			expect(matchTag("en-Latn-US", "*-*-US")).toBe(true);
-			expect(matchTag("de-Latn-DE-1996", "de-*-*")).toBe(true);
-		});
-
-	});
-
-	describe("singleton blocking", () => {
-
-		it("should fail match when singleton subtag blocks required match", async () => {
-			// per RFC 4647: singleton (single letter/digit including 'x') blocks further matching
-			expect(matchTag("de-x-DE", "de-*-DE")).toBe(false);
-			expect(matchTag("en-a-value-US", "en-*-US")).toBe(false);
-		});
-
-		it("should allow singleton after all range subtags matched", async () => {
-			// singleton in tag is fine if all range subtags already matched
-			expect(matchTag("de-DE-x-goethe", "de-*-DE")).toBe(true);
-			expect(matchTag("en-US-x-private", "en-US")).toBe(true);
+		it("should throw for former extended-range matches", async () => {
+			// ranges that matched under § 3.3.2 extended filtering are no longer valid ranges
+			expect(() => matchTag("de-Latn-DE", "de-*-DE")).toThrow();
+			expect(() => matchTag("en-US", "*-US")).toThrow();
+			expect(() => matchTag("fr-Latn-CH", "*-CH")).toThrow();
 		});
 
 	});

@@ -46,6 +46,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `Problem` now cites RFC 9457 (which obsoletes RFC 7807) as its reference standard; the wire format is unchanged
 - Reorganize source layout: `basic/` → `common/`, `network/` → `standard/`, `async/` → `common/async/`
 - `isLazy` now accepts the type guard parameter as optional and rejects functions with non-zero arity regardless
+- `matchTag`, `isTagRange`, `TagRange`, and `TagRangePattern` now implement RFC 4647 basic language ranges and basic
+  filtering (§ 2.1 / § 3.3.1) instead of extended ranges and extended filtering; a range is a subtag sequence or the
+  standalone `*` wildcard, matching a tag when equal or a subtag prefix of it, and ranges with `*` in subtag positions
+  (for example `de-*`, `*-CH`) are no longer valid
 
 ### Removed
 

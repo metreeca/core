@@ -15,9 +15,9 @@
  */
 
 /**
- * BCP 47 language tags and ranges.
+ * BCP 47 language tags and RFC 4647 basic language ranges.
  *
- * Provides branded types and utilities for working with BCP 47 language tags ({@link Tag}) and RFC 4647 language
+ * Provides types and utilities for working with BCP 47 language tags ({@link Tag}) and RFC 4647 basic language
  * ranges ({@link TagRange}). Use {@link isTag} and {@link isTagRange} as type guards, and {@link matchTag} to test tags
  * against range patterns.
  *
@@ -31,7 +31,7 @@
  * }
  * ```
  *
- * **Language Ranges**
+ * **Basic Language Ranges**
  *
  * ```typescript
  * import { isTagRange } from "@metreeca/core/language";
@@ -46,7 +46,7 @@
  * ```typescript
  * import { matchTag } from "@metreeca/core/language";
  *
- * matchTag("de-CH", "de-*");  // true - Swiss German matches German range
+ * matchTag("de-CH", "de");  // true - Swiss German matches German range
  * ```
  *
  * @module
@@ -85,22 +85,23 @@ const TagPattern = (() => {
 })();
 
 /**
- * Regular expression for matching BCP 47 extended language ranges.
+ * Regular expression for matching RFC 4647 basic language ranges.
  *
- * Matches strings following the extended language range syntax defined in RFC 4647 § 2.2.
+ * Matches strings following the basic language range syntax defined in RFC 4647 § 2.1: a sequence of subtags or the
+ * standalone `*` wildcard.
  *
  * @see {@link https://www.rfc-editor.org/info/bcp47 BCP 47 - Tags for Identifying Languages}
  * @see {@link https://www.rfc-editor.org/rfc/rfc4647.html RFC 4647 - Matching of Language Tags}
  */
-const TagRangePattern = /^(?:[a-z]{1,8}|\*)(?:-(?:[a-z0-9]{1,8}|\*))*$/i;
+const TagRangePattern = /^(?:[a-z]{1,8}(?:-[a-z0-9]{1,8})*|\*)$/i;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Language tag as defined by BCP 47/RFC 5646.
+ * Language tag as defined by BCP 47/RFC 5646 § 2.1.
  *
- * A language tag identifies a natural language (e.g., "en" for English, "fr-CA" for Canadian French)
+ * A language tag identifies a natural language (e.g., `en` for English, `fr-CA` for Canadian French)
  * and consists of subtags for language, script, region, variant, and extension components.
  *
  * **Grammar**
@@ -125,24 +126,28 @@ const TagRangePattern = /^(?:[a-z]{1,8}|\*)(?:-(?:[a-z0-9]{1,8}|\*))*$/i;
 export type Tag = string
 
 /**
- * Language range as defined by BCP 47/RFC 4647.
+ * Basic language range as defined by RFC 4647 § 2.1.
  *
- * A language range is used to match language tags for content negotiation and filtering.
- * An extended language range allows `*` (asterisk) as a wildcard for any subtag
- * (e.g., `en-*`, `*-CH`, `de-*-DE`), or as a standalone `*` to match any language tag.
+ * A language range matches language tags for content negotiation and filtering. A basic language range is
+ * either a sequence of subtags (e.g., `en`, `en-US`, `zh-Hans-CN`), or the standalone `*` wildcard matching
+ * any language tag.
  *
  * **Grammar**
  *
- * Matches extended language range pattern per BCP 47/RFC 4647 § 2.2:
+ * Matches the basic language range pattern per RFC 4647 § 2.1:
  *
  * ```
- * extended-language-range = (1*8ALPHA / "*") *("-" (1*8alphanum / "*"))
+ * language-range = (1*8ALPHA *("-" 1*8alphanum)) / "*"
  * ```
  *
  * > [!WARNING]
  * > This is a type alias for documentation purposes only. Branding was considered but not adopted due to
  * > interoperability issues with tools relying on static code analysis. Values must be validated at runtime
  * > using {@link isTagRange}.
+ *
+ * > [!IMPORTANT]
+ * > Extended language ranges with interior or trailing `*` (e.g., `de-*`, `*-CH`) are not valid: under
+ * > RFC 4647 basic filtering they carry no extra matching power over their basic prefix.
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc4647.html RFC 4647 - Matching of Language Tags}
  * @see {@link Tag}
@@ -155,11 +160,12 @@ export type TagRange = string
 /**
  * Checks if a value is a valid language tag.
  *
- * Validates language tags according to BCP 47/RFC 5646.
+ * Validates language tags according to BCP 47/RFC 5646 § 2.1.
+ * A language tag is a sequence of subtags identifying a natural language (e.g., `en`, `fr-CA`, `zh-Hans-CN`).
  *
  * @param value The value to validate as a language tag
  *
- * @returns `true` if the value is a non-empty string matching the BCP 47 pattern; `false` otherwise
+ * @returns `true` if the value matches the language tag pattern; `false` otherwise
  *
  * @see {@link Tag}
  */
@@ -168,14 +174,14 @@ export function isTag(value: unknown): value is Tag {
 }
 
 /**
- * Checks if a value is a valid language range.
+ * Checks if a value is a valid basic language range.
  *
- * Validates extended language ranges according to RFC 4647 § 2.2.
- * An extended language range allows `*` as a wildcard for any subtag (e.g., `en-*`, `*-CH`).
+ * Validates basic language ranges according to RFC 4647 § 2.1.
+ * A basic language range is a sequence of subtags (e.g., `en`, `en-US`) or the standalone `*` wildcard.
  *
- * @param value The value to validate as a language range
+ * @param value The value to validate as a basic language range
  *
- * @returns `true` if the value matches the extended language range pattern; `false` otherwise
+ * @returns `true` if the value matches the basic language range pattern; `false` otherwise
  *
  * @see {@link TagRange}
  */
@@ -187,75 +193,45 @@ export function isTagRange(value: unknown): value is TagRange {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Checks if a language tag matches a language range.
+ * Checks if a language tag matches a basic language range.
  *
- * Implements Extended Filtering per RFC 4647 § 3.3.2. Matching is case-insensitive and compares subtags sequentially:
+ * Implements Basic Filtering per RFC 4647 § 3.3.1. Matching is case-insensitive:
  *
- * - Wildcard `*` in range matches any subtag sequence
- * - Singleton subtags (single character) in tag block further matching
- * - Range subtags must appear in order, but tag may have additional subtags between matches
+ * - The standalone `*` range matches any language tag
+ * - Otherwise the range matches if it equals the tag, or equals a prefix of the tag ending at a subtag
+ *   boundary (the tag character following the prefix is `-`)
  *
  * @param tag The language tag to test
- * @param range The language range to match against
+ * @param range The basic language range to match against
  *
  * @returns `true` if the tag matches the range pattern; `false` otherwise
  *
- * @throws TypeError If `tag` is not a valid language tag or `range` is not a valid language range
+ * @throws TypeError If `tag` is not a valid language tag or `range` is not a valid basic language range
  *
  * @example
  *
  * ```typescript
  * import { matchTag } from "@metreeca/core/language";
  *
- * matchTag("de-DE", "de-*-DE");        // true
- * matchTag("de-Latn-DE", "de-*-DE");   // true
- * matchTag("de", "de-*-DE");           // false - missing 'DE'
- * matchTag("de-x-DE", "de-*-DE");      // false - singleton 'x' blocks
+ * matchTag("de-CH", "de");      // true  - de-CH has subtag prefix de
+ * matchTag("de-CH", "de-CH");   // true  - exact match
+ * matchTag("de", "de-CH");      // false - range is longer than tag
+ * matchTag("deu", "de");        // false - de is not a subtag prefix of deu
+ * matchTag("en-US", "*");       // true  - wildcard matches any tag
  * ```
  *
- * @see {@link https://www.rfc-editor.org/rfc/rfc4647.html#section-3.3.2 RFC 4647 § 3.3.2 - Extended Filtering}
+ * @see {@link https://www.rfc-editor.org/rfc/rfc4647.html#section-3.3.1 RFC 4647 § 3.3.1 - Basic Filtering}
  * @see {@link Tag}
  * @see {@link TagRange}
  */
-export function matchTag(tag: string | Tag, range: string | TagRange): boolean {
+export function matchTag(tag: Tag, range: TagRange): boolean {
 
-	const tagSubtags = assert(tag, isTag).toLowerCase().split("-");
-	const rangeSubtags = assert(range, isTagRange).toLowerCase().split("-");
+	const $tag = assert(tag, isTag).toLowerCase();
+	const $range = assert(range, isTagRange).toLowerCase();
 
-	const [firstTag, ...restTag] = tagSubtags;
-	const [firstRange, ...restRange] = rangeSubtags;
+	// basic filtering: the '*' wildcard matches any tag; otherwise the range must equal the tag or a
+	// subtag prefix of it (the character following the prefix in the tag is "-")
 
-	// first subtags must match (unless range starts with wildcard)
-
-	const firstMatch = firstRange === "*" || firstRange === firstTag;
-
-	// filter out wildcards and match required range subtags against tag subtags
-
-	const requiredSubtags = restRange.filter(s => s !== "*");
-
-	const { matched } = requiredSubtags.reduce(
-		(state, target) => state.matched ? matchSubtag(state.remaining, target) : state,
-		{ matched: firstMatch, remaining: restTag }
-	);
-
-	return matched;
-
-
-	function matchSubtag(subtags: string[], target: string): { matched: boolean; remaining: string[] } {
-
-		const targetIndex = subtags.findIndex(s => s === target);
-
-		// singleton (single char) before target blocks matching per RFC 4647
-
-		const blockedBySingleton = targetIndex > 0
-			&& subtags.slice(0, targetIndex).some(s => s.length === 1);
-
-		const found = targetIndex !== -1 && !blockedBySingleton;
-
-		return found
-			? { matched: true, remaining: subtags.slice(targetIndex+1) }
-			: { matched: false, remaining: [] };
-
-	}
+	return $range === "*" || $tag === $range || $tag.startsWith(`${$range}-`);
 
 }
