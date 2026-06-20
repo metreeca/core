@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unpublished](https://github.com/metreeca/core/compare/v0.9.18...HEAD)
+## [Unpublished](https://github.com/metreeca/core/compare/v0.9.19...HEAD)
+
+## [0.9.19](https://github.com/metreeca/core/compare/v0.9.18...v0.9.19) - 2026-06-20
 
 ### Added
 
@@ -23,10 +25,6 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `@metreeca/core/scope` module
 - `Scalar` type for non-null atomic JSON values (`boolean | number | string`), the scalar member of `Value`
 - `isScalar` type guard for validating JSON scalar values
-
-### Fixed
-
-- `equals` now correctly distinguishes `-0` from `+0` using `Object.is` semantics in the short-circuit path
 
 ### Changed
 
@@ -63,6 +61,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- `equals` now correctly distinguishes `-0` from `+0` using `Object.is` semantics in the short-circuit path
 - `createNamespace` now validates that the namespace IRI is absolute (rejects relative and root-relative references)
 - `Namespace<T>` closed type now rejects unknown terms at compile time (previously allowed any string key)
 - `createNamespace` crashing with `TypeError` when terms collide with `Function.prototype` properties (`name`,
