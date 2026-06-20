@@ -19,7 +19,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   labels, variadic segments, and index signatures
 - `encodeBase64` / `decodeBase64` functions for URL-safe base64 encoding of UTF-8 text (RFC 4648 § 5), exported from the
   new `@metreeca/core/base64` module
-- `createScope` factory and `Scope` type for identity-keyed numeric variable allocation, exported from the new
+- `createScope` factory and `Scope` type for identity-keyed numeric value allocation, exported from the new
   `@metreeca/core/scope` module
 - `Scalar` type for non-null atomic JSON values (`boolean | number | string`), the scalar member of `Value`
 - `isScalar` type guard for validating JSON scalar values

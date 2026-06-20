@@ -28,12 +28,12 @@ describe("createScope()", () => {
 	describe("anonymous allocation", () => {
 
 		it("should start ids at 0", async () => {
-			expect(createScope().variable()).toBe(0);
+			expect(createScope().resolve()).toBe(0);
 		});
 
 		it("should allocate a fresh id on every call", async () => {
 			const scope = createScope();
-			expect([scope.variable(), scope.variable(), scope.variable()]).toEqual([0, 1, 2]);
+			expect([scope.resolve(), scope.resolve(), scope.resolve()]).toEqual([0, 1, 2]);
 		});
 
 	});
@@ -44,29 +44,29 @@ describe("createScope()", () => {
 		it("should return the cached id on a repeat hit", async () => {
 			const scope = createScope();
 			const key = {};
-			expect(scope.variable(key)).toBe(scope.variable(key));
+			expect(scope.resolve(key)).toBe(scope.resolve(key));
 		});
 
 		it("should allocate distinct ids for distinct keys", async () => {
 			const scope = createScope();
-			expect([scope.variable({}), scope.variable({})]).toEqual([0, 1]);
+			expect([scope.resolve({}), scope.resolve({})]).toEqual([0, 1]);
 		});
 
 		it("should match keys by reference, not structure", async () => {
 			const scope = createScope();
-			expect(scope.variable({ id: 1 })).not.toBe(scope.variable({ id: 1 }));
+			expect(scope.resolve({ id: 1 })).not.toBe(scope.resolve({ id: 1 }));
 		});
 
 		it("should cache the first allocated id even when it is 0", async () => {
 			const scope = createScope();
 			const key = {};
-			scope.variable(key); // allocates id 0
-			expect(scope.variable(key)).toBe(0);
+			scope.resolve(key); // allocates id 0
+			expect(scope.resolve(key)).toBe(0);
 		});
 
 		it("should cache null as a key", async () => {
 			const scope = createScope();
-			expect(scope.variable(null)).toBe(scope.variable(null));
+			expect(scope.resolve(null)).toBe(scope.resolve(null));
 		});
 
 	});
@@ -77,7 +77,7 @@ describe("createScope()", () => {
 		it("should draw keyed and anonymous ids from one monotonic sequence", async () => {
 			const scope = createScope();
 			const key = {};
-			expect([scope.variable(key), scope.variable(), scope.variable(key), scope.variable()]).toEqual([0, 1, 0, 2]);
+			expect([scope.resolve(key), scope.resolve(), scope.resolve(key), scope.resolve()]).toEqual([0, 1, 0, 2]);
 		});
 
 	});
@@ -87,7 +87,7 @@ describe("createScope()", () => {
 
 		it("should allocate ids independently per scope", async () => {
 			const key = {};
-			expect([createScope().variable(key), createScope().variable(key)]).toEqual([0, 0]);
+			expect([createScope().resolve(key), createScope().resolve(key)]).toEqual([0, 0]);
 		});
 
 	});
@@ -97,22 +97,22 @@ describe("createScope()", () => {
 
 		it("should pass each id through the mapper", async () => {
 			const scope = createScope(index => `v${index}`);
-			expect([scope.variable(), scope.variable()]).toEqual(["v0", "v1"]);
+			expect([scope.resolve(), scope.resolve()]).toEqual(["v0", "v1"]);
 		});
 
 		it("should cache the mapped value on a repeat hit", async () => {
 			const scope = createScope(() => ({}));
 			const key = {};
-			expect(scope.variable(key)).toBe(scope.variable(key));
+			expect(scope.resolve(key)).toBe(scope.resolve(key));
 		});
 
 		it("should invoke the mapper once per allocated id", async () => {
 			const mapper = vi.fn((index: number) => index);
 			const scope = createScope(mapper);
 			const key = {};
-			scope.variable(key);
-			scope.variable(key);
-			scope.variable();
+			scope.resolve(key);
+			scope.resolve(key);
+			scope.resolve();
 			expect(mapper).toHaveBeenCalledTimes(2);
 		});
 

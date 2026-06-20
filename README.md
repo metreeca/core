@@ -26,7 +26,7 @@ npm install @metreeca/core
 | **Common Operations**               |                                          |
 | [@metreeca/core/deep][deep]         | Deep operations on objects and arrays    |
 | [@metreeca/core/report][report]     | Execution reporting and error handling   |
-| [@metreeca/core/scope][scope]       | Identity-keyed variable allocation       |
+| [@metreeca/core/scope][scope]       | Identity-keyed value allocation          |
 | [@metreeca/core/async][async]       | Asynchronous coordination primitives     |
 | **Web Standards**                   |                                          |
 | [@metreeca/core/resource][resource] | RFC 3987 resource identifiers            |
