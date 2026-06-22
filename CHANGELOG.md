@@ -7,6 +7,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unpublished](https://github.com/metreeca/core/compare/v0.9.19...HEAD)
 
+### Added
+
+- `xsd` predefined closed namespace exposing well-known XML Schema datatype IRIs, exported from
+  `@metreeca/core/resource`
+
 ## [0.9.19](https://github.com/metreeca/core/compare/v0.9.18...v0.9.19) - 2026-06-20
 
 ### Added

@@ -115,6 +115,18 @@
  * ex["anything"];     // IRI: "http://example.org/anything"
  * ```
  *
+ * **Standard Namespaces**
+ *
+ * ```typescript
+ * import { xsd } from "@metreeca/core/resource";
+ *
+ * // Predefined closed namespace for well-known XSD datatypes
+ *
+ * xsd[""];            // IRI: "http://www.w3.org/2001/XMLSchema#"
+ * xsd.string;         // IRI: "http://www.w3.org/2001/XMLSchema#string"
+ * xsd.dateTime;       // IRI: "http://www.w3.org/2001/XMLSchema#dateTime"
+ * ```
+ *
  * @module
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc3987.html RFC 3987 - Internationalized Resource Identifiers (IRIs)}
@@ -134,6 +146,65 @@ const SchemePattern = /^[a-z][a-z0-9+.-]*:/i;
  * Excluded characters per RFC 3987 § 2.2: control chars, whitespace, special chars
  */
 const ExcludedPattern = /[\x00-\x1F\x7F-\x9F\s<>"{}|\\^`]/;
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * XSD datatype namespace.
+ *
+ * A closed {@link Namespace} of well-known XML Schema datatype IRIs, covering `boolean`, the complete numeric
+ * family, `string`, `anyURI`, the complete date/time family, and the binary datatypes.
+ *
+ * > [!NOTE]
+ * > String-derived and qualified-name datatypes are not included: they carry XML-document semantics
+ * > (whitespace facets, namespace-scoped resolution) of little use as standalone datatype identifiers.
+ *
+ * @see {@link https://www.w3.org/TR/xmlschema11-2/ W3C XML Schema Definition Language (XSD) 1.1 Part 2: Datatypes}
+ */
+export const xsd = createNamespace("http://www.w3.org/2001/XMLSchema#", [
+
+	"boolean",
+
+	"byte",
+	"short",
+	"int",
+	"long",
+	"float",
+	"double",
+	"integer",
+	"decimal",
+
+	"unsignedLong",
+	"unsignedInt",
+	"unsignedShort",
+	"unsignedByte",
+
+	"positiveInteger",
+	"negativeInteger",
+	"nonPositiveInteger",
+	"nonNegativeInteger",
+
+	"string",
+	"anyURI",
+
+	"gYear",
+	"gYearMonth",
+	"gMonth",
+	"gMonthDay",
+	"gDay",
+	"date",
+	"time",
+	"dateTime",
+	"dateTimeStamp",
+	"duration",
+	"yearMonthDuration",
+	"dayTimeDuration",
+
+	"hexBinary",
+	"base64Binary"
+
+]);
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -573,11 +644,11 @@ export function createNamespace<const T extends readonly string[]>(namespace: st
 
 	return Object.freeze(new Proxy(dictionary, {
 
-		get(target, property) {
-			return !isString(property) ? undefined
-				: property in target ? target[property]
-					: terms && terms.length > 0 ? error(new RangeError(`unknown term <${property}> in closed namespace <${ns}>`))
-						: asIRI(ns+property, "absolute");
+		get(target, key) {
+			return !isString(key) ? undefined
+				: key in target ? target[key]
+					: terms && terms.length > 0 ? error(new RangeError(`unknown term <${key}> in namespace <${ns}>`))
+						: asIRI(ns+key, "absolute");
 		}
 
 	})) as Namespace<T>;
