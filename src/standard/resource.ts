@@ -115,18 +115,6 @@
  * ex["anything"];     // IRI: "http://example.org/anything"
  * ```
  *
- * **Standard Namespaces**
- *
- * ```typescript
- * import { xsd } from "@metreeca/core/resource";
- *
- * // Predefined closed namespace for well-known XSD datatypes
- *
- * xsd[""];            // IRI: "http://www.w3.org/2001/XMLSchema#"
- * xsd.string;         // IRI: "http://www.w3.org/2001/XMLSchema#string"
- * xsd.dateTime;       // IRI: "http://www.w3.org/2001/XMLSchema#dateTime"
- * ```
- *
  * @module
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc3987.html RFC 3987 - Internationalized Resource Identifiers (IRIs)}
@@ -151,65 +139,6 @@ const ExcludedPattern = /[\x00-\x1F\x7F-\x9F\s<>"{}|\\^`]/;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * XSD datatype namespace.
- *
- * A closed {@link Namespace} of well-known XML Schema datatype IRIs, covering `boolean`, the complete numeric
- * family, `string`, `anyURI`, the complete date/time family, and the binary datatypes.
- *
- * > [!NOTE]
- * > String-derived and qualified-name datatypes are not included: they carry XML-document semantics
- * > (whitespace facets, namespace-scoped resolution) of little use as standalone datatype identifiers.
- *
- * @see {@link https://www.w3.org/TR/xmlschema11-2/ W3C XML Schema Definition Language (XSD) 1.1 Part 2: Datatypes}
- */
-export const xsd = createNamespace("http://www.w3.org/2001/XMLSchema#", [
-
-	"boolean",
-
-	"byte",
-	"short",
-	"int",
-	"long",
-	"float",
-	"double",
-	"integer",
-	"decimal",
-
-	"unsignedLong",
-	"unsignedInt",
-	"unsignedShort",
-	"unsignedByte",
-
-	"positiveInteger",
-	"negativeInteger",
-	"nonPositiveInteger",
-	"nonNegativeInteger",
-
-	"string",
-	"anyURI",
-
-	"gYear",
-	"gYearMonth",
-	"gMonth",
-	"gMonthDay",
-	"gDay",
-	"date",
-	"time",
-	"dateTime",
-	"dateTimeStamp",
-	"duration",
-	"yearMonthDuration",
-	"dayTimeDuration",
-
-	"hexBinary",
-	"base64Binary"
-
-]);
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
  * Internationalized Resource Identifier (IRI) as defined by RFC 3987.
  *
  * An IRI is a sequence of characters that identifies an abstract or physical resource.
@@ -226,7 +155,6 @@ export const xsd = createNamespace("http://www.w3.org/2001/XMLSchema#", [
  */
 export type IRI =
 	| string
-
 
 /**
  * Identifier variant per RFC 3986 §§ 4.2-4.3.
@@ -260,7 +188,6 @@ export type Variant =
 	| "absolute"
 	| "internal"
 	| "relative"
-
 
 /**
  * Object type for accessing IRIs within a common namespace.

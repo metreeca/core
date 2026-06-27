@@ -30,6 +30,7 @@ npm install @metreeca/core
 | [@metreeca/core/async][async]       | Asynchronous coordination primitives     |
 | **Web Standards**                   |                                          |
 | [@metreeca/core/resource][resource] | RFC 3987 resource identifiers            |
+| [@metreeca/core/datatype][datatype] | XSD 1.1 datatype identifiers             |
 | [@metreeca/core/language][language] | BCP 47 tags and RFC 4647 basic ranges    |
 | [@metreeca/core/problem][problem]   | RFC 9457 problem details for HTTP APIs   |
 | [@metreeca/core/base64][base64]     | RFC 4648 URL-safe base64 codec           |
@@ -49,6 +50,8 @@ npm install @metreeca/core
 [async]: https://metreeca.github.io/core/modules/async.html
 
 [resource]: https://metreeca.github.io/core/modules/resource.html
+
+[datatype]: https://metreeca.github.io/core/modules/datatype.html
 
 [language]: https://metreeca.github.io/core/modules/language.html
 

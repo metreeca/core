@@ -9,8 +9,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- `xsd` predefined closed namespace exposing well-known XML Schema datatype IRIs, exported from
-  `@metreeca/core/resource`
+- `xsd` predefined closed namespace exposing well-known XML Schema 1.1 datatype IRIs, exported from the new
+  `@metreeca/core/datatype` module
+- `isNumeric`, `isTemporal`, and `isBinary` predicates for classifying XSD datatype IRIs, exported from
+  `@metreeca/core/datatype`
 
 ## [0.9.19](https://github.com/metreeca/core/compare/v0.9.18...v0.9.19) - 2026-06-20
 

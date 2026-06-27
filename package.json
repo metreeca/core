@@ -29,6 +29,7 @@
     "./report": "./dist/common/report.js",
     "./scope": "./dist/common/scope.js",
     "./resource": "./dist/standard/resource.js",
+    "./datatype": "./dist/standard/datatype.js",
     "./problem": "./dist/standard/problem.js",
     "./language": "./dist/standard/language.js",
     "./base64": "./dist/standard/base64.js",
