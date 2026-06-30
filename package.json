@@ -34,6 +34,7 @@
     "./language": "./dist/standard/language.js",
     "./base64": "./dist/standard/base64.js",
     "./async": "./dist/common/async/index.js",
+    "./combo": "./dist/functional/combo.js",
     "./order": "./dist/functional/order.js",
     "./relay": "./dist/functional/relay.js",
     "./state": "./dist/functional/state.js"

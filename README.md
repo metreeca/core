@@ -35,6 +35,7 @@ npm install @metreeca/core
 | [@metreeca/core/problem][problem]   | RFC 9457 problem details for HTTP APIs   |
 | [@metreeca/core/base64][base64]     | RFC 4648 URL-safe base64 codec           |
 | **Functional Patterns**             |                                          |
+| [@metreeca/core/combo][combo]       | General-purpose functional combinators   |
 | [@metreeca/core/order][order]       | Composable comparison functions          |
 | [@metreeca/core/relay][relay]       | Type-safe relay for discriminated unions |
 | [@metreeca/core/state][state]       | Type-safe immutable state management     |
@@ -58,6 +59,8 @@ npm install @metreeca/core
 [problem]: https://metreeca.github.io/core/modules/problem.html
 
 [base64]: https://metreeca.github.io/core/modules/base64.html
+
+[combo]: https://metreeca.github.io/core/modules/combo.html
 
 [order]: https://metreeca.github.io/core/modules/order.html
 
