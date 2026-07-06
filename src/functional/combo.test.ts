@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { map } from "./combo.js";
+import { fold, map } from "./combo.js";
 
 
 describe("map()", () => {
@@ -35,6 +35,39 @@ describe("map()", () => {
 
 	it("should propagate errors thrown by the mapper", async () => {
 		expect(() => map(0, () => { throw new Error("boom"); })).toThrow("boom");
+	});
+
+});
+
+describe("fold()", () => {
+
+	it("should apply some to the value when defined", async () => {
+		expect(fold(2, n => n * 3, () => 0)).toBe(6);
+	});
+
+	it("should pass the value as the some argument", async () => {
+		const record = { id: 42 };
+		expect(fold(record, ({ id }) => id, () => 0)).toBe(42);
+	});
+
+	it("should support folding to a different type", async () => {
+		expect(fold(42, n => `#${n}`, () => "none")).toBe("#42");
+	});
+
+	it("should evaluate the none thunk when the value is undefined", async () => {
+		expect(fold(undefined as undefined | number, n => n * 3, () => -1)).toBe(-1);
+	});
+
+	it("should return the none value when it is not a function", async () => {
+		expect(fold(undefined as undefined | number, n => n * 3, -1)).toBe(-1);
+	});
+
+	it("should not evaluate none when the value is defined", async () => {
+		expect(fold(2, n => n * 3, () => { throw new Error("boom"); })).toBe(6);
+	});
+
+	it("should propagate errors thrown by some", async () => {
+		expect(() => fold(0, () => { throw new Error("boom"); }, () => 0)).toThrow("boom");
 	});
 
 });

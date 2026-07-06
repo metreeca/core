@@ -11,6 +11,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - `map` function for threading a value through a transformation as a single inline expression, exported from the new
   `@metreeca/core/combo` module
+- `fold` function for mapping an optional value with a fallback for the undefined case, exported from
+  `@metreeca/core/combo`
 - `xsd` predefined closed namespace exposing well-known XML Schema 1.1 datatype IRIs, exported from the new
   `@metreeca/core/datatype` module
 - `isNumeric`, `isTemporal`, and `isBinary` predicates for classifying XSD datatype IRIs, exported from
