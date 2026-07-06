@@ -13,6 +13,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `@metreeca/core/combo` module
 - `fold` function for mapping an optional value with a fallback for the undefined case, exported from
   `@metreeca/core/combo`
+- `list` function for normalising an optional or single-or-many value into an array, exported from
+  `@metreeca/core/combo`
+- `Some<T>` type modelling a value that may be absent, singular, or plural, exported from `@metreeca/core/combo`
 - `xsd` predefined closed namespace exposing well-known XML Schema 1.1 datatype IRIs, exported from the new
   `@metreeca/core/datatype` module
 - `isNumeric`, `isTemporal`, and `isBinary` predicates for classifying XSD datatype IRIs, exported from

@@ -15,8 +15,28 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { fold, map } from "./combo.js";
+import { fold, list, map } from "./combo.js";
 
+
+describe("list()", () => {
+
+	it("should return an empty array when the value is undefined", async () => {
+		expect(list(undefined)).toEqual([]);
+	});
+
+	it("should wrap a single value in an array", async () => {
+		expect(list(42)).toEqual([42]);
+	});
+
+	it("should return the array unchanged for an array value", async () => {
+		expect(list([1, 2, 3])).toEqual([1, 2, 3]);
+	});
+
+	it("should return an empty array for an empty array value", async () => {
+		expect(list([])).toEqual([]);
+	});
+
+});
 
 describe("map()", () => {
 

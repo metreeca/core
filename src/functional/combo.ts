@@ -18,8 +18,18 @@
  * General-purpose functional combinators.
  *
  * Provides composable combinators for writing logic in a clean functional
- * style. Each threads a value through a transformation as a single expression,
- * avoiding intermediate variables and statement blocks.
+ * style, letting a value be reshaped inline as a single expression, avoiding
+ * intermediate variables and statement blocks.
+ *
+ * **Normalising a Value to an Array**
+ *
+ * Coerce an optional or single-or-many value into an array for uniform iteration:
+ *
+ * ```typescript
+ * import { list } from '@metreeca/core/combo';
+ *
+ * const tags = list(input); // undefined -> [], "x" -> ["x"], ["x", "y"] -> ["x", "y"]
+ * ```
  *
  * **Transforming a Value**
  *
@@ -46,6 +56,36 @@
 
 import { isFunction } from "../index.js";
 
+
+/**
+ * Zero, one, or many values of type `T`.
+ *
+ * Models a value that may be absent (`undefined`), singular (a bare `T`), or plural (a `T[]`), letting an API accept
+ * flexible input that {@link list} normalises into an array.
+ *
+ * @typeParam T The type of the contained values
+ */
+export type Some<T> = undefined | T | readonly T[];
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Normalises a {@link Some} value into an array.
+ *
+ * Coerces an optional or single-or-many value into a uniform array, so callers accepting flexible input can iterate
+ * over the result without branching on its shape.
+ *
+ * @typeParam T The type of the contained values
+ *
+ * @param values The value to normalise: `undefined`, a single `T`, or an array of `T`
+ *
+ * @returns An array holding the given values: empty if `values` is `undefined`, a single-element array if `values` is a
+ *     bare `T`, or `values` itself if it is already an array
+ */
+export function list<T>(values: Some<T>): readonly T[] {
+	return values === undefined ? [] : Array.isArray(values) ? values : [values as T];
+}
 
 /**
  * Applies a transformation to a value.
