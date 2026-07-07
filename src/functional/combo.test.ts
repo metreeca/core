@@ -15,7 +15,8 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { fold, list, map } from "./combo.js";
+import { equals } from "../common/deep.js";
+import { fold, list, map, unique } from "./combo.js";
 
 
 describe("list()", () => {
@@ -88,6 +89,90 @@ describe("fold()", () => {
 
 	it("should propagate errors thrown by some", async () => {
 		expect(() => fold(0, () => { throw new Error("boom"); }, () => 0)).toThrow("boom");
+	});
+
+});
+
+describe("unique()", () => {
+
+	it("should return an empty array as-is", async () => {
+
+		expect(unique([])).toEqual([]);
+
+	});
+
+	it("should return a new array", async () => {
+
+		const values = [1, 2, 3];
+
+		expect(unique(values)).not.toBe(values);
+
+	});
+
+	it("should keep unique primitives unchanged", async () => {
+
+		expect(unique([1, 2, 3])).toEqual([1, 2, 3]);
+		expect(unique(["x", "y", "z"])).toEqual(["x", "y", "z"]);
+
+	});
+
+	it("should remove duplicate primitives keeping the first occurrence", async () => {
+
+		expect(unique([1, 1, 2, 3, 3, 3])).toEqual([1, 2, 3]);
+		expect(unique([3, 1, 2, 1, 3])).toEqual([3, 1, 2]);
+		expect(unique(["a", "b", "a", "c", "b"])).toEqual(["a", "b", "c"]);
+
+	});
+
+	describe("default equality", () => {
+
+		it("should use Object.is by default", async () => {
+
+			expect(unique([NaN, NaN])).toEqual([NaN]);
+			expect(unique([-0, +0])).toEqual([-0, +0]);
+
+		});
+
+		it("should compare objects by reference", async () => {
+
+			const uno = { x: 1 };
+			const due = { x: 1 };
+
+			expect(unique([uno, due])).toEqual([uno, due]);
+			expect(unique([uno, uno, due])).toEqual([uno, due]);
+
+		});
+
+	});
+
+	describe("custom equality", () => {
+
+		it("should deduplicate using a custom equality function", async () => {
+
+			const looseEqual = (x: unknown, y: unknown) => x == y;
+
+			expect(unique([1, "1", 2], looseEqual)).toEqual([1, 2]);
+
+		});
+
+		it("should deduplicate objects by structural equality", async () => {
+
+			const uno = { x: 1 };
+			const due = { x: 1 };
+			const tre = { x: 2 };
+
+			expect(unique([uno, due, tre], (x, y) => equals(x, y))).toEqual([uno, tre]);
+
+		});
+
+		it("should deduplicate strings case-insensitively", async () => {
+
+			const caseInsensitive = (x: string, y: string) => x.toLowerCase() === y.toLowerCase();
+
+			expect(unique(["Hello", "hello", "HELLO", "world"], caseInsensitive)).toEqual(["Hello", "world"]);
+
+		});
+
 	});
 
 });

@@ -181,7 +181,7 @@ export interface Relay<O extends Options> {
 /**
  * Relay options.
  *
- * Defines available options as an object type where each property key names a distinct option
+ * Defines available options as an object type where each property key names a unique option
  * and its type specifies the associated value.
  */
 export type Options = {

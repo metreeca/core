@@ -32,7 +32,7 @@
  *
  * scope.resolve(node); // 0 (fresh id bound to node)
  * scope.resolve(node); // 0 (cached hit on the same reference)
- * scope.resolve({});   // 1 (distinct reference, fresh id)
+ * scope.resolve({});   // 1 (unique reference, fresh id)
  * scope.resolve();     // 2 (anonymous, always fresh)
  * ```
  *
@@ -62,7 +62,7 @@ import { immutable } from "./deep.js";
  * counter, so every id is unique within the scope.
  *
  * > [!IMPORTANT]
- * > Keys match by reference, not structure: two equal-looking object literals are distinct keys.
+ * > Keys match by reference, not structure: two equal-looking object literals are unique keys.
  * > This is what keeps values consistent across **multi-pass** operations: every pass that revisits
  * > the same node resolves to the same value. Callers wanting coordinated values must thread the one
  * > node object through every pass, never rebuild an equal-looking key.
@@ -90,7 +90,7 @@ export type Scope<T = number> = {
  * Creates a new {@link Scope}.
  *
  * Ids start at `0` and increment monotonically, so all ids the scope hands out are pairwise
- * distinct.
+ * unique.
  *
  * @returns A fresh, immutable scope handing out numeric ids
  */
@@ -100,7 +100,7 @@ export function createScope(): Scope;
  * Creates a new {@link Scope} with mapped values.
  *
  * Ids start at `0` and increment monotonically, so all ids the scope hands out are pairwise
- * distinct; each is passed through `mapper` to produce the value returned. `mapper` runs once per id
+ * unique; each is passed through `mapper` to produce the value returned. `mapper` runs once per id
  * and its result is cached, so a repeat keyed lookup returns the same value (the same reference when
  * `mapper` produces objects) without re-invoking it.
  *

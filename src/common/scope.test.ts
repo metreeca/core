@@ -47,7 +47,7 @@ describe("createScope()", () => {
 			expect(scope.resolve(key)).toBe(scope.resolve(key));
 		});
 
-		it("should allocate distinct ids for distinct keys", async () => {
+		it("should allocate unique ids for unique keys", async () => {
 			const scope = createScope();
 			expect([scope.resolve({}), scope.resolve({})]).toEqual([0, 1]);
 		});

@@ -51,6 +51,16 @@
  * const label = fold(user, ({ first, last }) => `${first} ${last}`.trim(), () => "anonymous");
  * ```
  *
+ * **Retaining Unique Values**
+ *
+ * Keep the unique values of an array, dropping later duplicates:
+ *
+ * ```typescript
+ * import { unique } from '@metreeca/core/combo';
+ *
+ * unique([1, 1, 2, 3, 3]); // [1, 2, 3]
+ * ```
+ *
  * @module
  */
 
@@ -122,4 +132,22 @@ export function map<V, R>(value: V, mapper: (value: V) => R): R {
  */
 export function fold<V, R>(value: undefined | V, some: (value: V) => R, none: R | (() => R)): R {
 	return value !== undefined ? some(value) : isFunction(none) ? none() : none;
+}
+
+/**
+ * Retains the unique values of an array.
+ *
+ * Keeps the first occurrence of each value in iteration order, dropping any later value that compares equal to one
+ * already kept according to `equal`, or to `Object.is` by default.
+ *
+ * @typeParam T The type of the array items
+ *
+ * @param values The array to reduce to its unique values
+ * @param equal An optional custom equality function for comparing items; defaults to `Object.is`
+ *
+ * @returns A new array holding the first occurrence of each unique value from `values`, preserving their original
+ *     order
+ */
+export function unique<T>(values: readonly T[], equal: (x: T, y: T) => boolean = Object.is): readonly T[] {
+	return values.filter((value, index) => values.findIndex(other => equal(value, other)) === index);
 }

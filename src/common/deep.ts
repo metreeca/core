@@ -205,8 +205,8 @@ export function equals(x: unknown, y: unknown, equal: (x: unknown, y: unknown) =
 		return xKeys.length !== yKeys.length ? false
 			: xKeys.every(key => key in y && equals(x[key], y[key], equal));
 	}
-}
 
+}
 
 /**
  * Creates an immutable deep clone.
