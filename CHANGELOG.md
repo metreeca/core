@@ -11,8 +11,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - `map` function for threading a value through a transformation as a single inline expression, exported from the new
   `@metreeca/core/combo` module
-- `fold` function for mapping an optional value with a fallback for the undefined case, exported from
-  `@metreeca/core/combo`
+- `fold` function for mapping an optional value with an optional fallback for the undefined case, preserving `undefined`
+  when the fallback is omitted, exported from `@metreeca/core/combo`
 - `list` function for normalising an optional or single-or-many value into an array, exported from
   `@metreeca/core/combo`
 - `unique` function for retaining the unique values of an array with an optional custom equality, exported from

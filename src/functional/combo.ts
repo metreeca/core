@@ -43,7 +43,8 @@
  *
  * **Folding an Optional Value**
  *
- * Collapse the present and absent cases of an optional value into one result:
+ * Collapse the present and absent cases of an optional value into one result, or omit the fallback to map the present
+ * case while preserving `undefined`:
  *
  * ```typescript
  * import { fold } from '@metreeca/core/combo';
@@ -116,6 +117,22 @@ export function map<V, R>(value: V, mapper: (value: V) => R): R {
 }
 
 /**
+ * Maps an optional value, preserving undefined.
+ *
+ * Applies `some` to `value` if defined and returns its result; otherwise returns `undefined`, letting the absent case
+ * propagate unchanged.
+ *
+ * @typeParam V The type of the present value
+ * @typeParam R The type of the folded result
+ *
+ * @param value The optional value to fold
+ * @param some The transformation to apply if `value` is defined
+ *
+ * @returns The result of `some` applied to `value` if defined; otherwise `undefined`
+ */
+export function fold<V, R>(value: undefined | V, some: (value: V) => R): undefined | R;
+
+/**
  * Maps an optional value, falling back if it is undefined.
  *
  * Applies `some` to `value` if defined and returns its result; otherwise falls back to `none`, calling it if it is a
@@ -130,7 +147,9 @@ export function map<V, R>(value: V, mapper: (value: V) => R): R {
  *
  * @returns The result of `some` applied to `value` if defined; otherwise `none`, or its result if `none` is a function
  */
-export function fold<V, R>(value: undefined | V, some: (value: V) => R, none: R | (() => R)): R {
+export function fold<V, R>(value: undefined | V, some: (value: V) => R, none: R | (() => R)): R;
+
+export function fold<V, R>(value: undefined | V, some: (value: V) => R, none?: R | (() => R)): undefined | R {
 	return value !== undefined ? some(value) : isFunction(none) ? none() : none;
 }
 

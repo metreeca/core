@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import { equals } from "../common/deep.js";
 import { fold, list, map, unique } from "./combo.js";
 
@@ -89,6 +89,26 @@ describe("fold()", () => {
 
 	it("should propagate errors thrown by some", async () => {
 		expect(() => fold(0, () => { throw new Error("boom"); }, () => 0)).toThrow("boom");
+	});
+
+	describe("without none", () => {
+
+		it("should apply some to the value when defined", async () => {
+			expect(fold(2, n => n * 3)).toBe(6);
+		});
+
+		it("should return undefined when the value is undefined", async () => {
+			expect(fold(undefined as undefined | number, n => n * 3)).toBeUndefined();
+		});
+
+		it("should propagate errors thrown by some", async () => {
+			expect(() => fold(0, () => { throw new Error("boom"); })).toThrow("boom");
+		});
+
+		it("should widen the result type with undefined", async () => {
+			expectTypeOf(fold(2 as undefined | number, n => n * 3)).toEqualTypeOf<undefined | number>();
+		});
+
 	});
 
 });
