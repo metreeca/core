@@ -46,6 +46,19 @@
  * labels.resolve();     // "?v1"
  * ```
  *
+ * Passing several keys forms a composite: the value is shared only when every component matches by
+ * reference, in the same order.
+ *
+ * ```typescript
+ * const edges = createScope();
+ * const from = {};
+ * const to = {};
+ *
+ * edges.resolve(from, to); // 0 (fresh id bound to the pair)
+ * edges.resolve(from, to); // 0 (cached hit on the same pair)
+ * edges.resolve(to, from); // 1 (order matters)
+ * ```
+ *
  * @module
  */
 
@@ -56,13 +69,13 @@ import { immutable } from "./deep.js";
  * Identity-keyed value allocation scope.
  *
  * Hands out unique sequential ids, each returned as a value of type `T` derived from it and cached
- * against an optional `key` matched by `Map` key equality (`SameValueZero`). A keyed call returns
- * the cached value on a repeat hit (the same reference when `T` is an object); an unkeyed call
- * always allocates a fresh anonymous id. Keyed and anonymous allocations share one monotonic
- * counter, so every id is unique within the scope.
+ * against an optional composite key whose components are matched by reference identity
+ * (`SameValueZero`). A keyed call returns the cached value on a repeat hit (the same reference when
+ * `T` is an object); an unkeyed call always allocates a fresh anonymous id. Keyed and anonymous
+ * allocations share one monotonic counter, so every id is unique within the scope.
  *
  * > [!IMPORTANT]
- * > Keys match by reference, not structure: two equal-looking object literals are unique keys.
+ * > Keys match component-wise by reference, not structure: two equal-looking object literals are unique keys.
  * > This is what keeps values consistent across **multi-pass** operations: every pass that revisits
  * > the same node resolves to the same value. Callers wanting coordinated values must thread the one
  * > node object through every pass, never rebuild an equal-looking key.
@@ -72,14 +85,17 @@ import { immutable } from "./deep.js";
 export type Scope<T = number> = {
 
 	/**
-	 * Resolves the value bound to `key`, allocating it on first lookup.
+	 * Resolves the value bound to the given key, allocating it on first lookup.
 	 *
-	 * @param key Cache key matched by reference identity; omit to allocate a fresh anonymous value
+	 * Several arguments form a composite key: the value is shared only when every component matches by
+	 * reference identity, in the same order. Omitting all arguments allocates a fresh anonymous value.
 	 *
-	 * @returns The value cached for `key`, allocated on first lookup and returned unchanged thereafter;
-	 *          a freshly allocated value when `key` is omitted or not yet bound
+	 * @param keys Key components matched by reference identity; omit to allocate a fresh anonymous value
+	 *
+	 * @returns The value cached for `keys`, allocated on first lookup and returned unchanged thereafter;
+	 *          a freshly allocated value when no components are supplied
 	 */
-	resolve(key?: unknown): T;
+	resolve(...keys: readonly unknown[]): T;
 
 };
 
@@ -124,24 +140,88 @@ export function createScope<T>(mapper?: (index: number) => T): Scope<T> | Scope 
 
 	function create<T>(mapper: (index: number) => T): Scope<T> {
 
-		const cache = new Map<unknown, T>();
+		/**
+		 * Sentinel marking a trie node that no key has yet terminated on, distinguishing
+		 * an unallocated node from one whose allocated value happens to be nullish.
+		 */
+		const unset = Symbol("unset");
 
-		function store(key: unknown): T {
+		/**
+		 * A node in the composite-key trie.
+		 *
+		 * Each node stands for one key prefix: the value handed out when a key terminates at this prefix,
+		 * plus the edges keyed by the next component. Interior nodes carry {@link unset} until a key of
+		 * exactly this length is resolved.
+		 *
+		 * @typeParam T The value handed out per allocation
+		 */
+		type Trie<T> = {
 
-			const value = mapper(cache.size);
+			/**
+			 * The value bound to the key ending at this node, or {@link unset} until one is first resolved.
+			 */
+			value: T | typeof unset;
 
-			cache.set(key, value);
+			/**
+			 * The child nodes reached by appending one further key component, matched by reference identity.
+			 */
+			branches: Map<unknown, Trie<T>>;
 
-			return value;
-		}
+		};
+
+
+		let next = 0; // shared monotonic id source
+
+		const root: Trie<T> = {
+			value: unset,
+			branches: new Map()
+		};
+
 
 		return immutable({
 
-			resolve: (key?: unknown) => key === undefined
-				? store({})
-				: cache.get(key) ?? store(key)
+			resolve(a?: unknown, b?: unknown, c?: unknown): T {
+				return c !== undefined ? value(Array.from(arguments).reduce((trie, key) => branch(trie, key), root))
+					: b !== undefined ? value(branch(branch(root, a), b))
+						: a !== undefined ? value(branch(root, a))
+							: mint();
+			}
 
 		});
+
+
+		function mint(): T {
+			return mapper(next++);
+		}
+
+
+		function value(trie: Trie<T>): T {
+			return trie.value === unset
+				? (trie.value = mint()) // allocate on first lookup
+				: trie.value;
+		}
+
+		function branch(trie: Trie<T>, key: unknown): Trie<T> {
+
+			const branch = trie.branches.get(key);
+
+			if ( branch ) {
+
+				return branch;
+
+			} else {
+
+				const branch: Trie<T> = {
+					value: unset,
+					branches: new Map()
+				};
+
+				trie.branches.set(key, branch);
+
+				return branch;
+
+			}
+		}
 
 	}
 

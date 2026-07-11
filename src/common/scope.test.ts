@@ -72,12 +72,84 @@ describe("createScope()", () => {
 	});
 
 
+	describe("composite allocation", () => {
+
+		it("should return the cached id on a repeat composite hit", async () => {
+			const scope = createScope();
+			const a = {};
+			const b = {};
+			expect(scope.resolve(a, b)).toBe(scope.resolve(a, b));
+		});
+
+		it("should match composite keys component-wise by reference", async () => {
+			const scope = createScope();
+			const a = {};
+			expect(scope.resolve(a, {})).not.toBe(scope.resolve(a, {}));
+		});
+
+		it("should distinguish composite keys by component order", async () => {
+			const scope = createScope();
+			const a = {};
+			const b = {};
+			expect(scope.resolve(a, b)).not.toBe(scope.resolve(b, a));
+		});
+
+		it("should distinguish composite keys differing in any component", async () => {
+			const scope = createScope();
+			const a = {};
+			const b = {};
+			const c = {};
+			expect([scope.resolve(a, b), scope.resolve(a, c), scope.resolve(c, b)]).toEqual([0, 1, 2]);
+		});
+
+		it("should not collide a single key with a composite sharing its first component", async () => {
+			const scope = createScope();
+			const a = {};
+			const b = {};
+			expect(scope.resolve(a)).not.toBe(scope.resolve(a, b));
+		});
+
+		it("should distinguish a composite from a longer composite extending it", async () => {
+			const scope = createScope();
+			const a = {};
+			const b = {};
+			const c = {};
+			expect(scope.resolve(a, b)).not.toBe(scope.resolve(a, b, c));
+		});
+
+		it("should cache composite keys of arbitrary length", async () => {
+			const scope = createScope();
+			const a = {};
+			const b = {};
+			const c = {};
+			const d = {};
+			expect(scope.resolve(a, b, c, d)).toBe(scope.resolve(a, b, c, d));
+		});
+
+		it("should cache the first allocated composite id even when it is 0", async () => {
+			const scope = createScope();
+			const a = {};
+			const b = {};
+			scope.resolve(a, b); // allocates id 0
+			expect(scope.resolve(a, b)).toBe(0);
+		});
+
+	});
+
+
 	describe("shared counter", () => {
 
 		it("should draw keyed and anonymous ids from one monotonic sequence", async () => {
 			const scope = createScope();
 			const key = {};
 			expect([scope.resolve(key), scope.resolve(), scope.resolve(key), scope.resolve()]).toEqual([0, 1, 0, 2]);
+		});
+
+		it("should draw single, composite, and anonymous ids from one monotonic sequence", async () => {
+			const scope = createScope();
+			const a = {};
+			const b = {};
+			expect([scope.resolve(a), scope.resolve(a, b), scope.resolve(), scope.resolve(a, b)]).toEqual([0, 1, 2, 1]);
 		});
 
 	});

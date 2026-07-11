@@ -23,6 +23,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `isNumeric`, `isTemporal`, and `isBinary` predicates for classifying XSD datatype IRIs, exported from
   `@metreeca/core/datatype`
 
+### Changed
+
+- `Scope.resolve` now accepts several keys forming a composite, sharing a value only when every component matches by
+  reference identity in the same order; single-key and anonymous allocation are unchanged
+  (`@metreeca/core/scope`)
+
 ## [0.9.19](https://github.com/metreeca/core/compare/v0.9.18...v0.9.19) - 2026-06-20
 
 ### Added
