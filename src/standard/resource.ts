@@ -17,8 +17,8 @@
 /**
  * RFC 3987 resource identifiers.
  *
- * Provides types and functions for resource identifiers (IRIs), namespace factories,
- * and reference resolution.
+ * Provides types and functions for resource identifiers (IRIs), namespace factories, reference resolution,
+ * and the predefined {@link app} namespace for application-local resources.
  *
  * **Type Guards**
  *
@@ -93,7 +93,7 @@
  * **Namespace Objects**
  *
  * ```typescript
- * import { createNamespace } from "@metreeca/core/resource";
+ * import { app, createNamespace } from "@metreeca/core/resource";
  *
  * // Closed namespace with predefined terms
  *
@@ -113,6 +113,11 @@
  *
  * ex[""];             // IRI: "http://example.org/"
  * ex["anything"];     // IRI: "http://example.org/anything"
+ *
+ * // Predefined open namespace for application-local resources
+ *
+ * app[""];            // IRI: "app:/#"
+ * app.label;          // IRI: "app:/#label"
  * ```
  *
  * @module
@@ -134,6 +139,33 @@ const SchemePattern = /^[a-z][a-z0-9+.-]*:/i;
  * Excluded characters per RFC 3987 § 2.2: control chars, whitespace, special chars
  */
 const ExcludedPattern = /[\x00-\x1F\x7F-\x9F\s<>"{}|\\^`]/;
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Application namespace.
+ *
+ * An open {@link Namespace} rooted at the synthetic `app:/` origin, minting absolute IRIs for resources that are local
+ * to a single application and have no deployment origin of their own. Terms are appended to the fragment component,
+ * so generated IRIs are `"hierarchical"` identifiers sharing the `app:/` base.
+ *
+ * Lacking an authority component, `app:` IRIs are assigned an opaque origin: {@link internalize} and {@link
+ * relativize} match them by scheme and report same-scheme references as root-relative paths, rather than as the
+ * path-relative references origin-backed schemes such as `http:` would yield.
+ *
+ * @example
+ *
+ * ```typescript
+ * app[""];                              // IRI: "app:/#"
+ * app.label;                            // IRI: "app:/#label"
+ *
+ * base(app.label);                      // "app:/"
+ * resolve(app[""], "x/y");              // "app:/x/y"
+ * relativize("app:/a/b", "app:/a/c");   // "/a/c" (root-relative, not "c")
+ * ```
+ */
+export const app = createNamespace("app:/#");
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

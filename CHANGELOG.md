@@ -18,6 +18,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `unique` function for retaining the unique values of an array with an optional custom equality, exported from
   `@metreeca/core/combo`
 - `Some<T>` type modelling a value that may be absent, singular, or plural, exported from `@metreeca/core/combo`
+- `app` predefined open namespace rooted at the synthetic `app:/` origin, minting IRIs for application-local resources
+  with no deployment origin of their own, exported from `@metreeca/core/resource`
 - `xsd` predefined closed namespace exposing well-known XML Schema 1.1 datatype IRIs, exported from the new
   `@metreeca/core/datatype` module
 - `isNumeric`, `isTemporal`, and `isBinary` predicates for classifying XSD datatype IRIs, exported from
