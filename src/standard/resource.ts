@@ -17,8 +17,9 @@
 /**
  * RFC 3987 resource identifiers.
  *
- * Provides types and functions for resource identifiers (IRIs), namespace factories, reference resolution,
- * and the predefined {@link app} namespace for application-local resources.
+ * Provides types and functions for validating resource identifiers (IRIs), checking nesting relationships, resolving
+ * and rewriting references, creating and inspecting namespace objects, and minting IRIs for application-local
+ * resources through the predefined {@link app} namespace.
  *
  * **Type Guards**
  *
@@ -57,17 +58,17 @@
  * **Nesting Checks**
  *
  * ```typescript
- * import { nests, asIRI } from "@metreeca/core/resource";
+ * import { asIRI, isNestedIRI } from "@metreeca/core/resource";
  *
- * nests("http://example.com/a/", "http://example.com/a/b");   // true
- * nests("http://example.com/a/", "http://example.com/a/");    // true (self-nesting)
- * nests("http://example.com/a/", "http://example.com/x/y");   // false
+ * isNestedIRI("http://example.com/a/", "http://example.com/a/b");   // true
+ * isNestedIRI("http://example.com/a/", "http://example.com/a/");    // true (self-nesting)
+ * isNestedIRI("http://example.com/a/", "http://example.com/x/y");   // false
  * ```
  *
  * **Reference Operations**
  *
  * ```typescript
- * import { base, resolve, relativize, internalize, asIRI } from "@metreeca/core/resource";
+ * import { asIRI, getIRIBase, internalize, relativize, resolve } from "@metreeca/core/resource";
  *
  * const iri = asIRI("http://example.com/a/b/c", "absolute");
  *
@@ -86,14 +87,14 @@
  *
  * // Extract the base identifier usable for reference resolution
  *
- * base(iri);                                                      // "http://example.com/"
- * base(asIRI("/a/b", "internal"));                                // undefined
+ * getIRIBase(iri);                                                // "http://example.com/"
+ * getIRIBase(asIRI("/a/b", "internal"));                          // undefined
  * ```
  *
  * **Namespace Objects**
  *
  * ```typescript
- * import { app, createNamespace } from "@metreeca/core/resource";
+ * import { app, createNamespace, getNamespaceBase, getNamespaceIRI } from "@metreeca/core/resource";
  *
  * // Closed namespace with predefined terms
  *
@@ -106,6 +107,11 @@
  * rdfs.label;         // IRI: "http://www.w3.org/2000/01/rdf-schema#label"
  * rdfs["comment"];    // IRI: "http://www.w3.org/2000/01/rdf-schema#comment"
  * rdfs["seeAlso"];    // throws RangeError: unknown term
+ *
+ * // Namespace accessors
+ *
+ * getNamespaceIRI(rdfs);   // IRI: "http://www.w3.org/2000/01/rdf-schema#"
+ * getNamespaceBase(rdfs);  // IRI: "http://www.w3.org/"
  *
  * // Open namespace for dynamic terms
  *
@@ -160,7 +166,7 @@ const ExcludedPattern = /[\x00-\x1F\x7F-\x9F\s<>"{}|\\^`]/;
  * app[""];                              // IRI: "app:/#"
  * app.label;                            // IRI: "app:/#label"
  *
- * base(app.label);                      // "app:/"
+ * getIRIBase(app.label);                // "app:/"
  * resolve(app[""], "x/y");              // "app:/x/y"
  * relativize("app:/a/b", "app:/a/c");   // "/a/c" (root-relative, not "c")
  * ```
@@ -230,6 +236,8 @@ export type Variant =
  * @typeParam T Predefined term names for closed namespace access
  *
  * @see {@link createNamespace} for creating namespace objects
+ * @see {@link getNamespaceIRI} for retrieving the namespace IRI
+ * @see {@link getNamespaceBase} for retrieving the base identifier of the namespace IRI
  */
 export type Namespace<T extends readonly string[] = []> =
 	T extends readonly [] ? {
@@ -317,24 +325,24 @@ export function asIRI(value: string, variant: Variant = "relative"): IRI {
 /**
  * Checks if a parent identifier nests a child identifier.
  *
- * Returns `true` if `child`'s path is equal to or extends `parent`'s path at a segment boundary,
- * meaning `parent` is a path prefix of `child` when compared segment by segment.
+ * Nesting holds if the path of `child` is equal to or extends the path of `parent` at a segment boundary, that is if
+ * `parent` is a path prefix of `child` when compared segment by segment: a parent always nests itself
+ * (`isNestedIRI(x, x)` is true), while segment-boundary matching prevents false positives (`/a/b` doesn't nest
+ * `/a/bc`).
  *
- * Both identifiers must be absolute hierarchical (scheme + root-relative path); returns `false` for
- * opaque, internal, or relative references. Query strings and fragments are ignored — only the path
- * component is compared.
- *
- * A parent always nests itself (`nests(x, x)` is `true`).
- * Segment-boundary matching prevents false positives (e.g., `/a/b` does not nest `/a/bc`).
+ * Nesting is defined only for absolute hierarchical identifiers, that is a scheme followed by a root-relative path;
+ * opaque, internal, and relative references are reported as not nesting. Query strings and fragments are ignored:
+ * only the path component is compared.
  *
  * @param parent The potential parent identifier
  * @param child The potential child identifier
  *
- * @returns `true` if `parent` nests `child`; `false` otherwise
+ * @returns true if `parent` and `child` are both valid `"hierarchical"` identifiers sharing the same origin and
+ *   `parent` nests `child`; false otherwise
  *
- * @throws RangeError If either argument is not a valid identifier
+ * @see {@link Variant}
  */
-export function nests(parent: string | IRI, child: string | IRI): boolean {
+export function isNestedIRI(parent: string | IRI, child: string | IRI): boolean {
 
 	const normalizedParent = normalize(parent, "hierarchical");
 	const normalizedChild = normalize(child, "hierarchical");
@@ -386,9 +394,11 @@ export function nests(parent: string | IRI, child: string | IRI): boolean {
  * @returns The base as a hierarchical identifier terminated by a trailing slash, or `undefined` if `iri` is not
  *   a valid hierarchical identifier (opaque URIs, internal paths, or relative references)
  *
+ * @see {@link resolve} for resolving references against a base identifier
+ * @see {@link getNamespaceBase} for extracting the base identifier of a {@link Namespace}
  * @see {@link https://www.rfc-editor.org/rfc/rfc6454#section-4 RFC 6454 § 4 - Origin of a URI}
  */
-export function base(iri: string | IRI): undefined | IRI {
+export function getIRIBase(iri: string | IRI): undefined | IRI {
 
 	const normalized = normalize(iri, "hierarchical");
 
@@ -404,6 +414,7 @@ export function base(iri: string | IRI): undefined | IRI {
 
 	}
 }
+
 
 /**
  * Resolves a reference against a base identifier.
@@ -591,6 +602,9 @@ export function relativize(base: string | IRI, reference: string | IRI): IRI {
  * > Accessing an unknown term on a closed namespace throws a `RangeError` at runtime,
  * > even though TypeScript's type system may not flag the access at compile time (e.g., when using
  * > bracket notation with a dynamic key).
+ *
+ * @see {@link getNamespaceIRI} for retrieving the namespace IRI
+ * @see {@link getNamespaceBase} for retrieving the base identifier of the namespace IRI
  */
 export function createNamespace<const T extends readonly string[]>(namespace: string | IRI, terms?: T): Namespace<T> {
 
@@ -612,6 +626,59 @@ export function createNamespace<const T extends readonly string[]>(namespace: st
 
 	})) as Namespace<T>;
 
+}
+
+
+/**
+ * Retrieves the IRI of a namespace.
+ *
+ * Reports the absolute IRI the namespace was created with, that is the IRI term names are appended to, providing a
+ * named alternative to the empty string key (`namespace[""]`).
+ *
+ * @param namespace The namespace to retrieve the IRI from
+ *
+ * @returns The absolute IRI of `namespace`
+ *
+ * @example
+ *
+ * ```typescript
+ * getNamespaceIRI(app);                              // "app:/#"
+ * getNamespaceIRI(createNamespace("urn:example:"));  // "urn:example:"
+ * ```
+ *
+ * @see {@link Namespace}
+ * @see {@link createNamespace}
+ * @see {@link getNamespaceBase}
+ */
+export function getNamespaceIRI(namespace: Namespace): IRI {
+	return namespace[""];
+}
+
+/**
+ * Retrieves the base identifier of a namespace.
+ *
+ * Extracts the scheme and authority components of the namespace IRI, as reported by {@link getIRIBase}, providing an
+ * identifier suitable for resolving references against the IRIs minted by the namespace.
+ *
+ * @param namespace The namespace to retrieve the base identifier from
+ *
+ * @returns The base identifier of the IRI of `namespace`, terminated by a trailing slash, or `undefined` if the
+ *   namespace IRI is opaque, that is not a hierarchical identifier (for example, `urn:example:`)
+ *
+ * @example
+ *
+ * ```typescript
+ * getNamespaceBase(app);                              // "app:/"
+ * getNamespaceBase(createNamespace("urn:example:"));  // undefined
+ * ```
+ *
+ * @see {@link Namespace}
+ * @see {@link createNamespace}
+ * @see {@link getNamespaceIRI}
+ * @see {@link getIRIBase}
+ */
+export function getNamespaceBase(namespace: Namespace): undefined | IRI {
+	return getIRIBase(namespace[""]);
 }
 
 
