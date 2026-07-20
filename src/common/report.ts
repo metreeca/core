@@ -17,8 +17,8 @@
 /**
  * Execution reporting and error handling.
  *
- * Provides utilities for error handling, message formatting, and execution timing
- * to support error reporting and performance analysis.
+ * Provides utilities for value assertion, error throwing, execution timing and message formatting, supporting error
+ * reporting and performance analysis.
  *
  * **Type Guard Assertion**
  *
@@ -46,20 +46,6 @@
  *   : error(new ValidationError("Invalid input"));
  * ```
  *
- * **Message Formatting**
- *
- * Extract readable messages from various value types:
- *
- * ```typescript
- * import { message } from '@metreeca/core/report';
- *
- * console.error(`Failed with: ${message(errorValue)}`);
- *
- * // Error objects -> message property
- * // Numbers -> locale-formatted strings
- * // Other values -> string representation
- * ```
- *
  * **Execution Timing**
  *
  * Monitor timing for synchronous and asynchronous operations:
@@ -78,17 +64,75 @@
  * );
  * ```
  *
+ * **Message Formatting**
+ *
+ * Extract readable messages from various value types:
+ *
+ * ```typescript
+ * import { message } from '@metreeca/core/report';
+ *
+ * console.error(`Failed with: ${message(errorValue)}`);
+ *
+ * // Numbers -> locale-formatted strings
+ * // Strings -> quoted and escaped string literals
+ * // Error objects -> message property
+ * // Other values -> string representation
+ * ```
+ *
+ * Strings are reported as JSON string literals, so leading and trailing whitespace is delimited by the surrounding
+ * quotes and characters with no visible glyph surface as escapes rather than silently corrupting the report:
+ *
+ * ```typescript
+ * message("plain");            // "plain" (quotes included)
+ * message("line\nbreak");      // "line\nbreak" (the break is escaped)
+ *
+ * const separator=String.fromCodePoint(0x00A0);
+ *
+ * message(`a${separator}b`);   // the invisible separator is reported as an escape
+ * ```
+ *
+ * Zero width joiners are reported as is, so composed emoji stay legible.
+ *
+ * An optional length clips long string content, counting code points and reserving the last one for an ellipsis:
+ *
+ * ```typescript
+ * message("a very long value", 8);   // "a very …"
+ * ```
+ *
  * @module
  */
 
 import { type Guard, isError, isNumber, isString } from "../index.js";
 
+/**
+ * Matches characters with no visible glyph.
+ *
+ * Covers control characters (`Cc`), line and paragraph separators (`Zl`, `Zp`), every format character (`Cf`) other
+ * than the zero width joiner, which is left as is to keep composed emoji intact, and every space separator (`Zs`)
+ * other than the plain space, which is left as is.
+ *
+ * Built from a string rather than a regular expression literal to keep the zero width joiner exclusion written as an
+ * escape: spelling it as a literal character would embed in this source the very kind of invisible content the pattern
+ * exists to expose.
+ */
+const HiddenPattern = new RegExp("[\\p{Cc}\\p{Zl}\\p{Zp}]|[^\\P{Cf}\\u200D]|[^\\P{Zs} ]", "gu");
+
+/**
+ * Matches every UTF-16 code unit.
+ *
+ * Deliberately not unicode-aware, so supplementary characters are split into their surrogate halves and each half is
+ * escaped on its own, as required for `\uXXXX` escapes.
+ */
+const UnitPattern = /[^]/g;
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Validates a value against a type guard and returns it.
  *
  * Applies the guard to the value: if it passes, returns the value; otherwise, throws a `TypeError`. When no custom
- * message is provided, generates a descriptive message from the guard function name (e.g., `isString` produces
+ * message is provided, generates a descriptive message from the guard function name (for example, `isString` produces
  * "expected string").
  *
  * @param value The value to validate
@@ -154,22 +198,7 @@ export function error<T>(cause: string | Error): T {
 }
 
 
-/**
- * Extracts a readable message string from an unknown value.
- *
- * Converts `Error` objects to their message property, formats numbers with
- * US locale conventions (`en-US`), or converts other values to string representation.
- *
- * @param value Unknown value to extract message from
- *
- * @returns Error message, formatted number, or string representation of the value
- */
-export function message(value: unknown) {
-	return isNumber(value) ? value.toLocaleString("en-US")
-		: isError(value) ? value.message
-			: String(value);
-}
-
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Executes an asynchronous task and monitors its execution time.
@@ -229,6 +258,61 @@ export function time<T>(task: () => T | Promise<T>, monitor: (value: T, elapsed:
 		monitor(value, Date.now()-start);
 
 		return value;
+
+	}
+
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Extracts a readable message string from an unknown value.
+ *
+ * Formats numbers with US locale conventions (`en-US`), reports strings as quoted and escaped string literals,
+ * converts `Error` objects to their message property, and falls back to the string representation of other values.
+ *
+ * Strings are reported as JSON string literals, so their extent is unambiguous; characters with no visible glyph
+ * (control characters, line and paragraph separators, format characters, non-plain space separators) are reported as
+ * `\uXXXX` escapes, supplementary ones as surrogate pairs, so they can't corrupt the report or hide content. Zero
+ * width joiners are reported as is, keeping composed emoji legible.
+ *
+ * @param value The value to report
+ * @param length Optional maximum length in code points of the reported string content; longer strings are clipped,
+ * with the last retained code point replaced by an ellipsis; `0` or a negative value disables clipping; ignored for
+ * values other than strings
+ *
+ * @returns The formatted number, quoted and escaped string literal, error message, or string representation of `value`
+ *
+ * @see {@link https://www.rfc-editor.org/rfc/rfc8259#section-7 RFC 8259 - JSON Strings}
+ */
+export function message(value: unknown, length: number = 0): string {
+
+	return isNumber(value) ? value.toLocaleString("en-US")
+		: isString(value) ? quote(clip(value, length))
+			: isError(value) ? value.message
+				: String(value);
+
+
+	function quote(value: string): string {
+		return JSON.stringify(value).replace(HiddenPattern, char => char // escaped as UTF-16 code units
+			.replace(UnitPattern, unit => `\\u${unit.charCodeAt(0).toString(16).padStart(4, "0")}`)
+		);
+	}
+
+	function clip(value: string, length: number): string {
+
+		if ( length > 0 ) {
+
+			const points = [...value];
+
+			return points.length > length ? `${points.slice(0, length-1).join("")}…` : value;
+
+		} else {
+
+			return value;
+
+		}
 
 	}
 

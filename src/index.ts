@@ -69,6 +69,25 @@
  * isObject({}, {}); // empty object check
  * ```
  *
+ * ## Composable type guards
+ *
+ * Higher-order guards that combine primitive ones into arbitrary type expressions:
+ * {@link isLiteral} for literal and enum-like sets, {@link isOptional} for `T | undefined`,
+ * {@link isUnion} for `A | B`, and {@link isIntersection} for `A & B`.
+ * {@link isAny} acts as a wildcard that always succeeds, typically used as a placeholder
+ * inside templates.
+ *
+ * ```typescript
+ * isAny("test"); // true (wildcard, always succeeds)
+ * isLiteral("foo", "foo"); // true
+ * isLiteral("foo", ["foo", "bar", "baz"]); // true (matches any)
+ * isOptional(undefined, isString); // true
+ * isOptional("hello", isString); // true
+ * isUnion("test", [isString, isNumber]); // true (matches isString)
+ * isUnion(42, [isString, isNumber]); // true (matches isNumber)
+ * isIntersection({ a: 1 }, [isObject, v => isObject(v, { a: isNumber })]); // true (satisfies all)
+ * ```
+ *
  * ## Deferred values
  *
  * {@link isLazy} admits values supplied either eagerly or as no-arg factories;
@@ -80,25 +99,6 @@
  * isLazy(42, isNumber); // true (plain value)
  * isEager(42, isNumber); // true (plain value)
  * isEager(() => 42, isNumber); // false (no-arg function rejected)
- * ```
- *
- * ## Composable type guards
- *
- * Higher-order guards that combine primitive ones into arbitrary type expressions:
- * {@link isUnion} for `A | B`, {@link isIntersection} for `A & B`, {@link isOptional}
- * for `T | undefined`, and {@link isLiteral} for literal and enum-like sets.
- * {@link isAny} acts as a wildcard that always succeeds, typically used as a placeholder
- * inside templates.
- *
- * ```typescript
- * isAny("test"); // true (wildcard, always succeeds)
- * isOptional(undefined, isString); // true
- * isOptional("hello", isString); // true
- * isLiteral("foo", "foo"); // true
- * isLiteral("foo", ["foo", "bar", "baz"]); // true (matches any)
- * isUnion("test", [isString, isNumber]); // true (matches isString)
- * isUnion(42, [isString, isNumber]); // true (matches isNumber)
- * isIntersection({ a: 1 }, [isObject, v => isObject(v, { a: isNumber })]); // true (satisfies all)
  * ```
  *
  * @module index
@@ -192,28 +192,6 @@ export type Object =
 
 
 /**
- * A value or a function returning a value.
- *
- * Enables deferred evaluation, allowing values to be computed on demand rather than upfront.
- *
- * @typeParam T The type of the value
- */
-export type Lazy<T> =
-	| T
-	| (() => T);
-
-/**
- * The eager counterpart of a {@link Lazy} reference.
- *
- * Unwraps no-arg functions to their return type and passes plain values through unchanged.
- *
- * @typeParam T The lazy reference to unwrap
- */
-export type Eager<T> =
-	T extends () => infer U ? U : T;
-
-
-/**
  * A type guard function.
  *
  * Defines the signature for functions that perform runtime type checking while providing compile-time type narrowing.
@@ -251,6 +229,28 @@ export type Intersection<G extends readonly Guard[]> =
 	Union<G> extends infer U
 		? (U extends unknown ? (x: U) => void : never) extends (x: infer I) => void ? I : never
 		: never;
+
+
+/**
+ * A value or a function returning a value.
+ *
+ * Enables deferred evaluation, allowing values to be computed on demand rather than upfront.
+ *
+ * @typeParam T The type of the value
+ */
+export type Lazy<T> =
+	| T
+	| (() => T);
+
+/**
+ * The eager counterpart of a {@link Lazy} reference.
+ *
+ * Unwraps no-arg functions to their return type and passes plain values through unchanged.
+ *
+ * @typeParam T The lazy reference to unwrap
+ */
+export type Eager<T> =
+	T extends () => infer U ? U : T;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -595,6 +595,90 @@ export function isObject<T extends Record<PropertyKey, unknown> = Record<Propert
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * Wildcard type guard that always succeeds.
+ *
+ * Mainly intended as a wildcard predicate in {@link isObject} open templates to accept any extra properties.
+ *
+ * ```typescript
+ * isObject(value, { required: isString, [key]: isAny }); // accept any extra properties
+ * ```
+ *
+ * @param value The value to check
+ *
+ * @returns Always `true`
+ */
+export function isAny(value: unknown): value is unknown {
+
+	return true;
+
+}
+
+/**
+ * Checks if a value matches one of the specified literal values.
+ *
+ * @typeParam T The literal type (boolean, number, or string)
+ *
+ * @param value The value to check
+ * @param values A single literal value or an array of literal values to match against
+ *
+ * @returns True if the value strictly equals one of the specified literals; false otherwise
+ */
+export function isLiteral<T extends boolean | number | string>(value: unknown, values: T | readonly T[]): value is T {
+
+	return Array.isArray(values)
+		? values.includes(value)
+		: value === values;
+
+}
+
+/**
+ * Checks if a value is either `undefined` or satisfies a type guard.
+ *
+ * @typeParam T The type validated by the type guard
+ *
+ * @param value The value to check
+ * @param is A type guard function to validate the value if it is not `undefined`
+ *
+ * @returns True if the value is `undefined` or satisfies the type guard; false otherwise
+ */
+export function isOptional<T>(value: unknown, is: Guard<T>): value is undefined | T {
+
+	return value === undefined || is(value);
+
+}
+
+/**
+ * Checks if a value satisfies any of the provided type guards.
+ *
+ * @param value The value to check
+ * @param guards Array of type guards to validate against
+ *
+ * @returns True if the value satisfies at least one guard; false otherwise
+ */
+export function isUnion<G extends readonly Guard[]>(value: unknown, guards: G): value is Union<G> {
+
+	return guards.some(guard => guard(value));
+
+}
+
+/**
+ * Checks if a value satisfies all the provided type guards.
+ *
+ * @param value The value to check
+ * @param guards Array of type guards to validate against
+ *
+ * @returns True if the value satisfies all guards; false otherwise
+ */
+export function isIntersection<G extends readonly Guard[]>(value: unknown, guards: G): value is Intersection<G> {
+
+	return guards.every(guard => guard(value));
+
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
  * Checks if a value is a {@link Lazy} reference.
  *
  * Function values are accepted only when they declare no formal parameters, in which case they are treated as
@@ -638,89 +722,5 @@ export function isEager<T = unknown>(value: unknown, is?: Guard<T>): value is Ea
 	return typeof value === "function"
 		? false
 		: (is === undefined || is(value));
-
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * Wildcard type guard that always succeeds.
- *
- * Mainly intended as a wildcard predicate in {@link isObject} open templates to accept any extra properties.
- *
- * ```typescript
- * isObject(value, { required: isString, [key]: isAny }); // accept any extra properties
- * ```
- *
- * @param value The value to check
- *
- * @returns Always `true`
- */
-export function isAny(value: unknown): value is unknown {
-
-	return true;
-
-}
-
-/**
- * Checks if a value is either `undefined` or satisfies a type guard.
- *
- * @typeParam T The type validated by the type guard
- *
- * @param value The value to check
- * @param is A type guard function to validate the value if it is not `undefined`
- *
- * @returns True if the value is `undefined` or satisfies the type guard; false otherwise
- */
-export function isOptional<T>(value: unknown, is: Guard<T>): value is undefined | T {
-
-	return value === undefined || is(value);
-
-}
-
-/**
- * Checks if a value matches one of the specified literal values.
- *
- * @typeParam T The literal type (boolean, number, or string)
- *
- * @param value The value to check
- * @param values A single literal value or an array of literal values to match against
- *
- * @returns True if the value strictly equals one of the specified literals; false otherwise
- */
-export function isLiteral<T extends boolean | number | string>(value: unknown, values: T | readonly T[]): value is T {
-
-	return Array.isArray(values)
-		? values.includes(value)
-		: value === values;
-
-}
-
-/**
- * Checks if a value satisfies any of the provided type guards.
- *
- * @param value The value to check
- * @param guards Array of type guards to validate against
- *
- * @returns True if the value satisfies at least one guard; false otherwise
- */
-export function isUnion<G extends readonly Guard[]>(value: unknown, guards: G): value is Union<G> {
-
-	return guards.some(guard => guard(value));
-
-}
-
-/**
- * Checks if a value satisfies all the provided type guards.
- *
- * @param value The value to check
- * @param guards Array of type guards to validate against
- *
- * @returns True if the value satisfies all guards; false otherwise
- */
-export function isIntersection<G extends readonly Guard[]>(value: unknown, guards: G): value is Intersection<G> {
-
-	return guards.every(guard => guard(value));
 
 }
