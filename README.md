@@ -37,6 +37,7 @@ npm install @metreeca/core
 | **Functional Patterns**             |                                          |
 | [@metreeca/core/combo][combo]       | General-purpose functional combinators   |
 | [@metreeca/core/order][order]       | Composable comparison functions          |
+| [@metreeca/core/trace][trace]       | Composable value validators              |
 | [@metreeca/core/relay][relay]       | Type-safe relay for discriminated unions |
 | [@metreeca/core/state][state]       | Type-safe immutable state management     |
 
@@ -63,6 +64,8 @@ npm install @metreeca/core
 [combo]: https://metreeca.github.io/core/modules/combo.html
 
 [order]: https://metreeca.github.io/core/modules/order.html
+
+[trace]: https://metreeca.github.io/core/modules/trace.html
 
 [relay]: https://metreeca.github.io/core/modules/relay.html
 

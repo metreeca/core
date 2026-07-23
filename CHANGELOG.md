@@ -13,11 +13,22 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `@metreeca/core/combo` module
 - `fold` function for mapping an optional value with an optional fallback for the undefined case, preserving `undefined`
   when the fallback is omitted, exported from `@metreeca/core/combo`
-- `list` function for normalising an optional or single-or-many value into an array, exported from
+- `some` function for normalising an optional or single-or-many value into an array, exported from
   `@metreeca/core/combo`
-- `unique` function for retaining the unique values of an array with an optional custom equality, exported from
+- `unique` function for retaining the unique values of an array, deduplicating by `Set` identity by default or by an
+  optional custom equality, exported from `@metreeca/core/combo`
+- `union` and `intersection` functions for combining arrays into their set union or narrowing them to their shared
+  intersection, deduplicating by `Set` identity by default or by an optional custom equality, exported from
   `@metreeca/core/combo`
 - `Some<T>` type modelling a value that may be absent, singular, or plural, exported from `@metreeca/core/combo`
+- `lazy` function for deferring a `Lazy` reference behind a memoising accessor that computes it at most once on first
+  use, exported from `@metreeca/core`
+- `eager` function for resolving a `Lazy` reference to its value on every call, exported from `@metreeca/core`
+- `@metreeca/core/trace` module of composable value validators reporting every violation at once as a structured
+  `Trace`, exposing the `Validator`, `Trace`, `Modal`, and `Keyed` types, the `TraceError` error, the `pass` constant,
+  and the `integer`, `length`, `format`, `normalised`, `gt`, `gte`, `lt`, `lte`, `domain`, `array`, `object`, `entry`,
+  `size`, `keys`, `values`, `test`, `fail`, `required`, `optional`, `nullable`, `all`, `any`, `one`, and `type`
+  validators
 - `app` predefined open namespace rooted at the synthetic `app:/` origin, minting IRIs for application-local resources
   with no deployment origin of their own, exported from `@metreeca/core/resource`
 - `xsd` predefined closed namespace exposing well-known XML Schema 1.1 datatype IRIs, exported from the new

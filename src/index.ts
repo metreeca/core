@@ -93,12 +93,17 @@
  * {@link isLazy} admits values supplied either eagerly or as no-arg factories;
  * {@link isEager} is its dual, rejecting factories and accepting only plain values.
  * Paired with the {@link Lazy} / {@link Eager} type operators.
+ * {@link lazy} defers a reference behind a memoising accessor that computes it at most once on first use;
+ * {@link eager} is its converse, resolving a reference to its value on every call.
  *
  * ```typescript
  * isLazy(() => 42, isNumber); // true (no-arg function)
  * isLazy(42, isNumber); // true (plain value)
  * isEager(42, isNumber); // true (plain value)
  * isEager(() => 42, isNumber); // false (no-arg function rejected)
+ *
+ * lazy(() => 42)(); // 42 (computed once, then memoised)
+ * eager(() => 42); // 42 (resolved on every call)
  * ```
  *
  * @module index
@@ -237,6 +242,8 @@ export type Intersection<G extends readonly Guard[]> =
  * Enables deferred evaluation, allowing values to be computed on demand rather than upfront.
  *
  * @typeParam T The type of the value
+ *
+ * @see {@link lazy} for the constructor deferring such a reference behind a memoising accessor
  */
 export type Lazy<T> =
 	| T
@@ -248,6 +255,8 @@ export type Lazy<T> =
  * Unwraps no-arg functions to their return type and passes plain values through unchanged.
  *
  * @typeParam T The lazy reference to unwrap
+ *
+ * @see {@link eager} for the constructor resolving such a reference to its value
  */
 export type Eager<T> =
 	T extends () => infer U ? U : T;
@@ -693,12 +702,11 @@ export function isIntersection<G extends readonly Guard[]>(value: unknown, guard
  * @returns True if the value is a no-arg factory, or a non-function that satisfies the type guard; false otherwise
  *
  * @see {@link isEager} for the dual guard accepting only plain values
+ * @see {@link lazy} for the constructor deferring a reference behind a memoising accessor
  */
 export function isLazy<T = unknown>(value: unknown, is?: Guard<T>): value is Lazy<T> {
 
-	return typeof value === "function"
-		? value.length === 0
-		: (is === undefined || is(value));
+	return typeof value === "function" ? value.length === 0 : (is === undefined || is(value));
 
 }
 
@@ -716,11 +724,54 @@ export function isLazy<T = unknown>(value: unknown, is?: Guard<T>): value is Laz
  * @returns True if the value is not a function and satisfies the type guard; false otherwise
  *
  * @see {@link isLazy} for the dual guard accepting no-arg factories as well
+ * @see {@link eager} for the constructor resolving a reference to its value
  */
 export function isEager<T = unknown>(value: unknown, is?: Guard<T>): value is Eager<T> {
 
-	return typeof value === "function"
-		? false
-		: (is === undefined || is(value));
+	return typeof value === "function" ? false : (is === undefined || is(value));
+
+}
+
+
+/**
+ * Defers a value to first use.
+ *
+ * Wraps a {@link Lazy} reference in a no-arg accessor that computes a deferred value on the first call and reuses the
+ * result thereafter, so work the caller may never need is neither done upfront nor repeated; a plain value has nothing
+ * to defer, and the accessor simply hands it back.
+ *
+ * @typeParam T The type of the deferred value, which may be neither `null` nor `undefined`
+ *
+ * @param value The value, or the no-arg factory computing it, called at most once
+ *
+ * @returns An accessor returning the value, computing it on the first call
+ *
+ * @see {@link eager} for the converse, forcing a {@link Lazy} reference rather than deferring it
+ */
+export function lazy<T extends {}>(value: Lazy<T>): () => T {
+
+	let memo: undefined | T;
+
+	return () => memo ??= value instanceof Function ? value() : value;
+
+}
+
+/**
+ * Resolves a {@link Lazy} reference to its value.
+ *
+ * Calls a no-arg factory to obtain the value it stands for, or returns a plain value unchanged, so a caller handed a
+ * {@link Lazy} reference can work with the value it denotes. The result is not cached: a factory runs on every call.
+ *
+ * @typeParam T The type of the resolved value
+ *
+ * @param value The value, or the no-arg factory computing it
+ *
+ * @returns The value the reference stands for
+ *
+ * @see {@link lazy} for the converse, deferring a {@link Lazy} reference rather than forcing it
+ */
+export function eager<T>(value: Lazy<T>): T {
+
+	return value instanceof Function ? value() : value;
 
 }

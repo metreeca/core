@@ -26,9 +26,9 @@
  * Coerce an optional or single-or-many value into an array for uniform iteration:
  *
  * ```typescript
- * import { list } from '@metreeca/core/combo';
+ * import { some } from '@metreeca/core/combo';
  *
- * const tags = list(input); // undefined -> [], "x" -> ["x"], ["x", "y"] -> ["x", "y"]
+ * const tags = some(input); // undefined -> [], "x" -> ["x"], ["x", "y"] -> ["x", "y"]
  * ```
  *
  * **Transforming a Value**
@@ -62,6 +62,17 @@
  * unique([1, 1, 2, 3, 3]); // [1, 2, 3]
  * ```
  *
+ * **Combining Arrays as Sets**
+ *
+ * Merge several arrays into their union or narrow them to their shared intersection, deduplicating either way:
+ *
+ * ```typescript
+ * import { intersection, union } from '@metreeca/core/combo';
+ *
+ * union([[1, 2], [2, 3]]);              // [1, 2, 3]
+ * intersection([[1, 2, 3], [2, 3, 4]]); // [2, 3]
+ * ```
+ *
  * @module
  */
 
@@ -72,7 +83,7 @@ import { isFunction } from "../index.js";
  * Zero, one, or many values of type `T`.
  *
  * Models a value that may be absent (`undefined`), singular (a bare `T`), or plural (a `T[]`), letting an API accept
- * flexible input that {@link list} normalises into an array.
+ * flexible input that {@link some} normalises into an array.
  *
  * @typeParam T The type of the contained values
  */
@@ -80,23 +91,6 @@ export type Some<T> = undefined | T | readonly T[];
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * Normalises a {@link Some} value into an array.
- *
- * Coerces an optional or single-or-many value into a uniform array, so callers accepting flexible input can iterate
- * over the result without branching on its shape.
- *
- * @typeParam T The type of the contained values
- *
- * @param values The value to normalise: `undefined`, a single `T`, or an array of `T`
- *
- * @returns An array holding the given values: empty if `values` is `undefined`, a single-element array if `values` is a
- *     bare `T`, or `values` itself if it is already an array
- */
-export function list<T>(values: Some<T>): readonly T[] {
-	return values === undefined ? [] : Array.isArray(values) ? values : [values as T];
-}
 
 /**
  * Applies a transformation to a value.
@@ -113,8 +107,11 @@ export function list<T>(values: Some<T>): readonly T[] {
  * @returns The result of applying `mapper` to `value`
  */
 export function map<V, R>(value: V, mapper: (value: V) => R): R {
+
 	return mapper(value);
+
 }
+
 
 /**
  * Maps an optional value, preserving undefined.
@@ -150,23 +147,148 @@ export function fold<V, R>(value: undefined | V, some: (value: V) => R): undefin
 export function fold<V, R>(value: undefined | V, some: (value: V) => R, none: R | (() => R)): R;
 
 export function fold<V, R>(value: undefined | V, some: (value: V) => R, none?: R | (() => R)): undefined | R {
+
 	return value !== undefined ? some(value) : isFunction(none) ? none() : none;
+
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Normalises a {@link Some} value into an array.
+ *
+ * Coerces an optional or single-or-many value into a uniform array, so callers accepting flexible input can iterate
+ * over the result without branching on its shape.
+ *
+ * @typeParam T The type of the contained values
+ *
+ * @param values The value to normalise: `undefined`, a single `T`, or an array of `T`
+ *
+ * @returns An array holding the given values: empty if `values` is `undefined`, a single-element array if `values` is a
+ *     bare `T`, or `values` itself if it is already an array
+ */
+export function some<T>(values: Some<T>): readonly T[] {
+
+	return values === undefined ? [] : Array.isArray(values) ? values : [values as T];
+
 }
 
 /**
  * Retains the unique values of an array.
  *
- * Keeps the first occurrence of each value in iteration order, dropping any later value that compares equal to one
- * already kept according to `equal`, or to `Object.is` by default.
+ * Keeps the first occurrence of each value in iteration order, dropping any later value already kept. Without a
+ * comparator, values are deduplicated by identity the way a `Set` does (`SameValueZero`, so `NaN` collapses and `-0`
+ * equals `+0`) in a single pass; pass `equal` to compare by a custom relation instead, at the cost of a scan over the
+ * kept values for each item.
  *
  * @typeParam T The type of the array items
  *
  * @param values The array to reduce to its unique values
- * @param equal An optional custom equality function for comparing items; defaults to `Object.is`
+ * @param equal An optional custom equality function for comparing items; without it, items are compared by `Set`
+ *     identity (`SameValueZero`)
  *
  * @returns A new array holding the first occurrence of each unique value from `values`, preserving their original
  *     order
  */
-export function unique<T>(values: readonly T[], equal: (x: T, y: T) => boolean = Object.is): readonly T[] {
-	return values.filter((value, index) => values.findIndex(other => equal(value, other)) === index);
+export function unique<T>(values: readonly T[], equal?: (x: T, y: T) => boolean): readonly T[] {
+
+	if ( equal === undefined ) {
+
+		return [...new Set(values)];
+
+	} else {
+
+		return values.filter((value, index) =>
+			values.findIndex(other => equal(value, other)) === index
+		);
+
+	}
+
+}
+
+/**
+ * Combines arrays into their set union.
+ *
+ * Flattens the given arrays and keeps each distinct element once, in first-seen order, so several sources combine into
+ * a single list without duplicates. Without a comparator, elements are compared by identity the way a `Set` does
+ * (`SameValueZero`) in a single pass; pass `equal` to merge by a custom relation instead, at the cost of a scan over
+ * the kept values for each element.
+ *
+ * @typeParam T The element type of the arrays
+ *
+ * @param arrays The arrays to combine
+ * @param equal An optional custom equality function for comparing elements; without it, elements are compared by `Set`
+ *     identity (`SameValueZero`)
+ *
+ * @returns A fresh array holding every distinct element drawn from `arrays`, in first-seen order
+ *
+ * @see {@link intersection} for the dual, keeping only the elements common to every array
+ */
+export function union<T>(arrays: readonly (readonly T[])[], equal?: (x: T, y: T) => boolean): readonly T[] {
+
+	return unique(arrays.flat(), equal);
+
+}
+
+/**
+ * Reduces arrays to their set intersection.
+ *
+ * Keeps each element present in every one of the given arrays, once, in the order it first appears in the first array,
+ * so several sources narrow to the elements they share without duplicates. Without a comparator, elements are compared
+ * by identity the way a `Set` does (`SameValueZero`); pass `equal` to intersect by a custom relation instead. Given no
+ * arrays, the result is empty.
+ *
+ * @typeParam T The element type of the arrays
+ *
+ * @param arrays The arrays to intersect
+ * @param equal An optional custom equality function for comparing elements; without it, elements are compared by `Set`
+ *     identity (`SameValueZero`)
+ *
+ * @returns A fresh array holding every element common to all of `arrays`, in first-seen order
+ *
+ * @see {@link union} for the dual, combining the elements of every array
+ */
+export function intersection<T>(arrays: readonly (readonly T[])[], equal?: (x: T, y: T) => boolean): readonly T[] {
+
+	const [first, ...rest] = arrays;
+
+	if ( first === undefined ) {
+
+		return [];
+
+	} else if ( equal === undefined ) {
+
+		return rest.reduce(
+			(intersection, array) => {
+
+				if ( intersection.length === 0 ) { return intersection; } else {
+
+					const values = new Set(array);
+
+					return intersection.filter(value => values.has(value));
+
+				}
+
+			},
+			[...new Set(first)]
+		);
+
+	} else {
+
+		return rest.reduce(
+			(intersection, array) => {
+
+				if ( intersection.length === 0 ) { return intersection; } else {
+
+					return intersection.filter(value => array.some(other => equal(value, other)));
+
+				}
+
+			},
+			unique(first, equal)
+		);
+
+	}
+
 }

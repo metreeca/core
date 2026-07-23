@@ -45,7 +45,7 @@
  *   { name: 'Alice', age: 30 }
  * ];
  *
- * users.sort(by(user => user.name));        // Sort by name ascending
+ * users.sort(by(user => user.name));            // Sort by name ascending
  * users.sort(by(user => user.age, descending)); // Sort by age descending
  * ```
  *

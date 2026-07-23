@@ -36,6 +36,7 @@
     "./async": "./dist/common/async/index.js",
     "./combo": "./dist/functional/combo.js",
     "./order": "./dist/functional/order.js",
+    "./trace": "./dist/functional/trace.js",
     "./relay": "./dist/functional/relay.js",
     "./state": "./dist/functional/state.js"
   },
