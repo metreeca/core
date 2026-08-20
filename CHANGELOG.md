@@ -13,14 +13,14 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `@metreeca/core/combo` module
 - `fold` function for mapping an optional value with an optional fallback for the undefined case, preserving `undefined`
   when the fallback is omitted, exported from `@metreeca/core/combo`
-- `some` function for normalising an optional or single-or-many value into an array, exported from
-  `@metreeca/core/combo`
+- `some` function for normalising an optional or single-or-many value into an array, exported from the new
+  `@metreeca/core/arrays` module
 - `unique` function for retaining the unique values of an array, deduplicating by `Set` identity by default or by an
-  optional custom equality, exported from `@metreeca/core/combo`
+  optional custom equality, exported from `@metreeca/core/arrays`
 - `union` and `intersection` functions for combining arrays into their set union or narrowing them to their shared
   intersection, deduplicating by `Set` identity by default or by an optional custom equality, exported from
-  `@metreeca/core/combo`
-- `Some<T>` type modelling a value that may be absent, singular, or plural, exported from `@metreeca/core/combo`
+  `@metreeca/core/arrays`
+- `Some<T>` type modelling a value that may be absent, singular, or plural, exported from `@metreeca/core/arrays`
 - `lazy` function for deferring a `Lazy` reference behind a memoising accessor that computes it at most once on first
   use, exported from `@metreeca/core`
 - `eager` function for resolving a `Lazy` reference to its value on every call, exported from `@metreeca/core`

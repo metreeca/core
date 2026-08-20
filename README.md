@@ -4,8 +4,8 @@
 
 Essential TypeScript abstractions.
 
-**@metreeca/core** is a foundational TypeScript toolkit with clean, minimalist APIs for common operations, web standards
-and functional patterns.
+**@metreeca/core** is a foundational TypeScript toolkit with clean, minimalist APIs for common operations, functional
+patterns and web standards.
 
 # Installation
 
@@ -20,28 +20,31 @@ npm install @metreeca/core
 
 # Usage
 
-| Module                              | Description                              |
-|-------------------------------------|------------------------------------------|
-| [@metreeca/core][core]              | Utility types and type guards            |
-| **Common Operations**               |                                          |
-| [@metreeca/core/deep][deep]         | Deep operations on objects and arrays    |
-| [@metreeca/core/report][report]     | Execution reporting and error handling   |
-| [@metreeca/core/scope][scope]       | Identity-keyed value allocation          |
-| [@metreeca/core/async][async]       | Asynchronous coordination primitives     |
-| **Web Standards**                   |                                          |
-| [@metreeca/core/resource][resource] | RFC 3987 resource identifiers            |
-| [@metreeca/core/datatype][datatype] | XSD 1.1 datatype identifiers             |
-| [@metreeca/core/language][language] | BCP 47 tags and RFC 4647 basic ranges    |
-| [@metreeca/core/problem][problem]   | RFC 9457 problem details for HTTP APIs   |
-| [@metreeca/core/base64][base64]     | RFC 4648 URL-safe base64 codec           |
-| **Functional Patterns**             |                                          |
-| [@metreeca/core/combo][combo]       | General-purpose functional combinators   |
-| [@metreeca/core/order][order]       | Composable comparison functions          |
-| [@metreeca/core/trace][trace]       | Composable value validators              |
-| [@metreeca/core/relay][relay]       | Type-safe relay for discriminated unions |
-| [@metreeca/core/state][state]       | Type-safe immutable state management     |
+| Module                              | Description                             |
+|-------------------------------------|-----------------------------------------|
+| [@metreeca/core][core]              | Utility types and type guards           |
+| **Common Operations**               |                                         |
+| [@metreeca/core/arrays][arrays]     | General-purpose array operations        |
+| [@metreeca/core/deep][deep]         | Deep operations on objects and arrays   |
+| [@metreeca/core/report][report]     | Execution reporting and error handling  |
+| [@metreeca/core/scope][scope]       | Identity-keyed value allocation         |
+| [@metreeca/core/async][async]       | Asynchronous coordination primitives    |
+| **Functional Patterns**             |                                         |
+| [@metreeca/core/combo][combo]       | General-purpose functional combinators  |
+| [@metreeca/core/order][order]       | Composable comparison functions         |
+| [@metreeca/core/trace][trace]       | Composable value validators             |
+| [@metreeca/core/relay][relay]       | Type-safe discriminated union switching |
+| [@metreeca/core/state][state]       | Type-safe immutable state management    |
+| **Web Standards**                   |                                         |
+| [@metreeca/core/resource][resource] | RFC 3987 resource identifiers           |
+| [@metreeca/core/datatype][datatype] | XSD 1.1 datatype identifiers            |
+| [@metreeca/core/language][language] | BCP 47 tags and RFC 4647 basic ranges   |
+| [@metreeca/core/problem][problem]   | RFC 9457 problem details for HTTP APIs  |
+| [@metreeca/core/base64][base64]     | RFC 4648 URL-safe base64 codec          |
 
 [core]: https://metreeca.github.io/core/modules.html
+
+[arrays]: https://metreeca.github.io/core/modules/arrays.html
 
 [deep]: https://metreeca.github.io/core/modules/deep.html
 
@@ -50,16 +53,6 @@ npm install @metreeca/core
 [scope]: https://metreeca.github.io/core/modules/scope.html
 
 [async]: https://metreeca.github.io/core/modules/async.html
-
-[resource]: https://metreeca.github.io/core/modules/resource.html
-
-[datatype]: https://metreeca.github.io/core/modules/datatype.html
-
-[language]: https://metreeca.github.io/core/modules/language.html
-
-[problem]: https://metreeca.github.io/core/modules/problem.html
-
-[base64]: https://metreeca.github.io/core/modules/base64.html
 
 [combo]: https://metreeca.github.io/core/modules/combo.html
 
@@ -70,6 +63,16 @@ npm install @metreeca/core
 [relay]: https://metreeca.github.io/core/modules/relay.html
 
 [state]: https://metreeca.github.io/core/modules/state.html
+
+[resource]: https://metreeca.github.io/core/modules/resource.html
+
+[datatype]: https://metreeca.github.io/core/modules/datatype.html
+
+[language]: https://metreeca.github.io/core/modules/language.html
+
+[problem]: https://metreeca.github.io/core/modules/problem.html
+
+[base64]: https://metreeca.github.io/core/modules/base64.html
 
 
 # Support

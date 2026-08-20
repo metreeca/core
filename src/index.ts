@@ -208,14 +208,14 @@ export type Guard<T = unknown> =
 	(value: unknown) => value is T;
 
 /**
- * Extracts the guarded type from an array of type guards.
+ * Extracts the union of guarded types from an array of type guards.
  *
- * Given an array of {@link Guard} functions, infers the union of all types they guard.
- * Useful for deriving the result type of union validation with {@link isUnion}.
+ * Given an array of {@link Guard} functions, infers the union of all types they guard. Useful for deriving the result
+ * type of union validation with {@link isUnion}.
  *
  * @typeParam G The array type containing type guards
  *
- * @see {@link isUnion} for validating values against multiple guards
+ * @see {@link isUnion} for validating a value against any of the guards
  */
 export type Union<G extends readonly Guard[]> =
 	G extends readonly Guard<infer T>[] ? T : never;
@@ -223,12 +223,12 @@ export type Union<G extends readonly Guard[]> =
 /**
  * Extracts the intersection of guarded types from an array of type guards.
  *
- * Given an array of {@link Guard} functions, infers the intersection of all types they guard.
- * Useful for deriving the result type of intersection validation with {@link isIntersection}.
+ * Given an array of {@link Guard} functions, infers the intersection of all types they guard. Useful for deriving the
+ * result type of intersection validation with {@link isIntersection}.
  *
  * @typeParam G The array type containing type guards
  *
- * @see {@link isIntersection} for validating values against all guards simultaneously
+ * @see {@link isIntersection} for validating a value against all of the guards
  */
 export type Intersection<G extends readonly Guard[]> =
 	Union<G> extends infer U

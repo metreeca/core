@@ -104,6 +104,7 @@
 
 import { type Guard, isError, isNumber, isString } from "../index.js";
 
+
 /**
  * Matches characters with no visible glyph.
  *

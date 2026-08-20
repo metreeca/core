@@ -15,7 +15,7 @@
  */
 
 /**
- * Type-safe relay for discriminated unions.
+ * Type-safe discriminated union switching.
  *
  * Use when working with data where exactly one option is active at a time - like operation results
  * that are either successful or failed, UI states that are loading, ready, or error, or any domain

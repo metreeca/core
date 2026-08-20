@@ -208,6 +208,7 @@ export function equals(x: unknown, y: unknown, equal: (x: unknown, y: unknown) =
 
 }
 
+
 /**
  * Creates an immutable deep clone.
  *

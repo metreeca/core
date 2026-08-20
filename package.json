@@ -25,20 +25,21 @@
   "sideEffects": false,
   "exports": {
     ".": "./dist/index.js",
+    "./arrays": "./dist/common/arrays.js",
     "./deep": "./dist/common/deep.js",
     "./report": "./dist/common/report.js",
     "./scope": "./dist/common/scope.js",
-    "./resource": "./dist/standard/resource.js",
-    "./datatype": "./dist/standard/datatype.js",
-    "./problem": "./dist/standard/problem.js",
-    "./language": "./dist/standard/language.js",
-    "./base64": "./dist/standard/base64.js",
     "./async": "./dist/common/async/index.js",
     "./combo": "./dist/functional/combo.js",
     "./order": "./dist/functional/order.js",
     "./trace": "./dist/functional/trace.js",
     "./relay": "./dist/functional/relay.js",
-    "./state": "./dist/functional/state.js"
+    "./state": "./dist/functional/state.js",
+    "./resource": "./dist/standard/resource.js",
+    "./datatype": "./dist/standard/datatype.js",
+    "./language": "./dist/standard/language.js",
+    "./problem": "./dist/standard/problem.js",
+    "./base64": "./dist/standard/base64.js"
   },
   "files": [
     "README.md",
