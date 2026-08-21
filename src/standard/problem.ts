@@ -55,7 +55,7 @@
  * @see {@link https://www.rfc-editor.org/rfc/rfc9457 RFC 9457 - Problem Details for HTTP APIs}
  */
 
-import { immutable } from "../common/deep.js";
+import { immutable } from "../values/structures.js";
 import type { Value } from "../index.js";
 
 

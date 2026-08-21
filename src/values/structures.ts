@@ -15,29 +15,14 @@
  */
 
 /**
- * Deep operations on JSON-like objects and arrays.
- *
- * **Recursive Partial Views**
- *
- * Widen a JSON-like type into a subset view that accepts partial literals at every nesting level:
- *
- * ```typescript
- * import type { DeepPartial } from '@metreeca/core/deep';
- *
- * type Config = { server: { host: string; port: number }; tags: string[] };
- *
- * const overlay: DeepPartial<Config> = { server: { port: 8080 } }; // missing keys allowed
- * ```
- *
- * Tuple arity, element labels, variadic segments, and index signatures are preserved while every record key is
- * relaxed to `readonly` and optional.
+ * General-purpose structural operations.
  *
  * **Deep Equality**
  *
  * Compare nested structures for structural equality:
  *
  * ```typescript
- * import { equals } from '@metreeca/core/deep';
+ * import { equals } from '@metreeca/core/structures';
  *
  * // Objects and arrays
  * equals({ a: [1, 2] }, { a: [1, 2] }); // true
@@ -57,7 +42,7 @@
  * Create deeply frozen structures that prevent all mutations:
  *
  * ```typescript
- * import { immutable } from '@metreeca/core/deep';
+ * import { immutable } from '@metreeca/core/structures';
  *
  * // Objects and arrays
  * const original = { a: [1, 2, 3], b: { c: 4 } };
@@ -85,7 +70,7 @@
  * even when reached through another path or nested into a new structure:
  *
  * ```typescript
- * import { immutable } from '@metreeca/core/deep';
+ * import { immutable } from '@metreeca/core/structures';
  *
  * const frozen = immutable({ inner: { p: 1 } });
  *
@@ -100,7 +85,7 @@
  * Validate and freeze with optional type guards:
  *
  * ```typescript
- * import { immutable } from '@metreeca/core/deep';
+ * import { immutable } from '@metreeca/core/structures';
  * import { isObject, isString, isNumber } from '@metreeca/core';
  *
  * // Define a type guard
@@ -120,11 +105,35 @@
  * immutable(user, isAdmin); // revalidates
  * ```
  *
+ * **Sealed Content**
+ *
+ * Attach hidden content to a frozen clone under a symbol key, retrievable only through the same symbol:
+ *
+ * ```typescript
+ * import { immutable, seal } from '@metreeca/core/structures';
+ *
+ * const Meta = Symbol("meta");
+ *
+ * const sealed = seal({ id: 1 }, Meta, { source: "cache" });
+ *
+ * seal(sealed, Meta); // { source: "cache" }
+ * seal({ id: 1 }, Meta); // undefined (nothing sealed under Meta)
+ *
+ * Object.keys(sealed); // ["id"] (sealed content is not enumerable)
+ *
+ * seal(42, Meta, "content"); // 42 (primitives are returned as-is)
+ * ```
+ *
+ * Both the sealed clone and its content are deep-frozen and branded, so {@link immutable} returns them unchanged:
+ *
+ * ```typescript
+ * immutable(sealed) === sealed; // true
+ * ```
+ *
  * @module
  */
 
-import { type Guard, isArray, isObject } from "../index.js";
-import { assert } from "./report.js";
+import { assert, type Guard, isArray, isObject } from "../index.js";
 
 
 /**
@@ -135,28 +144,6 @@ import { assert } from "./report.js";
  * nested clones always store the `immutable` reference (the default brand).
  */
 const Immutable = Symbol("immutable");
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * Recursively widens a JSON-like type into a subset view.
- *
- * Walks the type tree distributing over unions and dispatching on each node:
- *
- * - **Primitives** (`undefined`, `null`, `boolean`, `number`, `string`): returned unchanged
- * - **Tuples and arrays**: each element type is recursively widened; tuple arity, element labels, variadic segments,
- *   and the array-versus-tuple distinction are preserved, with the `readonly` modifier applied
- * - **Plain objects and records** (including string- and number-indexed signatures): every property becomes
- *   `readonly` and optional, with values recursively widened
- *
- * @typeParam T The template type to widen
- */
-export type DeepPartial<T> =
-	T extends undefined | null | boolean | number | string ? T
-		: T extends readonly unknown[] ? { readonly [K in keyof T]: DeepPartial<T[K]> }
-			: T extends object ? { readonly [K in keyof T]?: DeepPartial<T[K]> }
-				: T;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

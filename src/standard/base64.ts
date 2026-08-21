@@ -70,9 +70,14 @@
  * Converts the input to UTF-8 bytes, applies standard base64 encoding, then substitutes `+` / `/` with `-` / `_` and
  * strips the trailing `=` padding.
  *
+ * > [!WARNING]
+ * > Text carrying isolated UTF-16 surrogates doesn't survive the round trip: UTF-8 conversion replaces each one with
+ * > `U+FFFD` REPLACEMENT CHARACTER, so decoding the result returns a string that differs from `plain`. Test the input
+ * > with {@link strings!isWellFormed} or sanitise it with {@link strings!toWellFormed} where the distinction matters.
+ *
  * @param plain The string to encode
  *
- * @returns The URL-safe base64 representation of `plain`
+ * @returns The URL-safe base64 representation of `plain`, with every isolated surrogate encoded as `U+FFFD`
  *
  * @see {@link decodeBase64}
  */
@@ -98,9 +103,13 @@ export function encodeBase64(plain: string): string {
  * Restores `+` / `/` in place of `-` / `_`, reattaches any missing `=` padding, then decodes the resulting bytes as
  * UTF-8. Both padded and unpadded input are accepted.
  *
+ * > [!WARNING]
+ * > Bytes that don't spell valid UTF-8 are not rejected: decoding replaces each malformed sequence with `U+FFFD`
+ * > REPLACEMENT CHARACTER, so a truncated or corrupted payload yields text rather than an error.
+ *
  * @param encoded The URL-safe base64-encoded string
  *
- * @returns The decoded UTF-8 string
+ * @returns The decoded UTF-8 string, with every malformed byte sequence replaced by `U+FFFD`
  *
  * @throws InvalidCharacterError If `encoded` contains characters outside the URL-safe base64 alphabet
  *

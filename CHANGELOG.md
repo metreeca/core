@@ -26,7 +26,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `eager` function for resolving a `Lazy` reference to its value on every call, exported from `@metreeca/core`
 - `@metreeca/core/trace` module of composable value validators reporting every violation at once as a structured
   `Trace`, exposing the `Validator`, `Trace`, `Modal`, and `Keyed` types, the `TraceError` error, the `pass` constant,
-  and the `integer`, `length`, `format`, `normalised`, `gt`, `gte`, `lt`, `lte`, `domain`, `array`, `object`, `entry`,
+  and the `integer`, `length`, `pattern`, `normalised`, `gt`, `gte`, `lt`, `lte`, `domain`, `array`, `object`, `entry`,
   `size`, `keys`, `values`, `test`, `fail`, `required`, `optional`, `nullable`, `all`, `any`, `one`, and `type`
   validators
 - `app` predefined open namespace rooted at the synthetic `app:/` origin, minting IRIs for application-local resources
@@ -37,6 +37,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `@metreeca/core/datatype`
 - `getNamespaceIRI` and `getNamespaceBase` accessors for retrieving the IRI of a namespace and the base identifier
   references minted within it resolve against, exported from `@metreeca/core/resource`
+- `@metreeca/core/strings` module of general-purpose string operations, exposing the `Text`, `Markdown`, and `Resolver`
+  types, the `text` and `markdown` content tags, and the `clip`, `tidy`, `split`, `fill`, `dedent`, `escape`,
+  `isWellFormed`, and `toWellFormed` operations
 
 ### Changed
 
@@ -44,6 +47,19 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   reference identity in the same order; single-key and anonymous allocation are unchanged
   (`@metreeca/core/scope`)
 - `nests` renamed to `isNestedIRI` and `base` renamed to `getIRIBase` (`@metreeca/core/resource`)
+- `assert` and `error` moved from `@metreeca/core/report` to `@metreeca/core`
+- `@metreeca/core/deep` module renamed to `@metreeca/core/structures`; the `equals`, `immutable`, and `seal` operations
+  are unchanged
+- `isIRI` now rejects identifiers carrying isolated UTF-16 surrogates in every variant, and the operations built on it
+  (`isNestedIRI`, `getIRIBase`, `resolve`, `internalize`, `relativize`, `createNamespace`) reject or throw accordingly
+  (`@metreeca/core/resource`)
+
+### Removed
+
+- `@metreeca/core/report` module (`assert` and `error` are now exported from `@metreeca/core`)
+- `time` execution timing function (was exported from `@metreeca/core/report`)
+- `asIRI` validating factory; validate identifiers with `isIRI` instead (was exported from `@metreeca/core/resource`)
+- `DeepPartial` type (was exported from `@metreeca/core/deep`)
 
 ## [0.9.19](https://github.com/metreeca/core/compare/v0.9.18...v0.9.19) - 2026-06-20
 

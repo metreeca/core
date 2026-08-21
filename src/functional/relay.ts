@@ -99,7 +99,7 @@
  * @module
  */
 
-import { immutable } from "../common/deep.js";
+import { immutable } from "../values/structures.js";
 import { isDefined, isFunction } from "../index.js";
 
 

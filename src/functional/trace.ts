@@ -37,10 +37,10 @@
  * Restrict strings by length, pattern, or whitespace:
  *
  * ```typescript
- * import { format, length, normalised } from '@metreeca/core/trace';
+ * import { length, normalised, pattern } from '@metreeca/core/trace';
  *
  * length(1, 100); // between 1 and 100 characters
- * format(/^\p{Lu}/u); // matching the pattern
+ * pattern(/^\p{Lu}/u); // matching the pattern
  * normalised(); // no leading, trailing, or repeated whitespace
  * normalised(true); // as above, but admitting newlines
  * ```
@@ -78,11 +78,11 @@
  * Restrict the object and its entries in one call:
  *
  * ```typescript
- * import { test, all, entry, format, keys, length, object, pass, size } from '@metreeca/core/trace';
+ * import { test, all, entry, keys, length, object, pass, pattern, size } from '@metreeca/core/trace';
  * import { key } from '@metreeca/core';
  *
  * object(entry([undefined, length(0, 100)])); // every entry, constrained by value
- * object(entry([format(/^[^_]/u)])); // every entry, constrained by key
+ * object(entry([pattern(/^[^_]/u)])); // every entry, constrained by key
  * object({ label: length(1, 100), notes: length(0, 1000) }); // closed: unnamed properties rejected
  * object({ label: length(1, 100), [key]: pass }); // open: unnamed properties admitted unconstrained
  *
@@ -117,7 +117,7 @@
  *
  * ```typescript
  * import {
- *     all, any, fail, format, gte, integer, length, nullable, one, optional, pass, required, type
+ *     all, any, fail, gte, integer, length, nullable, one, optional, pass, pattern, required, type
  * } from '@metreeca/core/trace';
  * import { isString } from '@metreeca/core';
  *
@@ -125,7 +125,7 @@
  *
  * all(integer(), gte(0)); // every validator must pass
  * any(length(3, 3), length(5, 5)); // at least one must pass
- * one(format(/^\d+$/u), format(/^[a-z]+$/u)); // exactly one must pass
+ * one(pattern(/^\d+$/u), pattern(/^[a-z]+$/u)); // exactly one must pass
  *
  * required(length(1, 100)); // rejected when absent
  * optional(length(1, 100)); // unconstrained when absent
@@ -200,12 +200,13 @@
  * @module
  */
 
+import { clip, escape } from "../values/strings.js";
 import { type Guard, isFunction, isNumber, isString, key, lazy } from "../index.js";
 import { fold } from "./combo.js";
-import { message } from "../common/report.js";
 
 
-const ClipLength = 10;
+const QuoteLength = 10;
+const QuotePattern = /["\\\p{Cc}\p{Zl}\p{Zp}\uD800-\uDFFF]|[^\P{Cf}\u200D]|[^\P{Zs} ]/gu;
 
 const TypeLabels: Record<string, string> = {
 	Null: "null",
@@ -378,13 +379,13 @@ export function length(min: undefined | number, max: undefined | number): Valida
  *
  * @returns A validator reporting a violation if the value does not match `pattern`
  */
-export function format(pattern: undefined | string | RegExp): Validator<string> {
+export function pattern(pattern: undefined | string | RegExp): Validator<string> {
 
 	const regex = fold(pattern, pattern => isString(pattern) ? new RegExp(pattern) : pattern);
 
 	if ( regex !== undefined ) {
 
-		const mismatched = [`{format} expected string matching </${regex.source}/${regex.flags}>`];
+		const mismatched = [`{pattern} expected string matching </${regex.source}/${regex.flags}>`];
 
 		return value => regex.test(value) ? undefined : mismatched;
 
@@ -453,7 +454,7 @@ export function gt(limit: unknown): Validator<never> {
 
 	} else if ( isString(limit) ) {
 
-		const below = [`{gt} expected value greater than <${(message(limit, ClipLength))}>`];
+		const below = [`{gt} expected value greater than <${format(limit)}>`];
 
 		return (value: string) => value > limit ? undefined : below;
 
@@ -498,7 +499,7 @@ export function gte(limit: unknown): Validator<never> {
 
 	} else if ( isString(limit) ) {
 
-		const below = [`{gte} expected value greater than or equal to <${(message(limit, ClipLength))}>`];
+		const below = [`{gte} expected value greater than or equal to <${format(limit)}>`];
 
 		return (value: string) => value >= limit ? undefined : below;
 
@@ -543,7 +544,7 @@ export function lt(limit: unknown): Validator<never> {
 
 	} else if ( isString(limit) ) {
 
-		const above = [`{lt} expected value less than <${(message(limit, ClipLength))}>`];
+		const above = [`{lt} expected value less than <${format(limit)}>`];
 
 		return (value: string) => value < limit ? undefined : above;
 
@@ -588,7 +589,7 @@ export function lte(limit: unknown): Validator<never> {
 
 	} else if ( isString(limit) ) {
 
-		const above = [`{lte} expected value less than or equal to <${(message(limit, ClipLength))}>`];
+		const above = [`{lte} expected value less than or equal to <${format(limit)}>`];
 
 		return (value: string) => value <= limit ? undefined : above;
 
@@ -608,7 +609,7 @@ export function lte(limit: unknown): Validator<never> {
  *
  * @param values The admitted values, or `undefined` to accept any value
  *
- * @returns A validator reporting a violation if the value is outside `allowed`
+ * @returns A validator reporting a violation if the value is outside `values`
  */
 export function domain(values: undefined | readonly number[]): Validator<number>;
 
@@ -619,21 +620,21 @@ export function domain(values: undefined | readonly number[]): Validator<number>
  *
  * @param values The admitted values, or `undefined` to accept any value
  *
- * @returns A validator reporting a violation if the value is outside `allowed`
+ * @returns A validator reporting a violation if the value is outside `values`
  */
 export function domain(values: undefined | readonly string[]): Validator<string>;
 
 /**
  * Constrains numbers and strings to an enumerated domain.
  */
-export function domain(values: undefined | readonly unknown[]): Validator<never> {
+export function domain(values: undefined | readonly (number | string)[]): Validator<never> {
 
 	if ( values !== undefined ) {
 
 		const admitted = new Set<unknown>(values);
 
 		const outside = lazy(() => [
-			`{domain} expected value in [${values.map(v => message(v, ClipLength)).join(", ")}]`
+			`{domain} expected value in [${values.map(format).join(", ")}]`
 		]);
 
 		return value => admitted.has(value) ? undefined : outside();
@@ -931,7 +932,7 @@ export function values<V extends number | string>(
 			const missing = required.filter(value => !present.has(value));
 
 			return missing.length === 0 ? undefined : [
-				`{values} missing values [${missing.map(v => message(v, ClipLength)).join(", ")}]`
+				`{values} missing values [${missing.map(format).join(", ")}]`
 			];
 
 		};
@@ -1200,5 +1201,24 @@ function merge(...traces: readonly (undefined | Trace)[]): undefined | Trace {
 	const trace = [...messages, ...(Object.keys(grouped).length > 0 ? [grouped] : [])];
 
 	return trace.length === 0 ? undefined : trace;
+
+}
+
+/**
+ * Formats a value for embedding in a violation message.
+ *
+ * Formats numbers with US locale conventions (`en-US`); reports strings between quotation marks, shortened to a fixed
+ * budget of code points and with every character with no visible glyph replaced by an escape, so that a violation
+ * message states the offending value unambiguously without letting overlong or invisible content overrun it.
+ *
+ * @param value The value to report
+ *
+ * @returns The locale-formatted number or the shortened and quoted string literal
+ */
+function format(value: number | string): string {
+
+	return isNumber(value)
+		? value.toLocaleString("en-US")
+		: `"${escape(clip(value, QuoteLength), QuotePattern)}"`;
 
 }

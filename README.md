@@ -4,8 +4,8 @@
 
 Essential TypeScript abstractions.
 
-**@metreeca/core** is a foundational TypeScript toolkit with clean, minimalist APIs for common operations, functional
-patterns and web standards.
+**@metreeca/core** is a foundational TypeScript toolkit with clean, minimalist APIs for value operations, runtime
+services, functional patterns and web standards.
 
 # Installation
 
@@ -20,35 +20,36 @@ npm install @metreeca/core
 
 # Usage
 
-| Module                              | Description                             |
-|-------------------------------------|-----------------------------------------|
-| [@metreeca/core][core]              | Utility types and type guards           |
-| **Common Operations**               |                                         |
-| [@metreeca/core/arrays][arrays]     | General-purpose array operations        |
-| [@metreeca/core/deep][deep]         | Deep operations on objects and arrays   |
-| [@metreeca/core/report][report]     | Execution reporting and error handling  |
-| [@metreeca/core/scope][scope]       | Identity-keyed value allocation         |
-| [@metreeca/core/async][async]       | Asynchronous coordination primitives    |
-| **Functional Patterns**             |                                         |
-| [@metreeca/core/combo][combo]       | General-purpose functional combinators  |
-| [@metreeca/core/order][order]       | Composable comparison functions         |
-| [@metreeca/core/trace][trace]       | Composable value validators             |
-| [@metreeca/core/relay][relay]       | Type-safe discriminated union switching |
-| [@metreeca/core/state][state]       | Type-safe immutable state management    |
-| **Web Standards**                   |                                         |
-| [@metreeca/core/resource][resource] | RFC 3987 resource identifiers           |
-| [@metreeca/core/datatype][datatype] | XSD 1.1 datatype identifiers            |
-| [@metreeca/core/language][language] | BCP 47 tags and RFC 4647 basic ranges   |
-| [@metreeca/core/problem][problem]   | RFC 9457 problem details for HTTP APIs  |
-| [@metreeca/core/base64][base64]     | RFC 4648 URL-safe base64 codec          |
+| Module                                  | Description                             |
+|-----------------------------------------|-----------------------------------------|
+| [@metreeca/core][core]                  | Core types, guards, and utilities       |
+| **Value Operations**                    |                                         |
+| [@metreeca/core/strings][strings]       | General-purpose string operations       |
+| [@metreeca/core/arrays][arrays]         | General-purpose array operations        |
+| [@metreeca/core/structures][structures] | General-purpose structural operations   |
+| **Runtime Services**                    |                                         |
+| [@metreeca/core/scope][scope]           | Identity-keyed value allocation         |
+| [@metreeca/core/async][async]           | Asynchronous coordination primitives    |
+| **Functional Patterns**                 |                                         |
+| [@metreeca/core/combo][combo]           | General-purpose functional combinators  |
+| [@metreeca/core/order][order]           | Composable comparison functions         |
+| [@metreeca/core/trace][trace]           | Composable value validators             |
+| [@metreeca/core/relay][relay]           | Type-safe discriminated union switching |
+| [@metreeca/core/state][state]           | Type-safe immutable state management    |
+| **Web Standards**                       |                                         |
+| [@metreeca/core/resource][resource]     | RFC 3987 resource identifiers           |
+| [@metreeca/core/datatype][datatype]     | XSD 1.1 datatype identifiers            |
+| [@metreeca/core/language][language]     | BCP 47 tags and RFC 4647 basic ranges   |
+| [@metreeca/core/problem][problem]       | RFC 9457 problem details for HTTP APIs  |
+| [@metreeca/core/base64][base64]         | RFC 4648 URL-safe base64 codec          |
 
 [core]: https://metreeca.github.io/core/modules.html
 
+[strings]: https://metreeca.github.io/core/modules/strings.html
+
 [arrays]: https://metreeca.github.io/core/modules/arrays.html
 
-[deep]: https://metreeca.github.io/core/modules/deep.html
-
-[report]: https://metreeca.github.io/core/modules/report.html
+[structures]: https://metreeca.github.io/core/modules/structures.html
 
 [scope]: https://metreeca.github.io/core/modules/scope.html
 

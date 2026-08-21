@@ -17,7 +17,7 @@
 import { describe, expect, it } from "vitest";
 import { isNumber, isObject, isString } from "../index.js";
 
-import { equals, immutable, seal } from "./deep.js";
+import { equals, immutable, seal } from "./structures.js";
 
 
 describe("equals()", () => {
@@ -1246,6 +1246,16 @@ describe("seal()", () => {
 
 			expect(sealed).not.toBe(value);
 			expect(sealed).toEqual({ x: 1 });
+
+		});
+
+		it("should return primitives as-is", async () => {
+
+			expect(seal(42, tag, "content")).toBe(42);
+			expect(seal("text", tag, "content")).toBe("text");
+			expect(seal(true, tag, "content")).toBe(true);
+			expect(seal(null, tag, "content")).toBeNull();
+			expect(seal(undefined, tag, "content")).toBeUndefined();
 
 		});
 

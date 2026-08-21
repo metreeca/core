@@ -15,14 +15,16 @@
  */
 
 /**
- * Core utility types and type guards.
+ * Core types, guards, and utilities.
  *
  * Bridges the gap between TypeScript's static type system and untrusted runtime data.
  * Every guard returns a boolean and narrows its argument on success, so validation and
  * type inference collapse into a single call at API boundaries, deserialisation sites,
- * and other trust-crossing points.
+ * and other trust-crossing points. Companion utilities build on the same predicates,
+ * deferring values to first use and failing with a diagnostic in expression contexts
+ * where a statement isn't allowed.
  *
- * ## Primitives and built-ins
+ * ## Built-in guards
  *
  * Guards for language-level values and host objects.
  *
@@ -39,7 +41,7 @@
  * isAsyncIterable(asyncGenerator()); // true
  * ```
  *
- * ## JSON values
+ * ## JSON guards
  *
  * Complete coverage of the JSON data model: the recursive {@link Value} type, its {@link Scalar} leaves,
  * and structural guards for arrays and objects. {@link isArray} and {@link isObject}
@@ -69,7 +71,7 @@
  * isObject({}, {}); // empty object check
  * ```
  *
- * ## Composable type guards
+ * ## Composable guards
  *
  * Higher-order guards that combine primitive ones into arbitrary type expressions:
  * {@link isLiteral} for literal and enum-like sets, {@link isOptional} for `T | undefined`,
@@ -104,6 +106,24 @@
  *
  * lazy(() => 42)(); // 42 (computed once, then memoised)
  * eager(() => 42); // 42 (resolved on every call)
+ * ```
+ *
+ * ## Diagnostics
+ *
+ * {@link assert} validates a value against an arbitrary predicate, returning it unchanged on success and throwing a
+ * `TypeError` otherwise, with a message derived from the predicate name or computed from the offending value;
+ * validation doesn't narrow, so values are returned at their declared type, whatever type the predicate tests for.
+ *
+ * {@link error} throws where a statement isn't allowed, turning a failure into an expression: `Error` causes are
+ * thrown as they are, anything else wrapped in a generic `Error` reporting its string representation.
+ *
+ * ```typescript
+ * assert(input, isString); // returns input, or throws TypeError("expected string")
+ * assert(data, isNumber, "count must be numeric"); // with a fixed message
+ * assert(value, v => v > 0, v => `expected positive port <${v}>`); // with a computed message
+ *
+ * const port = ports.get(name) ?? error("missing required port");
+ * const result = await task().catch(reason => error(reason)); // rethrow a reason of unknown type
  * ```
  *
  * @module index
@@ -774,4 +794,85 @@ export function eager<T>(value: Lazy<T>): T {
 
 	return value instanceof Function ? value() : value;
 
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Validates a value against a predicate and returns it.
+ *
+ * Applies the predicate to the value: if it passes, returns the value unchanged; otherwise, throws a `TypeError`. When
+ * no custom message is provided, derives a descriptive message from the predicate function name: names in `isXxx` form
+ * report the camel case suffix as separate lowercase words (for example, {@link isAsyncIterable} produces "expected
+ * async iterable"), while other names produce "assertion failed".
+ *
+ * The predicate may be declared over the type of the value or over any of its supertypes, so {@link Guard} functions
+ * accepting `unknown` are taken as is and the result keeps the declared type of the value, without widening it to the
+ * predicate parameter type. Validation doesn't narrow, though: a value declared as `unknown` is returned as `unknown`,
+ * whatever type the predicate checks for.
+ *
+ * @typeParam T The declared type of the value to validate
+ *
+ * @param value The value to validate
+ * @param predicate The predicate to apply to `value`, declared over its type or over any supertype of it
+ * @param message Optional custom error message, either a string or a factory computing it from the offending value;
+ * factories are evaluated only if `predicate` fails, so building expensive messages costs nothing on success; defaults
+ * to a message derived from the predicate function name
+ *
+ * @returns The `value` argument, unchanged
+ *
+ * @throws {TypeError} When `predicate` returns `false`
+ *
+ * @see {@link error} for throwing where a statement isn't allowed
+ */
+export function assert<T>(value: T, predicate: (value: T) => boolean, message?: string | ((value: T) => string)): T {
+
+	return predicate(value) ? value : error(new TypeError(
+		isString(message) ? message
+			: message !== undefined ? message(value)
+				: /^is\p{Uppercase}/u.test(predicate.name) ? `expected ${label(predicate.name.slice(2))}`
+					: "assertion failed"
+	));
+
+
+	function label(name: string): string {
+		return name
+			.replace(/(\p{Uppercase})(\p{Uppercase}\p{Lowercase})/gu, "$1 $2")
+			.replace(/(\p{Lowercase})(\p{Uppercase})/gu, "$1 $2")
+			.toLowerCase();
+	}
+
+}
+
+/**
+ * Throws an error in expression contexts.
+ *
+ * Reports a failure where a statement isn't allowed, for instance in a ternary branch, a nullish coalescing fallback,
+ * or the body of an arrow function; the call never returns and stands in for whatever type its position expects, so it
+ * composes with the surrounding expression without casts.
+ *
+ * `Error` causes are thrown as they are, preserving their type and stack trace; any other cause is wrapped in a
+ * generic `Error` reporting its string representation, so rejection reasons and other throwables of unknown type are
+ * surfaced as regular errors.
+ *
+ * @typeParam T The type the call stands in for at its use site; no value is ever returned
+ *
+ * @param cause The `Error` to throw, or the value to report as the message of a new generic `Error`
+ *
+ * @throws {Error} The `cause` argument, if it is an `Error`; otherwise a new `Error` reporting its string
+ * representation
+ *
+ * @example
+ *
+ * ```typescript
+ * const port = ports.get(name) ?? error(`missing port <${name}>`);
+ * const value = isValid(input) ? input : error(new RangeError("invalid input"));
+ * const result = await task().catch(reason => error(reason)); // rethrow a reason of unknown type
+ * ```
+ *
+ * @see {@link assert} for validating a value against a predicate, throwing a `TypeError` if it fails
+ */
+export function error<T>(cause: unknown): T {
+	throw isError(cause) ? cause : new Error(String(cause));
 }

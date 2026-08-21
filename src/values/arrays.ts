@@ -17,9 +17,6 @@
 /**
  * General-purpose array operations.
  *
- * Provides operations for normalising, deduplicating, and combining arrays, computing results without modifying their
- * arguments, so inputs may be shared freely across calls.
- *
  * **Normalising a Value to an Array**
  *
  * Coerce an optional or single-or-many value into an array for uniform iteration:

@@ -57,8 +57,7 @@
  */
 
 
-import { assert } from "../common/report.js";
-import { isString } from "../index.js";
+import { assert, isString } from "../index.js";
 
 
 /**

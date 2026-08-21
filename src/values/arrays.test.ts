@@ -16,7 +16,7 @@
 
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { intersection, some, union, unique } from "./arrays.js";
-import { equals } from "./deep.js";
+import { equals } from "./structures.js";
 
 
 describe("some()", () => {

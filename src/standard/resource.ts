@@ -31,34 +31,19 @@
  * if (isIRI(value)) {
  *   // value is typed as IRI
  * }
- * ```
  *
- * **Identifier Factories**
+ * // Variant-specific checks
  *
- * ```typescript
- * import { asIRI } from "@metreeca/core/resource";
- *
- * // Absolute identifiers
- *
- * const absolute = asIRI("http://example.org/resource", "absolute");
- *
- * // Relative references
- *
- * const relative = asIRI("../resource", "relative");
- *
- * // Root-relative (internal) paths
- *
- * const internal = asIRI("/resource", "internal");
- *
- * // Unicode in IRIs
- *
- * const unicode = asIRI("http://example.org/资源", "absolute");
+ * isIRI("http://example.org/resource", "absolute");   // true
+ * isIRI("/resource", "internal");                     // true
+ * isIRI("../resource", "relative");                   // true
+ * isIRI("http://example.org/资源", "absolute");        // true (Unicode allowed)
  * ```
  *
  * **Nesting Checks**
  *
  * ```typescript
- * import { asIRI, isNestedIRI } from "@metreeca/core/resource";
+ * import { isNestedIRI } from "@metreeca/core/resource";
  *
  * isNestedIRI("http://example.com/a/", "http://example.com/a/b");   // true
  * isNestedIRI("http://example.com/a/", "http://example.com/a/");    // true (self-nesting)
@@ -68,27 +53,27 @@
  * **Reference Operations**
  *
  * ```typescript
- * import { asIRI, getIRIBase, internalize, relativize, resolve } from "@metreeca/core/resource";
+ * import { getIRIBase, internalize, relativize, resolve } from "@metreeca/core/resource";
  *
- * const iri = asIRI("http://example.com/a/b/c", "absolute");
+ * const iri = "http://example.com/a/b/c";
  *
  * // Resolve relative references against base
  *
- * resolve(iri, asIRI("../d", "relative"));  // "http://example.com/a/d"
- * resolve(iri, asIRI("/d", "internal"));    // "http://example.com/d"
+ * resolve(iri, "../d");                        // "http://example.com/a/d"
+ * resolve(iri, "/d");                          // "http://example.com/d"
  *
  * // Convert absolute to root-relative (internal) path
  *
- * internalize(iri, asIRI("http://example.com/x/y", "absolute"));  // "/x/y"
+ * internalize(iri, "http://example.com/x/y");  // "/x/y"
  *
  * // Convert absolute to relative path
  *
- * relativize(iri, asIRI("http://example.com/a/d", "absolute"));   // "../d"
+ * relativize(iri, "http://example.com/a/d");   // "../d"
  *
  * // Extract the base identifier usable for reference resolution
  *
- * getIRIBase(iri);                                                // "http://example.com/"
- * getIRIBase(asIRI("/a/b", "internal"));                          // undefined
+ * getIRIBase(iri);                             // "http://example.com/"
+ * getIRIBase("/a/b");                          // undefined
  * ```
  *
  * **Namespace Objects**
@@ -132,8 +117,7 @@
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986.html RFC 3986 - Uniform Resource Identifiers (URIs)}
  */
 
-import { error } from "../common/report.js";
-import { isString } from "../index.js";
+import { error, isString } from "../index.js";
 
 
 /**
@@ -142,9 +126,13 @@ import { isString } from "../index.js";
 const SchemePattern = /^[a-z][a-z0-9+.-]*:/i;
 
 /**
- * Excluded characters per RFC 3987 § 2.2: control chars, whitespace, special chars
+ * Excluded characters per RFC 3987 § 2.2: control chars, whitespace, special chars, isolated surrogates
+ *
+ * The `ucschar` production skips the surrogate block U+D800-U+DFFF, so no conforming IRI holds one; under unicode
+ * matching a well-formed pair folds into the single supplementary code point it denotes, leaving the surrogate range
+ * to match unpaired code units only.
  */
-const ExcludedPattern = /[\x00-\x1F\x7F-\x9F\s<>"{}|\\^`]/;
+const ExcludedPattern = /[\x00-\x1F\x7F-\x9F\s<>"{}|\\^`\uD800-\uDFFF]/u;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -186,7 +174,7 @@ export const app = createNamespace("app:/#");
  * > [!WARNING]
  * > This is a type alias for documentation purposes only. Branding was considered but not adopted due to
  * > interoperability issues with tools relying on static code analysis. Values must be validated at runtime
- * > using {@link isIRI} or {@link asIRI}.
+ * > using {@link isIRI}.
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986.html RFC 3986 - URI Generic Syntax}
  * @see {@link https://www.rfc-editor.org/rfc/rfc3987.html#section-2.2 RFC 3987 § 2.2 - IRI Syntax}
@@ -273,10 +261,16 @@ export type Namespace<T extends readonly string[] = []> =
  * **Excluded characters** (per RFC 3987 § 2.2): Control characters (U+0000-U+001F, U+007F-U+009F),
  * whitespace, and `< > " { } | \ ^ `` ` (backtick)
  *
+ * **Ill-formed text**: Strings carrying an isolated UTF-16 surrogate are rejected in every variant: the `ucschar`
+ * production of RFC 3987 § 2.2 skips the surrogate block U+D800-U+DFFF, so no conforming IRI holds one, and encoding
+ * such a string to UTF-8, as percent-encoding requires, would substitute `U+FFFD` REPLACEMENT CHARACTER for the
+ * surrogate, yielding a different identifier
+ *
  * @param value The value to validate as an IRI
  * @param variant The identifier variant to validate against (default: `"relative"`)
  *
- * @returns `true` if the value is a string conforming to IRI syntax rules for the specified variant; `false` otherwise
+ * @returns `true` if the value is a well-formed string conforming to IRI syntax rules for the specified variant;
+ *   `false` otherwise
  *
  * @remarks
  *
@@ -285,42 +279,13 @@ export type Namespace<T extends readonly string[] = []> =
  *
  * @see {@link IRI}
  * @see {@link Variant}
+ * @see {@link https://www.rfc-editor.org/rfc/rfc3987.html#section-2.2 RFC 3987 § 2.2 - IRI Syntax}
  */
 export function isIRI(value: unknown, variant: Variant = "relative"): value is IRI {
 
 	return normalize(value, variant) !== undefined;
 
 }
-
-/**
- * Creates a validated IRI from a string.
- *
- * Validates IRIs according to RFC 3987, allowing Unicode characters.
- * For non-absolute variants, normalizes paths by removing `.` segments and resolving `..` segments.
- *
- * @param value The value to convert to an IRI
- * @param variant The identifier variant to validate against (default: `"relative"`)
- *
- * @returns The validated and normalized IRI
- *
- * @throws TypeError If the value is not a string
- * @throws RangeError If the value is not a valid IRI for the specified variant,
- *   or if `..` segments would climb above the root
- *
- * @see {@link isIRI} for validation rules
- * @see {@link IRI}
- * @see {@link Variant}
- */
-export function asIRI(value: string, variant: Variant = "relative"): IRI {
-
-	if ( !isString(value) ) {
-		throw new TypeError("expected string");
-	}
-
-	return normalize(value, variant) ?? invalid(value, variant);
-
-}
-
 
 /**
  * Checks if a parent identifier nests a child identifier.
@@ -331,8 +296,8 @@ export function asIRI(value: string, variant: Variant = "relative"): IRI {
  * `/a/bc`).
  *
  * Nesting is defined only for absolute hierarchical identifiers, that is a scheme followed by a root-relative path;
- * opaque, internal, and relative references are reported as not nesting. Query strings and fragments are ignored:
- * only the path component is compared.
+ * opaque, internal, and relative references are reported as not nesting, as are strings carrying an isolated UTF-16
+ * surrogate. Query strings and fragments are ignored: only the path component is compared.
  *
  * @param parent The potential parent identifier
  * @param child The potential child identifier
@@ -392,7 +357,8 @@ export function isNestedIRI(parent: string | IRI, child: string | IRI): boolean 
  * @param iri The hierarchical identifier to extract the base from
  *
  * @returns The base as a hierarchical identifier terminated by a trailing slash, or `undefined` if `iri` is not
- *   a valid hierarchical identifier (opaque URIs, internal paths, or relative references)
+ *   a valid hierarchical identifier (opaque URIs, internal paths, relative references, or strings carrying an
+ *   isolated UTF-16 surrogate)
  *
  * @see {@link resolve} for resolving references against a base identifier
  * @see {@link getNamespaceBase} for extracting the base identifier of a {@link Namespace}
@@ -439,6 +405,8 @@ export function getIRIBase(iri: string | IRI): undefined | IRI {
  *
  * @returns The resolved absolute identifier
  *
+ * @throws RangeError If `base` is not a valid absolute identifier or `reference` is not a valid relative reference,
+ *   for instance because it carries an isolated UTF-16 surrogate
  * @throws RangeError If the resolved path contains tree-climbing segments that would go above the root,
  *   or if a relative reference cannot be resolved against an opaque base
  *
@@ -475,6 +443,8 @@ export function resolve(base: string | IRI, reference: string | IRI): IRI {
  *
  * @returns A root-relative reference if same origin, or the normalized absolute reference otherwise
  *
+ * @throws RangeError If `base` is not a valid absolute identifier or `reference` is not a valid relative reference,
+ *   for instance because it carries an isolated UTF-16 surrogate
  * @throws RangeError If the resolved path contains tree-climbing segments that would go above the root
  */
 export function internalize(base: string | IRI, reference: string | IRI): IRI {
@@ -515,6 +485,8 @@ export function internalize(base: string | IRI, reference: string | IRI): IRI {
  *
  * @returns A relative reference from `base` to `reference`, or the normalized absolute reference if not relativizable
  *
+ * @throws RangeError If `base` is not a valid absolute identifier or `reference` is not a valid relative reference,
+ *   for instance because it carries an isolated UTF-16 surrogate
  * @throws RangeError If the resolved path contains tree-climbing segments that would go above the root
  */
 export function relativize(base: string | IRI, reference: string | IRI): IRI {
@@ -587,9 +559,10 @@ export function relativize(base: string | IRI, reference: string | IRI): IRI {
  *
  * @returns An immutable {@link Namespace} object with typed term properties
  *
- * @throws {RangeError} If the namespace is not a valid absolute IRI, or if any term produces an invalid IRI
- *   during initialisation. For open namespaces, also throws when accessing a term that produces an invalid IRI.
- *   For closed namespaces, also throws when accessing an unknown term name.
+ * @throws {RangeError} If the namespace is not a valid absolute IRI, for instance because it carries an isolated
+ *   UTF-16 surrogate, or if any term produces an invalid IRI during initialisation. For open namespaces, also throws
+ *   when accessing a term that produces an invalid IRI. For closed namespaces, also throws when accessing an unknown
+ *   term name.
  *
  * @remarks
  *
@@ -625,6 +598,17 @@ export function createNamespace<const T extends readonly string[]>(namespace: st
 		}
 
 	})) as Namespace<T>;
+
+
+	function asIRI(value: string, variant: Variant = "relative"): IRI {
+
+		if ( !isString(value) ) {
+			throw new TypeError("expected string");
+		}
+
+		return normalize(value, variant) ?? invalid(value, variant);
+
+	}
 
 }
 
@@ -687,7 +671,7 @@ export function getNamespaceBase(namespace: Namespace): undefined | IRI {
 /**
  * Validates and normalizes a reference.
  *
- * Performs syntax validation (string type, excluded characters), path normalization
+ * Performs syntax validation (string type, excluded characters, isolated surrogates), path normalization
  * per RFC 3986 § 5.2.4 (Remove Dot Segments), and variant-specific validation.
  *
  * @param value The value to validate and normalize

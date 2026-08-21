@@ -24,7 +24,7 @@ import {
 	domain,
 	entry,
 	fail,
-	format,
+	pattern,
 	gt,
 	gte,
 	integer,
@@ -130,36 +130,36 @@ describe("literal validators", () => {
 
 	});
 
-	describe("format", () => {
+	describe("pattern", () => {
 
 		it("accepts a matching value", async () => {
 
-			expect(format(/^\d+$/u)("123")).toBeUndefined();
+			expect(pattern(/^\d+$/u)("123")).toBeUndefined();
 
 		});
 
 		it("reads a string pattern as a regular expression source", async () => {
 
-			expect(format("^\\d+$")("123")).toBeUndefined();
-			expect(format("^\\d+$")("abc")).toEqual(message);
+			expect(pattern("^\\d+$")("123")).toBeUndefined();
+			expect(pattern("^\\d+$")("abc")).toEqual(message);
 
 		});
 
 		it("matches unanchored", async () => {
 
-			expect(format(/\d/u)("abc1def")).toBeUndefined();
+			expect(pattern(/\d/u)("abc1def")).toBeUndefined();
 
 		});
 
 		it("reports a non-matching value", async () => {
 
-			expect(format(/^\d+$/u)("abc")).toEqual(message);
+			expect(pattern(/^\d+$/u)("abc")).toEqual(message);
 
 		});
 
 		it("leaves an undefined pattern unconstrained", async () => {
 
-			expect(format(undefined)("anything")).toBeUndefined();
+			expect(pattern(undefined)("anything")).toBeUndefined();
 
 		});
 
@@ -419,7 +419,7 @@ describe("structural validators", () => {
 
 		it("applies an entry validator to every property as a name/value pair", async () => {
 
-			expect(object(entry([format(/^[^_]/u)]))({ _private: "a" })).toEqual([
+			expect(object(entry([pattern(/^[^_]/u)]))({ _private: "a" })).toEqual([
 				{ _private: message }
 			]);
 
@@ -447,7 +447,7 @@ describe("structural validators", () => {
 
 		it("keys the violations of both halves under the entry key", async () => {
 
-			expect(entry([format(/^[^_]/u), length(1, 3)])(["_bad", "far too long"])).toEqual([
+			expect(entry([pattern(/^[^_]/u), length(1, 3)])(["_bad", "far too long"])).toEqual([
 				{ _bad: messages }
 			]);
 
@@ -455,7 +455,7 @@ describe("structural validators", () => {
 
 		it("collects a facet contributed by both halves", async () => {
 
-			expect(entry([format(/^[^_]/u), format(/^\d+$/u)])(["_bad", "abc"])).toEqual([
+			expect(entry([pattern(/^[^_]/u), pattern(/^\d+$/u)])(["_bad", "abc"])).toEqual([
 				{ _bad: messages }
 			]);
 
@@ -464,7 +464,7 @@ describe("structural validators", () => {
 		it("leaves an omitted or disabled half unconstrained", async () => {
 
 			expect(entry([undefined, length(1, 3)])(["anything", "ab"])).toBeUndefined();
-			expect(entry([format(/^\w+$/u)])(["name", "anything at all"])).toBeUndefined();
+			expect(entry([pattern(/^\w+$/u)])(["name", "anything at all"])).toBeUndefined();
 
 		});
 
@@ -769,13 +769,13 @@ describe("combinators", () => {
 
 		it("passes when exactly one validator passes", async () => {
 
-			expect(one(format(/^\d+$/u), format(/^[a-z]+$/u))("123")).toBeUndefined();
+			expect(one(pattern(/^\d+$/u), pattern(/^[a-z]+$/u))("123")).toBeUndefined();
 
 		});
 
 		it("reports a message when no alternative matches", async () => {
 
-			expect(one(format(/^\d+$/u), format(/^[a-z]+$/u))("a1")).toEqual(message);
+			expect(one(pattern(/^\d+$/u), pattern(/^[a-z]+$/u))("a1")).toEqual(message);
 
 		});
 
@@ -787,7 +787,7 @@ describe("combinators", () => {
 
 		it("tells the two failure modes apart", async () => {
 
-			expect(one(format(/^\d+$/u), format(/^[a-z]+$/u))("a1"))
+			expect(one(pattern(/^\d+$/u), pattern(/^[a-z]+$/u))("a1"))
 				.not.toEqual(one(length(1, 5), length(1, 10))("abc"));
 
 		});
