@@ -17,7 +17,19 @@
 /**
  * Asynchronous coordination primitives.
  *
- * Provides utilities for coordinating concurrent operations and managing execution flow.
+ * Provides types and utilities for coordinating concurrent operations and managing execution flow.
+ *
+ * **Possibly Asynchronous Values**
+ *
+ * Accept values supplied either directly or as promises:
+ *
+ * ```typescript
+ * import type { Awaitable } from '@metreeca/core/async';
+ *
+ * async function label<T>(value: Awaitable<T>): Promise<string> {
+ *   return String(await value); // Handles plain values and promises alike
+ * }
+ * ```
  *
  * **Asynchronous Delays**
  *
@@ -85,7 +97,7 @@
  *
  * **Automatic Retry Logic**
  *
- * Combine throttling with intelligent retry behavior:
+ * Combine throttling with intelligent retry behaviour:
  *
  * ```typescript
  * const result = await throttle.retry(
@@ -108,3 +120,14 @@
 export * from "./sleep.js";
 export * from "./mutex.js";
 export * from "./throttle.js";
+
+
+/**
+ * A possibly asynchronous value.
+ *
+ * A value supplied either directly or as a promise, so that consumers await it uniformly without forcing every
+ * provider to be asynchronous; any thenable is accepted, not just a native `Promise`.
+ *
+ * @typeParam T The type of the supplied value
+ */
+export type Awaitable<T> = T | PromiseLike<T>

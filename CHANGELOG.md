@@ -44,6 +44,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `@metreeca/core/strings` module of general-purpose string operations, exposing the `Text`, `Markdown`, and `Resolver`
   types, the `text` and `markdown` content tags, and the `clip`, `tidy`, `split`, `fill`, `dedent`, `escape`,
   `isWellFormed`, and `toWellFormed` operations
+- `Awaitable<T>` type modelling a value supplied either directly or as a promise, exported from `@metreeca/core/async`
 
 ### Changed
 
