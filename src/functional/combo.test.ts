@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, expectTypeOf, it } from "vitest";
-import { fold, map } from "./combo.js";
+import { fold, map, pipe } from "./combo.js";
 
 
 describe("map()", () => {
@@ -88,6 +88,28 @@ describe("fold()", () => {
 			expectTypeOf(fold(2 as undefined | number, n => n*3)).toEqualTypeOf<undefined | number>();
 		});
 
+	});
+
+});
+
+describe("pipe()", () => {
+
+	it("should apply operators in sequence, feeding each with the result of the previous one", async () => {
+		expect(pipe<number>(n => n+1, n => n*2)(3)).toBe(8);
+	});
+
+	it("should return the value unchanged when no operators are provided", async () => {
+		const record = { id: 42 };
+		expect(pipe<typeof record>()(record)).toBe(record);
+	});
+
+	it("should return an operator reusable across values", async () => {
+		const increment = pipe<number>(n => n+1);
+		expect([increment(1), increment(2)]).toEqual([2, 3]);
+	});
+
+	it("should propagate errors thrown by an operator", async () => {
+		expect(() => pipe<number>(() => { throw new Error("boom"); }, n => n*2)(0)).toThrow("boom");
 	});
 
 });

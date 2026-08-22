@@ -18,7 +18,18 @@
  * General-purpose functional combinators.
  *
  * Provides composable combinators for writing logic in a clean functional style, letting a value be reshaped inline as
- * a single expression, avoiding intermediate variables and statement blocks.
+ * a single expression, avoiding intermediate variables and statement blocks. A shared vocabulary of function types
+ * declares the role each function an API accepts is expected to play, keeping signatures uniform across modules.
+ *
+ * **Declaring Function Roles**
+ *
+ * Describe the functions an API accepts by role, rather than by repeating inline signatures:
+ *
+ * ```typescript
+ * import { type Operator, type Predicate } from '@metreeca/core/combo';
+ *
+ * declare function clean<V>(values: readonly V[], keep: Predicate<V>, patch: Operator<V>): V[];
+ * ```
  *
  * **Transforming a Value**
  *
@@ -41,11 +52,71 @@
  * const label = fold(user, ({ first, last }) => `${first} ${last}`.trim(), () => "anonymous");
  * ```
  *
+ * **Composing Operators**
+ *
+ * Assemble a chain of same-type transformations into a single reusable operator:
+ *
+ * ```typescript
+ * import { pipe } from '@metreeca/core/combo';
+ *
+ * const normalize = pipe<string>(s => s.trim(), s => s.toLowerCase());
+ * ```
+ *
  * @module
  */
 
 import { isFunction } from "../index.js";
 
+
+/**
+ * A value or a function returning a value.
+ *
+ * Defers computation to the point of use, while still accepting a plain value when one is readily available.
+ *
+ * @typeParam V The type of the supplied value
+ */
+export type Supplier<V> = V | (() => V);
+
+/**
+ * A function reporting whether a value satisfies a condition.
+ *
+ * @typeParam V The type of the tested value
+ */
+export type Predicate<V> = (value: V) => boolean;
+
+/**
+ * A function mapping a value to a value of the same type.
+ *
+ * Chains with other operators through {@link pipe} into a single reusable transformation.
+ *
+ * @typeParam V The type of the transformed value
+ */
+export type Operator<V> = (value: V) => V;
+
+/**
+ * A function combining two values of the same type into one.
+ *
+ * @typeParam V The type of the combined values
+ */
+export type Combiner<V> = (x: V, y: V) => V;
+
+/**
+ * A function mapping a value to a result of a possibly different type.
+ *
+ * @typeParam V The type of the input value
+ * @typeParam R The type of the mapped result
+ */
+export type Mapper<V, R> = (value: V) => R;
+
+/**
+ * A function accepting a value without returning a result.
+ *
+ * @typeParam V The type of the consumed value
+ */
+export type Consumer<V> = (value: V) => void;
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Applies a transformation to a value.
@@ -61,7 +132,7 @@ import { isFunction } from "../index.js";
  *
  * @returns The result of applying `mapper` to `value`
  */
-export function map<V, R>(value: V, mapper: (value: V) => R): R {
+export function map<V, R>(value: V, mapper: Mapper<V, R>): R {
 
 	return mapper(value);
 
@@ -82,7 +153,7 @@ export function map<V, R>(value: V, mapper: (value: V) => R): R {
  *
  * @returns The result of `some` applied to `value` if defined; otherwise `undefined`
  */
-export function fold<V, R>(value: undefined | V, some: (value: V) => R): undefined | R;
+export function fold<V, R>(value: undefined | V, some: Mapper<V, R>): undefined | R;
 
 /**
  * Maps an optional value, falling back if it is undefined.
@@ -99,10 +170,34 @@ export function fold<V, R>(value: undefined | V, some: (value: V) => R): undefin
  *
  * @returns The result of `some` applied to `value` if defined; otherwise `none`, or its result if `none` is a function
  */
-export function fold<V, R>(value: undefined | V, some: (value: V) => R, none: R | (() => R)): R;
+export function fold<V, R>(value: undefined | V, some: Mapper<V, R>, none: Supplier<R>): R;
 
-export function fold<V, R>(value: undefined | V, some: (value: V) => R, none?: R | (() => R)): undefined | R {
+/**
+ * Maps an optional value, with an optional fallback for the undefined case.
+ */
+export function fold<V, R>(value: undefined | V, some: Mapper<V, R>, none?: Supplier<R>): undefined | R {
 
 	return value !== undefined ? some(value) : isFunction(none) ? none() : none;
+
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Composes operators into a single operator.
+ *
+ * Applies `operators` in sequence, feeding each with the result of the previous one, so a chain of transformations can
+ * be assembled once and reused as a single {@link Operator}.
+ *
+ * @typeParam V The type of the transformed value
+ *
+ * @param operators The operators to apply in sequence
+ *
+ * @returns An operator applying `operators` in sequence to its argument, returning it unchanged if `operators` is empty
+ */
+export function pipe<V>(...operators: readonly Operator<V>[]): Operator<V> {
+
+	return value => operators.reduce((current, operator) => operator(current), value);
 
 }
