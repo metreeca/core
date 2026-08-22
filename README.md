@@ -41,7 +41,7 @@ npm install @metreeca/core
 | [@metreeca/core/datatype][datatype]     | XSD 1.1 datatype identifiers            |
 | [@metreeca/core/language][language]     | BCP 47 tags and RFC 4647 basic ranges   |
 | [@metreeca/core/problem][problem]       | RFC 9457 problem details for HTTP APIs  |
-| [@metreeca/core/base64][base64]         | RFC 4648 URL-safe base64 codec          |
+| [@metreeca/core/base64][base64]         | RFC 4648 base64 encoders and decoders   |
 
 [core]: https://metreeca.github.io/core/modules.html
 

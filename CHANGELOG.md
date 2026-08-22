@@ -53,6 +53,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `isIRI` now rejects identifiers carrying isolated UTF-16 surrogates in every variant, and the operations built on it
   (`isNestedIRI`, `getIRIBase`, `resolve`, `internalize`, `relativize`, `createNamespace`) reject or throw accordingly
   (`@metreeca/core/resource`)
+- `encodeBase64` now encodes in the standard alphabet of RFC 4648 § 4, retaining the trailing `=` padding, and takes a
+  `url` flag selecting the URL-safe unpadded variant of RFC 4648 § 5 it previously applied unconditionally;
+  `decodeBase64` is unchanged, accepting either alphabet, padded or unpadded (`@metreeca/core/base64`)
 
 ### Removed
 

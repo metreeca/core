@@ -28,30 +28,46 @@ describe("base64", () => {
 
 		it.each([
 			["foo", "Zm9v"],
-			["hello", "aGVsbG8"]
+			["hello", "aGVsbG8="]
 		])("should encode ASCII input %s", async (plain, expected) => {
 			expect(encodeBase64(plain)).toBe(expected);
 		});
 
-		it("should strip trailing base64 padding", async () => {
-			// standard base64 would emit "Zg==" / "Zm8=" — URL-safe form drops "="
-			expect(encodeBase64("f")).toBe("Zg");
-			expect(encodeBase64("fo")).toBe("Zm8");
+		it("should preserve trailing base64 padding", async () => {
+			expect(encodeBase64("f")).toBe("Zg==");
+			expect(encodeBase64("fo")).toBe("Zm8=");
 		});
 
-		it("should replace + with - for URL safety", async () => {
+		it("should emit + from the standard alphabet", async () => {
 			// ">>>" → bytes 3e 3e 3e → standard base64 "Pj4+"
-			expect(encodeBase64(">>>")).toBe("Pj4-");
+			expect(encodeBase64(">>>")).toBe("Pj4+");
 		});
 
-		it("should replace / with _ for URL safety", async () => {
+		it("should emit / from the standard alphabet", async () => {
 			// "???" → bytes 3f 3f 3f → standard base64 "Pz8/"
-			expect(encodeBase64("???")).toBe("Pz8_");
+			expect(encodeBase64("???")).toBe("Pz8/");
 		});
 
 		it("should encode multi-byte UTF-8 characters", async () => {
 			// "日" → UTF-8 bytes e6 97 a5 → base64 "5pel"
 			expect(encodeBase64("日")).toBe("5pel");
+		});
+
+		describe("with url flag", () => {
+
+			it("should strip trailing base64 padding", async () => {
+				expect(encodeBase64("f", true)).toBe("Zg");
+				expect(encodeBase64("fo", true)).toBe("Zm8");
+			});
+
+			it("should replace + with - for URL safety", async () => {
+				expect(encodeBase64(">>>", true)).toBe("Pj4-");
+			});
+
+			it("should replace / with _ for URL safety", async () => {
+				expect(encodeBase64("???", true)).toBe("Pz8_");
+			});
+
 		});
 
 	});
@@ -77,6 +93,11 @@ describe("base64", () => {
 		it("should accept padded input", async () => {
 			expect(decodeBase64("Zg==")).toBe("f");
 			expect(decodeBase64("Zm8=")).toBe("fo");
+		});
+
+		it("should accept the standard + and / alphabet", async () => {
+			expect(decodeBase64("Pj4+")).toBe(">>>");
+			expect(decodeBase64("Pz8/")).toBe("???");
 		});
 
 		it("should translate - back to +", async () => {

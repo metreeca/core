@@ -15,21 +15,13 @@
  */
 
 /**
- * URL-safe base64 string codec.
- *
- * > [!NOTE]
- * > A native path via `Uint8Array.prototype.toBase64({ alphabet: "base64url", omitPadding: true })` and
- * > `Uint8Array.fromBase64(..., { alphabet: "base64url" })` covers this use case in one step and has been
- * > {@link https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/toBase64 Baseline}
- * > across evergreen browsers since September 2025 (Chrome 140, Firefox 133, Safari 18.2). On Node.js, however,
- * > V8 still gates it behind the experimental `--js-base-64` flag. This module will switch to the native path once
- * > Node exposes it unflagged; until then, it keeps delegating to `btoa` / `atob` for portable server-side support.
- *
- * Provides a symmetric encoder/decoder pair ({@link encodeBase64}, {@link decodeBase64}) for safely carrying arbitrary
- * Unicode text in URLs and `application/x-www-form-urlencoded` payloads. Wraps the standard
- * {@link https://developer.mozilla.org/docs/Web/API/Window/btoa `btoa`} /
+ * RFC 4648 base64 encoders and decoders
+  *
+ * Provides a symmetric encoder/decoder pair ({@link encodeBase64}, {@link decodeBase64}) for carrying arbitrary
+ * Unicode text as base64, either in the standard alphabet of RFC 4648 § 4 or in the URL-safe variant of RFC 4648 § 5.
+ * Wraps the standard {@link https://developer.mozilla.org/docs/Web/API/Window/btoa `btoa`} /
  * {@link https://developer.mozilla.org/docs/Web/API/Window/atob `atob`} primitives, addressing two limitations that
- * make them unsuitable on their own for URL-bound text:
+ * make them unsuitable on their own for Unicode and URL-bound text:
  *
  * - `btoa` / `atob` accept only binary (Latin-1) strings and throw on any code point above `0xFF`. The codec routes
  *   input through {@link https://developer.mozilla.org/docs/Web/API/TextEncoder `TextEncoder`} /
@@ -39,36 +31,51 @@
  *
  * - The standard base64 alphabet uses `+`, `/`, and `=`, all of which carry special meaning in URLs and
  *   `application/x-www-form-urlencoded` payloads (`+` is interpreted as space, `/` as a path separator, `=` as the
- *   key/value separator). The codec adopts the URL-safe variant of RFC 4648 § 5, mapping `+` / `/` to `-` / `_` on
- *   encode (and back on decode) and stripping the trailing `=` padding. Decoding accepts both padded and unpadded
- *   input.
+ *   key/value separator). {@link encodeBase64} accordingly takes a `url` flag selecting the URL-safe variant of
+ *   RFC 4648 § 5, which maps `+` / `/` to `-` / `_` and strips the trailing `=` padding. {@link decodeBase64} needs no
+ *   such flag: it accepts either alphabet, padded or unpadded.
  *
  * **Usage**
  *
  * ```typescript
  * import { encodeBase64, decodeBase64 } from "@metreeca/core/base64";
  *
- * encodeBase64("hello");    // "aGVsbG8" — trailing `=` padding stripped
- * encodeBase64(">>>");      // "Pj4-"    — standard `+` remapped to `-`
- * encodeBase64("???");      // "Pz8_"    — standard `/` remapped to `_`
- * encodeBase64("日");        // "5pel"    — multi-byte UTF-8
+ * encodeBase64("hello");       // "aGVsbG8=" — standard alphabet, `=` padding retained
+ * encodeBase64(">>>");         // "Pj4+"     — standard `+` retained
+ * encodeBase64("???");         // "Pz8/"     — standard `/` retained
+ * encodeBase64("日");           // "5pel"     — multi-byte UTF-8
  *
- * decodeBase64("aGVsbG8");  // "hello"   — unpadded input accepted
- * decodeBase64("aGVsbG8="); // "hello"   — padded input accepted
+ * encodeBase64("hello", true); // "aGVsbG8"  — URL-safe: trailing `=` padding stripped
+ * encodeBase64(">>>", true);   // "Pj4-"     — URL-safe: `+` remapped to `-`
+ * encodeBase64("???", true);   // "Pz8_"     — URL-safe: `/` remapped to `_`
+ *
+ * decodeBase64("aGVsbG8");     // "hello"    — unpadded input accepted
+ * decodeBase64("aGVsbG8=");    // "hello"    — padded input accepted
+ * decodeBase64("Pj4+");        // ">>>"      — standard alphabet accepted
+ * decodeBase64("Pj4-");        // ">>>"      — URL-safe alphabet accepted
  * ```
+ *
+ * > [!NOTE]
+ * > A native path via `Uint8Array.prototype.toBase64({ alphabet, omitPadding })` and
+ * > `Uint8Array.fromBase64(..., { alphabet })` covers this use case in one step and has been
+ * > {@link https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/toBase64 Baseline}
+ * > across evergreen browsers since September 2025 (Chrome 140, Firefox 133, Safari 18.2). On Node.js, however,
+ * > V8 still gates it behind the experimental `--js-base-64` flag. This module will switch to the native path once
+ * > Node exposes it unflagged; until then, it keeps delegating to `btoa` / `atob` for portable server-side support.
  *
  * @module
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc4648 RFC 4648 - The Base16, Base32, and Base64 Data Encodings}
+ * @see {@link https://www.rfc-editor.org/rfc/rfc4648#section-4 RFC 4648 § 4 - Base 64 Encoding}
  * @see {@link https://www.rfc-editor.org/rfc/rfc4648#section-5 RFC 4648 § 5 - Base 64 Encoding with URL and Filename Safe Alphabet}
  */
 
-
 /**
- * Encodes a string to URL-safe base64.
+ * Encodes a string to base64.
  *
- * Converts the input to UTF-8 bytes, applies standard base64 encoding, then substitutes `+` / `/` with `-` / `_` and
- * strips the trailing `=` padding.
+ * Converts the input to UTF-8 bytes and encodes them in the standard alphabet of RFC 4648 § 4, retaining the trailing
+ * `=` padding, or in the URL-safe variant of RFC 4648 § 5, substituting `+` / `/` with `-` / `_` and stripping the
+ * trailing `=` padding.
  *
  * > [!WARNING]
  * > Text carrying isolated UTF-16 surrogates doesn't survive the round trip: UTF-8 conversion replaces each one with
@@ -76,12 +83,15 @@
  * > with {@link strings!isWellFormed} or sanitise it with {@link strings!toWellFormed} where the distinction matters.
  *
  * @param plain The string to encode
+ * @param url Whether to encode using the URL-safe alphabet of RFC 4648 § 5 rather than the standard alphabet of
+ *     RFC 4648 § 4; defaults to `false`
  *
- * @returns The URL-safe base64 representation of `plain`, with every isolated surrogate encoded as `U+FFFD`
+ * @returns The base64 representation of `plain` in the selected alphabet, with every isolated surrogate encoded as
+ *     `U+FFFD`
  *
  * @see {@link decodeBase64}
  */
-export function encodeBase64(plain: string): string {
+export function encodeBase64(plain: string, url = false): string {
 
 	const bytes = new TextEncoder().encode(plain);
 
@@ -89,29 +99,39 @@ export function encodeBase64(plain: string): string {
 	// limit that `String.fromCharCode(...bytes)` hits on large inputs
 
 	const binary = Array.from(bytes, b => String.fromCharCode(b)).join("");
+	const base64 = btoa(binary);
 
-	return btoa(binary)
-		.replace(/\+/g, "-")
-		.replace(/\//g, "_")
-		.replace(/=+$/, "");
+	if (url) {
+
+		return base64
+			.replace(/\+/g, "-")
+			.replace(/\//g, "_")
+			.replace(/=+$/, "");
+
+	} else {
+
+		return base64;
+
+	}
 
 }
 
 /**
- * Decodes a URL-safe base64 string.
+ * Decodes a base64 string.
  *
- * Restores `+` / `/` in place of `-` / `_`, reattaches any missing `=` padding, then decodes the resulting bytes as
- * UTF-8. Both padded and unpadded input are accepted.
+ * Accepts input in either the standard alphabet of RFC 4648 § 4 or the URL-safe variant of RFC 4648 § 5, padded or
+ * unpadded, restoring `+` / `/` in place of `-` / `_` and reattaching any missing `=` padding before decoding the
+ * underlying bytes as UTF-8.
  *
  * > [!WARNING]
  * > Bytes that don't spell valid UTF-8 are not rejected: decoding replaces each malformed sequence with `U+FFFD`
  * > REPLACEMENT CHARACTER, so a truncated or corrupted payload yields text rather than an error.
  *
- * @param encoded The URL-safe base64-encoded string
+ * @param encoded The base64-encoded string, in either alphabet, padded or unpadded
  *
  * @returns The decoded UTF-8 string, with every malformed byte sequence replaced by `U+FFFD`
  *
- * @throws InvalidCharacterError If `encoded` contains characters outside the URL-safe base64 alphabet
+ * @throws InvalidCharacterError If `encoded` contains characters outside the standard and URL-safe base64 alphabets
  *
  * @see {@link encodeBase64}
  */
