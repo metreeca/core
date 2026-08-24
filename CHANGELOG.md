@@ -53,6 +53,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   exported from `@metreeca/core`
 - `isPrimitive` type guard for validating primitive values, rejecting objects and functions, exported from
   `@metreeca/core`
+- `Defined<V>` type stripping `undefined` from a type while retaining `null`, exported from `@metreeca/core`
 
 ### Changed
 
@@ -73,6 +74,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `createFetch` now assembles a client from a chain of middlewares layered over the standard `fetch` function, instead
   of wrapping a given base function; the previous behaviour of reporting failed exchanges as `Problem` rejections is
   provided by the `success` middleware (`@metreeca/core/fetch`)
+- `isDefined` is now a type guard narrowing its argument to `Defined<V>`, stripping `undefined` from its declared type,
+  instead of returning a plain `boolean`; the runtime check is unchanged (`@metreeca/core`)
 
 ### Removed
 

@@ -26,10 +26,13 @@
  *
  * ## Built-in guards
  *
- * Guards for language-level values and host objects.
+ * Guards for language-level values and host objects. {@link isDefined} pairs with the {@link Defined} type operator,
+ * stripping `undefined` from the type of the checked value while retaining `null`.
  *
  * ```typescript
  * isDefined("value"); // true
+ * isDefined(null); // true (only undefined is rejected)
+ * values.filter(isDefined); // (string | undefined)[] narrowed to string[]
  * isPrimitive("value"); // true (any non-object value)
  * isIdentifier("myVar"); // true (valid ECMAScript identifier)
  * isSymbol(Symbol("key")); // true
@@ -156,6 +159,21 @@ export const key: unique symbol = Symbol("*");
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * Defined value.
+ *
+ * Strips `undefined` from a type, leaving every other constituent in place: `null` is retained, as definedness is
+ * about assignment rather than emptiness.
+ *
+ * > [!WARNING]
+ * > `Defined<any>` resolves to `any` and admits `undefined` again.
+ *
+ * @typeParam V The type to strip `undefined` from, defaults to any value other than `undefined`
+ */
+export type Defined<V = null | {}> =
+	V & (null | {});
+
+
+/**
  * ECMAScript primitive value.
  *
  * A value that is not an object: `undefined`, `null`, a boolean, a number, a bigint, a string, or a symbol. Functions
@@ -176,7 +194,6 @@ export type Primitive =
 	| bigint
 	| string
 	| symbol;
-
 
 /**
  * ECMAScript Identifier.
@@ -309,13 +326,19 @@ export type Eager<T> =
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Checks if a value is not `undefined`.
+ * Checks if a value is {@link Defined}.
+ *
+ * Only `undefined` is rejected: `null` and falsy values such as `0`, `""`, and `false` are all defined. On success
+ * the value narrows to its declared type without `undefined`, so the guard doubles as a filtering predicate, as in
+ * `values.filter(isDefined)`.
+ *
+ * @typeParam V The declared type of the value to check
  *
  * @param value The value to check
  *
  * @returns True if the value is not `undefined`; false otherwise
  */
-export function isDefined(value: unknown): boolean {
+export function isDefined<V>(value: V): value is Defined<V> {
 	return value !== undefined;
 }
 
