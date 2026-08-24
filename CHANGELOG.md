@@ -45,6 +45,14 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   types, the `text` and `markdown` content tags, and the `clip`, `tidy`, `split`, `fill`, `dedent`, `escape`,
   `isWellFormed`, and `toWellFormed` operations
 - `Awaitable<T>` type modelling a value supplied either directly or as a promise, exported from `@metreeca/core/async`
+- `@metreeca/core/fetch` module of composable fetch middleware, exposing the `Fetch`, `Middleware`, and `Problem` types,
+  the `createFetch` assembler, and the `basic`, `bearer`, `headers`, `success`, `throttle`, and `transport` middlewares
+- `@metreeca/core/http` module of RFC 9110 status code constants, exposing the informational, successful, redirection,
+  client error, and server error codes as named values, for instance `OK`, `NotFound`, and `InternalServerError`
+- `Primitive` type modelling ECMAScript primitive values (`undefined`, `null`, boolean, number, bigint, string, symbol),
+  exported from `@metreeca/core`
+- `isPrimitive` type guard for validating primitive values, rejecting objects and functions, exported from
+  `@metreeca/core`
 
 ### Changed
 
@@ -61,6 +69,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `encodeBase64` now encodes in the standard alphabet of RFC 4648 § 4, retaining the trailing `=` padding, and takes a
   `url` flag selecting the URL-safe unpadded variant of RFC 4648 § 5 it previously applied unconditionally;
   `decodeBase64` is unchanged, accepting either alphabet, padded or unpadded (`@metreeca/core/base64`)
+- `Problem` and `createFetch` moved from `@metreeca/core/problem` to the new `@metreeca/core/fetch` module
+- `createFetch` now assembles a client from a chain of middlewares layered over the standard `fetch` function, instead
+  of wrapping a given base function; the previous behaviour of reporting failed exchanges as `Problem` rejections is
+  provided by the `success` middleware (`@metreeca/core/fetch`)
 
 ### Removed
 
@@ -68,6 +80,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `time` execution timing function (was exported from `@metreeca/core/report`)
 - `asIRI` validating factory; validate identifiers with `isIRI` instead (was exported from `@metreeca/core/resource`)
 - `DeepPartial` type (was exported from `@metreeca/core/deep`)
+- `@metreeca/core/problem` module (`Problem` and `createFetch` are now exported from `@metreeca/core/fetch`)
 
 ## [0.9.19](https://github.com/metreeca/core/compare/v0.9.18...v0.9.19) - 2026-06-20
 

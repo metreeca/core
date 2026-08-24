@@ -15,10 +15,11 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import { createFetch, type Problem } from "./problem.js";
+import { type Problem } from "./index.js";
+import { success } from "./success.js";
 
 
-describe("fetcher()", () => {
+describe("success()", () => {
 
 	describe("successful responses", () => {
 
@@ -30,7 +31,7 @@ describe("fetcher()", () => {
 			} as Response;
 
 			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
-			const guard = createFetch(mockFetch);
+			const guard = success()(mockFetch);
 
 			const result = await guard("https://api.example.com/data");
 
@@ -41,7 +42,7 @@ describe("fetcher()", () => {
 		it("should pass through init parameter to base fetch", async () => {
 			const mockResponse = { ok: true, status: 200 } as Response;
 			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
-			const guard = createFetch(mockFetch);
+			const guard = success()(mockFetch);
 
 			const init: RequestInit = { method: "POST", headers: { "Content-Type": "application/json" } };
 			await guard("https://api.example.com/data", init);
@@ -55,7 +56,7 @@ describe("fetcher()", () => {
 
 		it("should reject with Problem status 0 when fetch throws", async () => {
 			const mockFetch = vi.fn<typeof fetch>().mockRejectedValue(new Error("Network error"));
-			const guard = createFetch(mockFetch);
+			const guard = success()(mockFetch);
 
 			await expect(guard("https://api.example.com/data"))
 				.rejects
@@ -65,9 +66,37 @@ describe("fetcher()", () => {
 				});
 		});
 
+		it("should relay rejection values that are not Error instances", async () => {
+			const problem: Problem = { status: 404, detail: "Not Found" };
+
+			const mockFetch = vi.fn<typeof fetch>().mockRejectedValue(problem);
+			const guard = success()(mockFetch);
+
+			await expect(guard("https://api.example.com/data")).rejects.toBe(problem);
+		});
+
+		it("should leave problems raised by an inner layer untouched", async () => {
+			const mockResponse = new Response("Resource not found", {
+				status: 404,
+				statusText: "Not Found",
+				headers: { "Content-Type": "text/plain" }
+			});
+
+			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
+			const guard = success()(success()(mockFetch));
+
+			await expect(guard("https://api.example.com/data"))
+				.rejects
+				.toMatchObject({
+					status: 404,
+					detail: "Not Found",
+					report: "Resource not found"
+				});
+		});
+
 		it("should handle TypeError from fetch (e.g., CORS)", async () => {
 			const mockFetch = vi.fn<typeof fetch>().mockRejectedValue(new TypeError("Failed to fetch"));
-			const guard = createFetch(mockFetch);
+			const guard = success()(mockFetch);
 
 			await expect(guard("https://api.example.com/data"))
 				.rejects
@@ -93,7 +122,7 @@ describe("fetcher()", () => {
 			} as unknown as Response;
 
 			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
-			const guard = createFetch(mockFetch);
+			const guard = success()(mockFetch);
 
 			await expect(guard("https://api.example.com/missing"))
 				.rejects
@@ -116,7 +145,7 @@ describe("fetcher()", () => {
 			} as unknown as Response;
 
 			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
-			const guard = createFetch(mockFetch);
+			const guard = success()(mockFetch);
 
 			await expect(guard("https://api.example.com/data"))
 				.rejects
@@ -138,7 +167,7 @@ describe("fetcher()", () => {
 			} as unknown as Response;
 
 			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
-			const guard = createFetch(mockFetch);
+			const guard = success()(mockFetch);
 
 			await expect(guard("https://api.example.com/data"))
 				.rejects
@@ -168,7 +197,7 @@ describe("fetcher()", () => {
 			} as unknown as Response;
 
 			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
-			const guard = createFetch(mockFetch);
+			const guard = success()(mockFetch);
 
 			await expect(guard("https://api.example.com/data"))
 				.rejects
@@ -192,7 +221,7 @@ describe("fetcher()", () => {
 			} as unknown as Response;
 
 			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
-			const guard = createFetch(mockFetch);
+			const guard = success()(mockFetch);
 
 			await expect(guard("https://api.example.com/data"))
 				.rejects
@@ -215,7 +244,7 @@ describe("fetcher()", () => {
 			} as unknown as Response;
 
 			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
-			const guard = createFetch(mockFetch);
+			const guard = success()(mockFetch);
 
 			await expect(guard("https://api.example.com/data"))
 				.rejects
@@ -238,7 +267,7 @@ describe("fetcher()", () => {
 			} as unknown as Response;
 
 			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
-			const guard = createFetch(mockFetch);
+			const guard = success()(mockFetch);
 
 			await expect(guard("https://api.example.com/data"))
 				.rejects
@@ -260,7 +289,7 @@ describe("fetcher()", () => {
 			} as unknown as Response;
 
 			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
-			const guard = createFetch(mockFetch);
+			const guard = success()(mockFetch);
 
 			await expect(guard("https://api.example.com/data"))
 				.rejects
@@ -271,6 +300,29 @@ describe("fetcher()", () => {
 
 			const error: Problem = await guard("https://api.example.com/data").catch((e: unknown) => e as Problem);
 			expect(error.report).toBeUndefined();
+		});
+
+		it("should report a JSON body that structurally resembles a Problem", async () => {
+			const reportData = { status: 404, detail: "inner detail" };
+			const mockResponse = {
+				ok: false,
+				status: 500,
+				statusText: "Internal Server Error",
+				headers: {
+					get: vi.fn().mockReturnValue("application/json")
+				},
+				json: vi.fn().mockResolvedValue(reportData)
+			} as unknown as Response;
+
+			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
+			const guard = success()(mockFetch);
+
+			await expect(guard("https://api.example.com/data"))
+				.rejects
+				.toMatchObject({
+					status: 500,
+					report: reportData
+				});
 		});
 
 	});
@@ -288,7 +340,7 @@ describe("fetcher()", () => {
 			} as unknown as Response;
 
 			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
-			const guard = createFetch(mockFetch);
+			const guard = success()(mockFetch);
 
 			await expect(guard("https://api.example.com/data"))
 				.rejects
@@ -312,7 +364,7 @@ describe("fetcher()", () => {
 			} as unknown as Response;
 
 			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
-			const guard = createFetch(mockFetch);
+			const guard = success()(mockFetch);
 
 			await expect(guard("https://api.example.com/data"))
 				.rejects
@@ -336,7 +388,7 @@ describe("fetcher()", () => {
 			} as unknown as Response;
 
 			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
-			const guard = createFetch(mockFetch);
+			const guard = success()(mockFetch);
 
 			await expect(guard("https://api.example.com/data"))
 				.rejects
@@ -347,108 +399,6 @@ describe("fetcher()", () => {
 
 			const error: Problem = await guard("https://api.example.com/data").catch((e: unknown) => e as Problem);
 			expect(error.report).toBeUndefined();
-		});
-
-	});
-
-	describe("idempotent under composition", () => {
-
-		it("should return an already-guarded fetch unchanged", async () => {
-			const mockFetch = vi.fn<typeof fetch>();
-			const guard = createFetch(mockFetch);
-
-			expect(createFetch(guard)).toBe(guard);
-		});
-
-		it("should preserve fetch-exception Problem when double-wrapped", async () => {
-			const mockFetch = vi.fn<typeof fetch>().mockRejectedValue(new Error("Network error"));
-			const guard = createFetch(createFetch(mockFetch));
-
-			await expect(guard("https://api.example.com/data"))
-				.rejects
-				.toMatchObject({
-					status: 0,
-					detail: "fetch error <Error: Network error>"
-				});
-		});
-
-		it("should preserve non-ok text Problem when double-wrapped", async () => {
-			const mockResponse = {
-				ok: false,
-				status: 404,
-				statusText: "Not Found",
-				headers: {
-					get: vi.fn().mockReturnValue("text/plain")
-				},
-				text: vi.fn().mockResolvedValue("Resource not found")
-			} as unknown as Response;
-
-			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
-			const guard = createFetch(createFetch(mockFetch));
-
-			await expect(guard("https://api.example.com/missing"))
-				.rejects
-				.toMatchObject({
-					status: 404,
-					detail: "Not Found",
-					report: "Resource not found"
-				});
-		});
-
-		it("should preserve non-ok JSON report Problem when double-wrapped", async () => {
-			const reportData = { errors: ["field1", "field2"] };
-			const mockResponse = {
-				ok: false,
-				status: 422,
-				statusText: "Unprocessable Entity",
-				headers: {
-					get: vi.fn().mockReturnValue("application/json")
-				},
-				json: vi.fn().mockResolvedValue(reportData)
-			} as unknown as Response;
-
-			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
-			const guard = createFetch(createFetch(mockFetch));
-
-			await expect(guard("https://api.example.com/data"))
-				.rejects
-				.toMatchObject({
-					status: 422,
-					report: reportData
-				});
-		});
-
-		it("should resolve ok responses unchanged when double-wrapped", async () => {
-			const mockResponse = { ok: true, status: 200, statusText: "OK" } as Response;
-			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
-			const guard = createFetch(createFetch(mockFetch));
-
-			const result = await guard("https://api.example.com/data");
-
-			expect(result).toBe(mockResponse);
-		});
-
-		it("should not re-wrap a JSON report that structurally resembles a Problem", async () => {
-			const reportData = { status: 404, detail: "inner detail" };
-			const mockResponse = {
-				ok: false,
-				status: 500,
-				statusText: "Internal Server Error",
-				headers: {
-					get: vi.fn().mockReturnValue("application/json")
-				},
-				json: vi.fn().mockResolvedValue(reportData)
-			} as unknown as Response;
-
-			const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(mockResponse);
-			const guard = createFetch(createFetch(mockFetch));
-
-			await expect(guard("https://api.example.com/data"))
-				.rejects
-				.toMatchObject({
-					status: 500,
-					report: reportData
-				});
 		});
 
 	});

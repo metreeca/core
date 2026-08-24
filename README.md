@@ -28,8 +28,9 @@ npm install @metreeca/core
 | [@metreeca/core/arrays][arrays]         | General-purpose array operations        |
 | [@metreeca/core/structures][structures] | General-purpose structural operations   |
 | **Runtime Services**                    |                                         |
-| [@metreeca/core/scope][scope]           | Identity-keyed value allocation         |
 | [@metreeca/core/async][async]           | Asynchronous coordination primitives    |
+| [@metreeca/core/fetch][fetch]           | Composable fetch middleware             |
+| [@metreeca/core/scope][scope]           | Identity-keyed value allocation         |
 | **Functional Patterns**                 |                                         |
 | [@metreeca/core/combo][combo]           | General-purpose functional combinators  |
 | [@metreeca/core/order][order]           | Composable comparison functions         |
@@ -37,10 +38,10 @@ npm install @metreeca/core
 | [@metreeca/core/relay][relay]           | Type-safe discriminated union switching |
 | [@metreeca/core/state][state]           | Type-safe immutable state management    |
 | **Web Standards**                       |                                         |
+| [@metreeca/core/http][http]             | RFC 9110 HTTP status codes              |
 | [@metreeca/core/resource][resource]     | RFC 3987 resource identifiers           |
-| [@metreeca/core/datatype][datatype]     | XSD 1.1 datatype identifiers            |
 | [@metreeca/core/language][language]     | BCP 47 tags and RFC 4647 basic ranges   |
-| [@metreeca/core/problem][problem]       | RFC 9457 problem details for HTTP APIs  |
+| [@metreeca/core/datatype][datatype]     | XSD 1.1 datatype identifiers            |
 | [@metreeca/core/base64][base64]         | RFC 4648 base64 encoders and decoders   |
 
 [core]: https://metreeca.github.io/core/modules.html
@@ -51,9 +52,11 @@ npm install @metreeca/core
 
 [structures]: https://metreeca.github.io/core/modules/structures.html
 
-[scope]: https://metreeca.github.io/core/modules/scope.html
-
 [async]: https://metreeca.github.io/core/modules/async.html
+
+[fetch]: https://metreeca.github.io/core/modules/fetch.html
+
+[scope]: https://metreeca.github.io/core/modules/scope.html
 
 [combo]: https://metreeca.github.io/core/modules/combo.html
 
@@ -65,13 +68,13 @@ npm install @metreeca/core
 
 [state]: https://metreeca.github.io/core/modules/state.html
 
-[resource]: https://metreeca.github.io/core/modules/resource.html
+[http]: https://metreeca.github.io/core/modules/http.html
 
-[datatype]: https://metreeca.github.io/core/modules/datatype.html
+[resource]: https://metreeca.github.io/core/modules/resource.html
 
 [language]: https://metreeca.github.io/core/modules/language.html
 
-[problem]: https://metreeca.github.io/core/modules/problem.html
+[datatype]: https://metreeca.github.io/core/modules/datatype.html
 
 [base64]: https://metreeca.github.io/core/modules/base64.html
 

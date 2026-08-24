@@ -35,6 +35,7 @@ import {
 	isNumber,
 	isObject,
 	isOptional,
+	isPrimitive,
 	isPromise,
 	isRegExp,
 	isScalar,
@@ -65,6 +66,43 @@ describe("built-in guards", () => {
 			expect(isDefined(false)).toBeTruthy();
 			expect(isDefined({})).toBeTruthy();
 			expect(isDefined([])).toBeTruthy();
+		});
+
+	});
+
+	describe("isPrimitive()", () => {
+
+		it("should return true for primitive values", () => {
+			expect(isPrimitive(undefined)).toBeTruthy();
+			expect(isPrimitive(null)).toBeTruthy();
+			expect(isPrimitive(true)).toBeTruthy();
+			expect(isPrimitive(42)).toBeTruthy();
+			expect(isPrimitive(42n)).toBeTruthy();
+			expect(isPrimitive("value")).toBeTruthy();
+			expect(isPrimitive(Symbol("test"))).toBeTruthy();
+		});
+
+		it("should return true for non-finite numbers", () => {
+			expect(isPrimitive(NaN)).toBeTruthy();
+			expect(isPrimitive(Infinity)).toBeTruthy();
+		});
+
+		it("should return false for objects", () => {
+			expect(isPrimitive({})).toBeFalsy();
+			expect(isPrimitive([])).toBeFalsy();
+			expect(isPrimitive(new Date())).toBeFalsy();
+			expect(isPrimitive(new Map())).toBeFalsy();
+		});
+
+		it("should return false for wrapper objects", () => {
+			expect(isPrimitive(new Number(42))).toBeFalsy();
+			expect(isPrimitive(new String("value"))).toBeFalsy();
+			expect(isPrimitive(new Boolean(true))).toBeFalsy();
+		});
+
+		it("should return false for functions", () => {
+			expect(isPrimitive(() => {})).toBeFalsy();
+			expect(isPrimitive(class {})).toBeFalsy();
 		});
 
 	});

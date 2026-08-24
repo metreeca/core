@@ -30,6 +30,7 @@
  *
  * ```typescript
  * isDefined("value"); // true
+ * isPrimitive("value"); // true (any non-object value)
  * isIdentifier("myVar"); // true (valid ECMAScript identifier)
  * isSymbol(Symbol("key")); // true
  * isFunction(() => {}); // true
@@ -73,7 +74,7 @@
  *
  * ## Composable guards
  *
- * Higher-order guards that combine primitive ones into arbitrary type expressions:
+ * Higher-order guards that combine simpler ones into arbitrary type expressions:
  * {@link isLiteral} for literal and enum-like sets, {@link isOptional} for `T | undefined`,
  * {@link isUnion} for `A | B`, and {@link isIntersection} for `A & B`.
  * {@link isAny} acts as a wildcard that always succeeds, typically used as a placeholder
@@ -153,6 +154,29 @@ export const key: unique symbol = Symbol("*");
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * ECMAScript primitive value.
+ *
+ * A value that is not an object: `undefined`, `null`, a boolean, a number, a bigint, a string, or a symbol. Functions
+ * and wrapper instances such as `new String("value")` are objects and fall outside this type.
+ *
+ * Primitives are immutable and compared by value rather than by reference, so equality follows content: two
+ * independently built strings or numbers address the same `Map` or `Set` entry, where two structurally equal objects
+ * would count as distinct ones. Symbols, though primitive, are unique by construction, so only the very same symbol
+ * ever compares equal.
+ *
+ * @see [ECMAScript® 2024 - §6.1 Language Types](https://262.ecma-international.org/15.0/#sec-ecmascript-language-types)
+ */
+export type Primitive =
+	| undefined
+	| null
+	| boolean
+	| number
+	| bigint
+	| string
+	| symbol;
+
 
 /**
  * ECMAScript Identifier.
@@ -293,6 +317,20 @@ export type Eager<T> =
  */
 export function isDefined(value: unknown): boolean {
 	return value !== undefined;
+}
+
+/**
+ * Checks if a value is a {@link Primitive}.
+ *
+ * Objects are rejected whatever their shape, including functions and wrapper instances such as `new String("value")`.
+ *
+ * @param value The value to check
+ *
+ * @returns True if the value is `undefined`, `null`, a boolean, a number, a bigint, a string, or a symbol; false
+ *     otherwise
+ */
+export function isPrimitive(value: unknown): value is Primitive {
+	return value === null || (typeof value !== "object" && typeof value !== "function");
 }
 
 /**
