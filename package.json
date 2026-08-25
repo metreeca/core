@@ -32,7 +32,6 @@
     "./async": "./dist/runtime/async/index.js",
     "./fetch": "./dist/runtime/fetch/index.js",
     "./scope": "./dist/runtime/scope.js",
-    "./combo": "./dist/functional/combo.js",
     "./order": "./dist/functional/order.js",
     "./trace": "./dist/functional/trace.js",
     "./relay": "./dist/functional/relay.js",

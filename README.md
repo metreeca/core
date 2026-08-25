@@ -33,7 +33,6 @@ npm install @metreeca/core
 | [@metreeca/core/fetch][fetch]           | Composable fetch middleware             |
 | [@metreeca/core/scope][scope]           | Identity-keyed value allocation         |
 | **Functional Patterns**                 |                                         |
-| [@metreeca/core/combo][combo]           | General-purpose functional combinators  |
 | [@metreeca/core/order][order]           | Composable comparison functions         |
 | [@metreeca/core/trace][trace]           | Composable value validators             |
 | [@metreeca/core/relay][relay]           | Type-safe discriminated union switching |
@@ -60,8 +59,6 @@ npm install @metreeca/core
 [fetch]: https://metreeca.github.io/core/modules/fetch.html
 
 [scope]: https://metreeca.github.io/core/modules/scope.html
-
-[combo]: https://metreeca.github.io/core/modules/combo.html
 
 [order]: https://metreeca.github.io/core/modules/order.html
 
