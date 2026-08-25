@@ -54,6 +54,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `isPrimitive` type guard for validating primitive values, rejecting objects and functions, exported from
   `@metreeca/core`
 - `Defined<V>` type stripping `undefined` from a type while retaining `null`, exported from `@metreeca/core`
+- `@metreeca/core/numbers` module of general-purpose number operations, exposing the `add`, `sub`, `mul`, and `div`
+  operations, each preserving the numeric type, `number` or `bigint`, of the value it operates on, with `bigint`
+  quotients rounded to the nearest integer, halves away from zero
 
 ### Changed
 

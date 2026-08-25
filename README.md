@@ -25,6 +25,7 @@ npm install @metreeca/core
 | [@metreeca/core][core]                  | Core types, guards, and utilities       |
 | **Value Operations**                    |                                         |
 | [@metreeca/core/strings][strings]       | General-purpose string operations       |
+| [@metreeca/core/numbers][numbers]       | General-purpose number operations       |
 | [@metreeca/core/arrays][arrays]         | General-purpose array operations        |
 | [@metreeca/core/structures][structures] | General-purpose structural operations   |
 | **Runtime Services**                    |                                         |
@@ -47,6 +48,8 @@ npm install @metreeca/core
 [core]: https://metreeca.github.io/core/modules.html
 
 [strings]: https://metreeca.github.io/core/modules/strings.html
+
+[numbers]: https://metreeca.github.io/core/modules/numbers.html
 
 [arrays]: https://metreeca.github.io/core/modules/arrays.html
 

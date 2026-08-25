@@ -26,6 +26,7 @@
   "exports": {
     ".": "./dist/index.js",
     "./strings": "./dist/values/strings.js",
+    "./numbers": "./dist/values/numbers.js",
     "./arrays": "./dist/values/arrays.js",
     "./structures": "./dist/values/structures.js",
     "./async": "./dist/runtime/async/index.js",
