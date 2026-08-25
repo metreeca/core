@@ -17,14 +17,13 @@
 /**
  * Core types, guards, and utilities.
  *
- * Bridges the gap between TypeScript's static type system and untrusted runtime data.
- * Every guard returns a boolean and narrows its argument on success, so validation and
- * type inference collapse into a single call at API boundaries, deserialisation sites,
- * and other trust-crossing points. Companion utilities build on the same predicates,
- * deferring values to first use and failing with a diagnostic in expression contexts
- * where a statement isn't allowed.
+ * Bridges the gap between TypeScript's static type system and untrusted runtime data. Every guard returns a boolean
+ * and narrows its argument on success, so validation and type inference collapse into a single call at API boundaries,
+ * deserialisation sites, and other trust-crossing points. Companion utilities work along the same lines, deferring
+ * values to first use, lifting total mappers over missing arguments, and reporting failures where a statement isn't
+ * allowed.
  *
- * ## Built-in guards
+ * ## Built-in Guards
  *
  * Guards for language-level values and host objects. {@link isDefined} pairs with the {@link Defined} type operator,
  * stripping `undefined` from the type of the checked value while retaining `null`.
@@ -45,7 +44,7 @@
  * isAsyncIterable(asyncGenerator()); // true
  * ```
  *
- * ## JSON guards
+ * ## JSON Guards
  *
  * Complete coverage of the JSON data model: the recursive {@link Value} type, its {@link Scalar} leaves,
  * and structural guards for arrays and objects. {@link isArray} and {@link isObject}
@@ -75,7 +74,7 @@
  * isObject({}, {}); // empty object check
  * ```
  *
- * ## Composable guards
+ * ## Composable Guards
  *
  * Higher-order guards that combine simpler ones into arbitrary type expressions:
  * {@link isLiteral} for literal and enum-like sets, {@link isOptional} for `T | undefined`,
@@ -94,7 +93,7 @@
  * isIntersection({ a: 1 }, [isObject, v => isObject(v, { a: isNumber })]); // true (satisfies all)
  * ```
  *
- * ## Deferred values
+ * ## Deferred Values
  *
  * {@link isLazy} admits values supplied either eagerly or as no-arg factories;
  * {@link isEager} is its dual, rejecting factories and accepting only plain values.
@@ -112,7 +111,18 @@
  * eager(() => 42); // 42 (resolved on every call)
  * ```
  *
- * ## Diagnostics
+ * ## Functional Idioms
+ *
+ * {@link given} binds a value to a mapper of its own, so a computation reads as a scoped expression rather than as a
+ * temporary variable followed by a statement; a missing value short-circuits to `undefined` without calling the
+ * mapper, and the result type follows suit, staying defined for a value that can't be `undefined` in the first place.
+ *
+ * ```typescript
+ * given(8080)(port => `localhost:${port}`); // "localhost:8080"
+ * given(ports.get(name))(port => `localhost:${port}`); // string or undefined (the mapper is not called)
+ * ```
+ *
+ * ## Error Reporting
  *
  * {@link assert} validates a value against an arbitrary predicate, returning it unchanged on success and throwing a
  * `TypeError` otherwise, with a message derived from the predicate name or computed from the offending value;
@@ -353,7 +363,9 @@ export function isDefined<V>(value: V): value is Defined<V> {
  *     otherwise
  */
 export function isPrimitive(value: unknown): value is Primitive {
+
 	return value === null || (typeof value !== "object" && typeof value !== "function");
+
 }
 
 /**
@@ -364,7 +376,9 @@ export function isPrimitive(value: unknown): value is Primitive {
  * @returns True if the value is a valid ECMAScript IdentifierName; false otherwise
  */
 export function isIdentifier(value: unknown): value is Identifier {
+
 	return typeof value === "string" && IdentifierPattern.test(value);
+
 }
 
 /**
@@ -375,7 +389,9 @@ export function isIdentifier(value: unknown): value is Identifier {
  * @returns True if the value is a symbol; false otherwise
  */
 export function isSymbol(value: unknown): value is Symbol {
+
 	return typeof value === "symbol";
+
 }
 
 /**
@@ -386,7 +402,9 @@ export function isSymbol(value: unknown): value is Symbol {
  * @returns True if the value is a function; false otherwise
  */
 export function isFunction(value: unknown): value is Function {
+
 	return typeof value === "function";
+
 }
 
 /**
@@ -397,7 +415,9 @@ export function isFunction(value: unknown): value is Function {
  * @returns True if the value is an Error instance; false otherwise
  */
 export function isError(value: unknown): value is Error {
+
 	return value instanceof Error;
+
 }
 
 /**
@@ -408,7 +428,9 @@ export function isError(value: unknown): value is Error {
  * @returns True if the value is a RegExp instance; false otherwise
  */
 export function isRegExp(value: unknown): value is RegExp {
+
 	return value instanceof RegExp;
+
 }
 
 /**
@@ -419,7 +441,9 @@ export function isRegExp(value: unknown): value is RegExp {
  * @returns True if the value is a Date instance; false otherwise
  */
 export function isDate(value: unknown): value is Date {
+
 	return value instanceof Date;
+
 }
 
 /**
@@ -432,7 +456,9 @@ export function isDate(value: unknown): value is Date {
  * @returns True if the value is a thenable object (has a `then` method); false otherwise
  */
 export function isPromise<T = unknown>(value: unknown): value is Promise<T> {
+
 	return value != null && typeof value === "object" && "then" in value && isFunction(value.then);
+
 }
 
 /**
@@ -445,7 +471,9 @@ export function isPromise<T = unknown>(value: unknown): value is Promise<T> {
  * @returns True if the value implements the iterable protocol (has a `[Symbol.iterator]` method); false otherwise
  */
 export function isIterable<T = unknown>(value: unknown): value is Iterable<T> {
+
 	return value != null && isFunction((value as { [Symbol.iterator]?: unknown })[Symbol.iterator]);
+
 }
 
 /**
@@ -459,7 +487,9 @@ export function isIterable<T = unknown>(value: unknown): value is Iterable<T> {
  *     otherwise
  */
 export function isAsyncIterable<T = unknown>(value: unknown): value is AsyncIterable<T> {
+
 	return value != null && isFunction((value as { [Symbol.asyncIterator]?: unknown })[Symbol.asyncIterator]);
+
 }
 
 
@@ -861,6 +891,63 @@ export function eager<T>(value: Lazy<T>): T {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * Applies a mapper to a defined value.
+ *
+ * Binds a value to a mapper of its own, so a computation reads as a scoped expression rather than as a temporary
+ * variable followed by a statement. The value is known to be defined, so the mapper is always called and its result
+ * is reported unchanged.
+ *
+ * @typeParam V The type of the value to map, known to exclude `undefined`
+ *
+ * @param value The value to hand on to the mapper
+ *
+ * @returns A function reporting the value computed from `value` by its `mapper` argument; errors raised by the mapper
+ * propagate to the caller unchanged
+ *
+ * @example
+ *
+ * ```typescript
+ * given(8080)(port => `localhost:${port}`); // "localhost:8080"
+ * ```
+ */
+export function given<V extends Defined>(value: V): (<R>(mapper: (value: V) => R) => R);
+
+/**
+ * Applies a mapper to a possibly undefined value.
+ *
+ * Extends the mapper with a tolerance for undefined values: a defined value is handed on to it stripped of `undefined`,
+ * while an undefined one short-circuits to `undefined` without calling it, so an optional value flows through a chain
+ * of total functions without a guard at every step. Definedness is about assignment rather than emptiness, so `null`
+ * is mapped like any other value.
+ *
+ * @typeParam V The type of the value to map, possibly including `undefined`
+ *
+ * @param value The value to hand on to the mapper, if defined
+ *
+ * @returns A function reporting `undefined` if `value` is undefined, and the value computed by its `mapper` argument
+ * otherwise; errors raised by the mapper propagate to the caller unchanged
+ *
+ * @example
+ *
+ * ```typescript
+ * given(ports.get(name))(port => `localhost:${port}`); // string or undefined (the mapper is not called)
+ * ```
+ */
+export function given<V>(value: V): (<R>(mapper: (value: Defined<V>) => R) => undefined | R);
+
+/**
+ * Applies a mapper to a value, short-circuiting an undefined one.
+ */
+export function given<V>(value: V): (<R>(mapper: (value: Defined<V>) => R) => undefined | R) {
+
+	return mapper => isDefined(value) ? mapper(value) : undefined;
+
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
  * Validates a value against a predicate and returns it.
  *
  * Applies the predicate to the value: if it passes, returns the value unchanged; otherwise, throws a `TypeError`. When
@@ -935,5 +1022,7 @@ export function assert<T>(value: T, predicate: (value: T) => boolean, message?: 
  * @see {@link assert} for validating a value against a predicate, throwing a `TypeError` if it fails
  */
 export function error<T>(cause: unknown): T {
+
 	throw isError(cause) ? cause : new Error(String(cause));
+
 }

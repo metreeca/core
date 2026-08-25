@@ -57,6 +57,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `@metreeca/core/numbers` module of general-purpose number operations, exposing the `add`, `sub`, `mul`, and `div`
   operations, each preserving the numeric type, `number` or `bigint`, of the value it operates on, with `bigint`
   quotients rounded to the nearest integer, halves away from zero
+- `given` function for binding a value to a mapper of its own, short-circuiting an undefined value to `undefined`
+  without calling the mapper and reporting a defined result for a value that cannot be `undefined`, exported from
+  `@metreeca/core`
 
 ### Changed
 

@@ -15,7 +15,7 @@
  */
 
 import { describe, expectTypeOf, test } from "vitest";
-import { isDefined } from "./index.js";
+import { isDefined, given } from "./index.js";
 
 
 describe("built-in guards", () => {
@@ -57,6 +57,46 @@ describe("built-in guards", () => {
 			const values = [] as (string | undefined)[];
 
 			expectTypeOf(values.filter(isDefined)).toEqualTypeOf<string[]>();
+
+		});
+
+	});
+
+});
+
+describe("functional idioms", () => {
+
+	describe("given()", () => {
+
+		test("should report a defined result for a defined value", () => {
+
+			const value = "value" as string;
+
+			expectTypeOf(given(value)(mapped => mapped.length)).toEqualTypeOf<number>();
+
+		});
+
+		test("should report an optional result for an optional value", () => {
+
+			const value = undefined as string | undefined;
+
+			expectTypeOf(given(value)(mapped => mapped.length)).toEqualTypeOf<number | undefined>();
+
+		});
+
+		test("should report a defined result for a nullable value", () => {
+
+			const value = null as string | null;
+
+			expectTypeOf(given(value)(mapped => mapped)).toEqualTypeOf<string | null>();
+
+		});
+
+		test("should hand a defined value on to the mapper", () => {
+
+			const value = undefined as string | null | undefined;
+
+			given(value)(mapped => expectTypeOf(mapped).toEqualTypeOf<string | null>());
 
 		});
 

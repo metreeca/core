@@ -44,7 +44,8 @@ import {
 	isUnion,
 	isValue,
 	key,
-	lazy
+	lazy,
+	given
 } from "./index.js";
 
 
@@ -1171,7 +1172,46 @@ describe("deferred values", () => {
 
 });
 
-describe("diagnostics", () => {
+describe("functional idioms", () => {
+
+	describe("given()", () => {
+
+		it("should map a defined value", async () => {
+			expect(given("value")(value => value.toUpperCase())).toBe("VALUE");
+		});
+
+		it("should map null as any other defined value", async () => {
+			expect(given(null)(value => String(value))).toBe("null");
+		});
+
+		it("should report a missing value as undefined", async () => {
+
+			const upper = (value: undefined | string) => given(value)(defined => defined.toUpperCase());
+
+			expect(upper(undefined)).toBeUndefined();
+
+		});
+
+		it("should not call the mapper on a missing value", async () => {
+
+			const mapper = vi.fn((value: string) => value.toUpperCase());
+			const upper = (value: undefined | string) => given(value)(mapper);
+
+			upper(undefined);
+
+			expect(mapper).not.toHaveBeenCalled();
+
+		});
+
+		it("should propagate errors thrown by the mapper", async () => {
+			expect(() => given("value")(() => error(new RangeError("failed")))).toThrow(RangeError);
+		});
+
+	});
+
+});
+
+describe("error reporting", () => {
 
 	describe("assert()", () => {
 
