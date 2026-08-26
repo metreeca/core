@@ -37,8 +37,6 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   types, the `text` and `markdown` content tags, and the `clip`, `tidy`, `split`, `fill`, `dedent`, `escape`,
   `isWellFormed`, and `toWellFormed` operations
 - `Awaitable<T>` type modelling a value supplied either directly or as a promise, exported from `@metreeca/core/async`
-- `@metreeca/core/http` module of RFC 9110 status code constants, exposing the informational, successful, redirection,
-  client error, and server error codes as named values, for instance `OK`, `NotFound`, and `InternalServerError`
 - `Primitive` type modelling ECMAScript primitive values (`undefined`, `null`, boolean, number, bigint, string, symbol),
   exported from `@metreeca/core`
 - `isPrimitive` type guard for validating primitive values, rejecting objects and functions, exported from

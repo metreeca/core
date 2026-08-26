@@ -35,7 +35,6 @@
     "./trace": "./dist/functional/trace.js",
     "./relay": "./dist/functional/relay.js",
     "./state": "./dist/functional/state.js",
-    "./http": "./dist/standard/http.js",
     "./resource": "./dist/standard/resource.js",
     "./language": "./dist/standard/language.js",
     "./datatype": "./dist/standard/datatype.js",

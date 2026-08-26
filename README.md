@@ -37,7 +37,6 @@ npm install @metreeca/core
 | [@metreeca/core/relay][relay]           | Type-safe discriminated union switching |
 | [@metreeca/core/state][state]           | Type-safe immutable state management    |
 | **Web Standards**                       |                                         |
-| [@metreeca/core/http][http]             | RFC 9110 HTTP status codes              |
 | [@metreeca/core/resource][resource]     | RFC 3987 resource identifiers           |
 | [@metreeca/core/language][language]     | BCP 47 tags and RFC 4647 basic ranges   |
 | [@metreeca/core/datatype][datatype]     | XSD 1.1 datatype identifiers            |
@@ -64,8 +63,6 @@ npm install @metreeca/core
 [relay]: https://metreeca.github.io/core/modules/relay.html
 
 [state]: https://metreeca.github.io/core/modules/state.html
-
-[http]: https://metreeca.github.io/core/modules/http.html
 
 [resource]: https://metreeca.github.io/core/modules/resource.html
 
