@@ -30,7 +30,6 @@ npm install @metreeca/core
 | [@metreeca/core/structures][structures] | General-purpose structural operations   |
 | **Runtime Services**                    |                                         |
 | [@metreeca/core/async][async]           | Asynchronous execution utilities        |
-| [@metreeca/core/fetch][fetch]           | Composable fetch middleware             |
 | [@metreeca/core/scope][scope]           | Identity-keyed value allocation         |
 | **Functional Patterns**                 |                                         |
 | [@metreeca/core/order][order]           | Composable comparison functions         |
@@ -55,8 +54,6 @@ npm install @metreeca/core
 [structures]: https://metreeca.github.io/core/modules/structures.html
 
 [async]: https://metreeca.github.io/core/modules/async.html
-
-[fetch]: https://metreeca.github.io/core/modules/fetch.html
 
 [scope]: https://metreeca.github.io/core/modules/scope.html
 

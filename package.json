@@ -30,7 +30,6 @@
     "./arrays": "./dist/values/arrays.js",
     "./structures": "./dist/values/structures.js",
     "./async": "./dist/runtime/async/index.js",
-    "./fetch": "./dist/runtime/fetch/index.js",
     "./scope": "./dist/runtime/scope.js",
     "./order": "./dist/functional/order.js",
     "./trace": "./dist/functional/trace.js",
