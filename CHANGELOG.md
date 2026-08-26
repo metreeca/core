@@ -7,6 +7,14 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unpublished](https://github.com/metreeca/core/compare/v0.9.21...HEAD)
 
+### Added
+
+- `@metreeca/core/bucket` module for bulk content storage, exposing the `Bucket` keyed blob store contract, streaming
+  opaque byte values in and out one key at a time
+- `createMemoryBucket` function for building a `Bucket` holding values in the process heap, retaining them for the life
+  of the process, dropping them once an optional time to live elapses since their last use, or dropping the least
+  recently used ones beyond an optional byte budget, exported from `@metreeca/core/bucket`
+
 ## [0.9.21](https://github.com/metreeca/core/compare/v0.9.20...v0.9.21) - 2026-08-26
 
 ### Changed

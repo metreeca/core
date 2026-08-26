@@ -15,14 +15,14 @@
  */
 
 /**
- * Identity-keyed value allocation.
+ * Unique value allocation.
  *
- * Provides {@link Scope}, a counter that hands out unique sequential ids. Each id is cached against a
- * caller-supplied key, compared by reference identity, so repeated lookups of the same key resolve to
- * the same value without a string proxy.
+ * Provides {@link Scope}, a counter that hands out unique sequential ids. Each id is cached against a caller-supplied
+ * key, compared by reference identity, so repeated lookups of the same key resolve to the same value without a string
+ * proxy.
  *
- * By default {@link createScope} builds a scope handing out raw numeric ids; given a mapper, each id
- * is passed through it to produce the value returned instead.
+ * By default {@link createScope} builds a scope handing out raw numeric ids; given a mapper, each id is passed through
+ * it to produce the value returned instead.
  *
  * ```typescript
  * import { createScope } from '@metreeca/core/scope';
@@ -46,8 +46,8 @@
  * labels.resolve();     // "?v1"
  * ```
  *
- * Passing several keys forms a composite: the value is shared only when every component matches by
- * reference, in the same order.
+ * Passing several keys forms a composite: the value is shared only when every component matches by reference, in the
+ * same order.
  *
  * ```typescript
  * const edges = createScope();
@@ -66,19 +66,18 @@ import { immutable } from "../values/structures.js";
 
 
 /**
- * Identity-keyed value allocation scope.
+ * Unique value allocator.
  *
- * Hands out unique sequential ids, each returned as a value of type `T` derived from it and cached
- * against an optional composite key whose components are matched by reference identity
- * (`SameValueZero`). A keyed call returns the cached value on a repeat hit (the same reference when
- * `T` is an object); an unkeyed call always allocates a fresh anonymous id. Keyed and anonymous
- * allocations share one monotonic counter, so every id is unique within the scope.
+ * Hands out unique sequential ids, each returned as a value of type `T` derived from it and cached against an optional
+ * composite key whose components are matched by reference identity (`SameValueZero`). A keyed call returns the cached
+ * value on a repeat hit (the same reference when `T` is an object); an unkeyed call always allocates a fresh anonymous
+ * id. Keyed and anonymous allocations share one monotonic counter, so every id is unique within the scope.
  *
  * > [!IMPORTANT]
- * > Keys match component-wise by reference, not structure: two equal-looking object literals are unique keys.
- * > This is what keeps values consistent across **multi-pass** operations: every pass that revisits
- * > the same node resolves to the same value. Callers wanting coordinated values must thread the one
- * > node object through every pass, never rebuild an equal-looking key.
+ * > Keys match component-wise by reference, not structure: two equal-looking object literals are unique keys. This is
+ * > what keeps values consistent across **multi-pass** operations: every pass that revisits the same node resolves to
+ * > the same value. Callers wanting coordinated values must thread the one node object through every pass, never
+ * > rebuild an equal-looking key.
  *
  * @typeParam T The value handed out per allocation, derived from each numeric id; defaults to `number`
  */
@@ -87,13 +86,13 @@ export type Scope<T = number> = {
 	/**
 	 * Resolves the value bound to the given key, allocating it on first lookup.
 	 *
-	 * Several arguments form a composite key: the value is shared only when every component matches by
-	 * reference identity, in the same order. Omitting all arguments allocates a fresh anonymous value.
+	 * Several arguments form a composite key: the value is shared only when every component matches by reference
+	 * identity, in the same order. Omitting all arguments allocates a fresh anonymous value.
 	 *
 	 * @param keys Key components matched by reference identity; omit to allocate a fresh anonymous value
 	 *
-	 * @returns The value cached for `keys`, allocated on first lookup and returned unchanged thereafter;
-	 *          a freshly allocated value when no components are supplied
+	 * @returns The value cached for `keys`, allocated on first lookup and returned unchanged thereafter; a freshly
+	 *          allocated value when no components are supplied
 	 */
 	resolve(...keys: readonly unknown[]): T;
 
@@ -105,8 +104,7 @@ export type Scope<T = number> = {
 /**
  * Creates a new {@link Scope}.
  *
- * Ids start at `0` and increment monotonically, so all ids the scope hands out are pairwise
- * unique.
+ * Ids start at `0` and increment monotonically, so all ids the scope hands out are pairwise unique.
  *
  * @returns A fresh, immutable scope handing out numeric ids
  */
@@ -115,10 +113,9 @@ export function createScope(): Scope;
 /**
  * Creates a new {@link Scope} with mapped values.
  *
- * Ids start at `0` and increment monotonically, so all ids the scope hands out are pairwise
- * unique; each is passed through `mapper` to produce the value returned. `mapper` runs once per id
- * and its result is cached, so a repeat keyed lookup returns the same value (the same reference when
- * `mapper` produces objects) without re-invoking it.
+ * Ids start at `0` and increment monotonically, so all ids the scope hands out are pairwise unique; each is passed
+ * through `mapper` to produce the value returned. `mapper` runs once per id and its result is cached, so a repeat
+ * keyed lookup returns the same value (the same reference when `mapper` produces objects) without re-invoking it.
  *
  * @typeParam T The mapped value type
  *

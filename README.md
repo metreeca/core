@@ -30,7 +30,8 @@ npm install @metreeca/core
 | [@metreeca/core/structures][structures] | General-purpose structural operations   |
 | **Runtime Services**                    |                                         |
 | [@metreeca/core/async][async]           | Asynchronous execution utilities        |
-| [@metreeca/core/scope][scope]           | Identity-keyed value allocation         |
+| [@metreeca/core/scope][scope]           | Unique value allocation                 |
+| [@metreeca/core/bucket][bucket]         | Bulk content storage                    |
 | **Functional Patterns**                 |                                         |
 | [@metreeca/core/order][order]           | Composable comparison functions         |
 | [@metreeca/core/trace][trace]           | Composable value validators             |
@@ -55,6 +56,8 @@ npm install @metreeca/core
 [async]: https://metreeca.github.io/core/modules/async.html
 
 [scope]: https://metreeca.github.io/core/modules/scope.html
+
+[bucket]: https://metreeca.github.io/core/modules/bucket.html
 
 [order]: https://metreeca.github.io/core/modules/order.html
 
