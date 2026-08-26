@@ -15,9 +15,10 @@
  */
 
 /**
- * Asynchronous coordination primitives.
+ * Asynchronous execution utilities.
  *
- * Provides types and utilities for coordinating concurrent operations and managing execution flow.
+ * Provides types and utilities for accepting possibly asynchronous values, suspending execution for a given duration,
+ * and pacing tasks with adaptive rate limiting and retries.
  *
  * **Possibly Asynchronous Values**
  *
@@ -47,25 +48,6 @@
  *       await sleep(1000 * Math.pow(2, i)); // Exponential backoff: 1s, 2s, 4s
  *     }
  *   }
- * }
- * ```
- *
- * **Mutual Exclusion**
- *
- * Prevent race conditions in concurrent operations:
- *
- * ```typescript
- * import { createMutex, sleep } from '@metreeca/core/async';
- *
- * const mutex = createMutex();
- * let counter = 0;
- *
- * async function increment() {
- *   await mutex.execute(async () => {
- *     const current = counter;
- *     await sleep(10);              // Simulate async read
- *     counter = current + 1;        // Safe write - no race condition
- *   });
  * }
  * ```
  *
@@ -134,5 +116,4 @@ export type Awaitable<T> = T | PromiseLike<T>
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 export * from "./sleep.js";
-export * from "./mutex.js";
 export * from "./throttle.js";

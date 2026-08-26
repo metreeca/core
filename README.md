@@ -29,7 +29,7 @@ npm install @metreeca/core
 | [@metreeca/core/arrays][arrays]         | General-purpose array operations        |
 | [@metreeca/core/structures][structures] | General-purpose structural operations   |
 | **Runtime Services**                    |                                         |
-| [@metreeca/core/async][async]           | Asynchronous coordination primitives    |
+| [@metreeca/core/async][async]           | Asynchronous execution utilities        |
 | [@metreeca/core/fetch][fetch]           | Composable fetch middleware             |
 | [@metreeca/core/scope][scope]           | Identity-keyed value allocation         |
 | **Functional Patterns**                 |                                         |

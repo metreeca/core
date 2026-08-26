@@ -83,6 +83,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `asIRI` validating factory; validate identifiers with `isIRI` instead (was exported from `@metreeca/core/resource`)
 - `DeepPartial` type (was exported from `@metreeca/core/deep`)
 - `@metreeca/core/problem` module (`Problem` and `createFetch` are now exported from `@metreeca/core/fetch`)
+- `createMutex` factory and `Mutex` type; mutual exclusion is redundant for the synchronous critical sections of a
+  single-threaded event loop (were exported from `@metreeca/core/async`)
 
 ## [0.9.19](https://github.com/metreeca/core/compare/v0.9.18...v0.9.19) - 2026-06-20
 

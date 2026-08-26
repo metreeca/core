@@ -16,7 +16,6 @@
 
 
 import { isBoolean } from "../../index.js";
-import { createMutex } from "./mutex.js";
 import { sleep } from "./sleep.js";
 
 
@@ -237,14 +236,50 @@ export function createThrottle({
 	let fence = Date.now(); // the timestamp of the last task execution (ms since epoch)
 	let count = 0; // the number of active tasks
 
-	const mutex = createMutex();
-
-
 	/**
 	 * Clamps a value between a minimum and maximum.
 	 */
 	function clamp(value: number, min: number, max: number): number {
 		return Math.min(Math.max(value, min), max);
+	}
+
+	/**
+	 * Attempts to reserve an execution slot, respecting throttling constraints.
+	 *
+	 * While a failure is pending, admits at most one task at a time, until a task completes successfully.
+	 *
+	 * @param adapt Whether the reserved slot is to be counted as an active task
+	 *
+	 * @returns The time elapsed since the last execution, if a slot was reserved; the negative effective delay to be
+	 * waited for before retrying, otherwise
+	 */
+	function reserve(adapt: boolean): number {
+
+		const next = Date.now();
+		const wait = clamp(
+			Math.round(delay*Math.pow(buildup, count)),
+			minimum,
+			ceiling
+		);
+
+		if ( (dirty && count > 0) || fence+wait > next ) {
+
+			return -wait; // wait required (return negative effective delay)
+
+		} else {
+
+			const last = fence;
+
+			fence = next;
+
+			if ( adapt ) {
+				count++;
+			}
+
+			return next-last; // time elapsed since last execution
+
+		}
+
 	}
 
 
@@ -260,55 +295,32 @@ export function createThrottle({
 
 			// poll until permission granted, using adaptive intervals to reduce contention.
 
-			let result: number;
+			while ( true ) {
 
-			while ( (result = await mutex.execute(() => {
+				const result = reserve(adapt);
 
-				// attempt to reserve an execution slot, respecting throttling constraints.
-				// after failure, only allows one task at a time until success occurs.
+				if ( result >= 0 ) {
 
-				const next = Date.now();
-				const wait = clamp(
-					Math.round(delay*Math.pow(buildup, count)),
-					minimum,
-					ceiling
-				);
-
-				if ( (dirty && count > 0) || fence+wait > next ) {
-
-					return -wait; // wait required (return negative effective delay)
+					return adapting ? result : input;
 
 				} else {
 
-					const last = fence;
+					const effective = -result; // extract the effective delay from the negative result
 
-					fence = next;
+					// poll frequency scales with effective delay (10-20% with jitter to avoid thundering herd),
+					// minimizing CPU usage under heavy load or sustained failures.
 
-					if ( adapt ) {
-						count++;
-					}
+					const baseline = clamp(
+						Math.round(effective*(pollLower+Math.random()*(pollUpper-pollLower))),
+						minimum,
+						ceiling
+					);
 
-					return next-last; // Time elapsed since last execution
+					await sleep(baseline+Math.floor(Math.random()*baseline));
 
 				}
 
-			})) < 0 ) {
-
-				const effective = -result; // extract the effective delay from the negative result
-
-				// poll frequency scales with effective delay (10-20% with jitter to avoid thundering herd),
-				// minimizing mutex contention and CPU usage under heavy load or sustained failures.
-
-				const baseline = clamp(
-					Math.round(effective*(pollLower+Math.random()*(pollUpper-pollLower))),
-					minimum,
-					ceiling
-				);
-
-				await sleep(baseline+Math.floor(Math.random()*baseline));
 			}
-
-			return adapting ? result : input;
 
 		},
 
@@ -326,19 +338,15 @@ export function createThrottle({
 
 			// adapt throttling parameters based on task completion status
 
-			return mutex.execute(() => {
+			dirty = !completed;
+			count--;
 
-				dirty = !completed;
-				count--;
+			delay = Math.max(retry, completed
+				? Math.max(Math.round(delay*recover), minimum)
+				: Math.min(Math.round(delay*backoff), ceiling)
+			);
 
-				delay = Math.max(retry, completed
-					? Math.max(Math.round(delay*recover), minimum)
-					: Math.min(Math.round(delay*backoff), ceiling)
-				);
-
-				return delay;
-
-			});
+			return delay;
 
 		},
 
