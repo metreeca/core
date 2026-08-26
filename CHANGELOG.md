@@ -38,7 +38,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `isWellFormed`, and `toWellFormed` operations
 - `Awaitable<T>` type modelling a value supplied either directly or as a promise, exported from `@metreeca/core/async`
 - `@metreeca/core/fetch` module of composable fetch middleware, exposing the `Fetch`, `Middleware`, and `Problem` types,
-  the `createFetch` assembler, and the `basic`, `bearer`, `headers`, `success`, `throttle`, and `transport` middlewares
+  the `createFetch` assembler, and the `basic`, `bearer`, `headers`, `success`, `throttle`, `timeout`, and `transport`
+  middlewares
 - `@metreeca/core/http` module of RFC 9110 status code constants, exposing the informational, successful, redirection,
   client error, and server error codes as named values, for instance `OK`, `NotFound`, and `InternalServerError`
 - `Primitive` type modelling ECMAScript primitive values (`undefined`, `null`, boolean, number, bigint, string, symbol),

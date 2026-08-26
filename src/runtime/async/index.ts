@@ -117,10 +117,8 @@
  * @module
  */
 
-export * from "./sleep.js";
-export * from "./mutex.js";
-export * from "./throttle.js";
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * A possibly asynchronous value.
@@ -131,3 +129,10 @@ export * from "./throttle.js";
  * @typeParam T The type of the supplied value
  */
 export type Awaitable<T> = T | PromiseLike<T>
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export * from "./sleep.js";
+export * from "./mutex.js";
+export * from "./throttle.js";
