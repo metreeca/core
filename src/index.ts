@@ -169,6 +169,19 @@ export const key: unique symbol = Symbol("*");
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * Nullable value.
+ *
+ * Extends a type with the empty values `undefined` and `null`, as the converse of the built-in `NonNullable`: absence
+ * is accepted under either marker, so values are taken as they come, whichever convention their source follows.
+ *
+ * @typeParam V The type to extend with `undefined` and `null`
+ */
+export type Nullable<V> =
+	| undefined
+	| null
+	| V;
+
+/**
  * Defined value.
  *
  * Strips `undefined` from a type, leaving every other constituent in place: `null` is retained, as definedness is

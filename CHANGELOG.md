@@ -9,6 +9,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `Nullable<V>` type extending a type with the empty values `undefined` and `null`, as the converse of the built-in
+  `NonNullable`, exported from `@metreeca/core`
 - `@metreeca/core/bucket` module for bulk content storage, exposing the `Bucket` keyed blob store contract, streaming
   opaque byte values in and out one key at a time
 - `createMemoryBucket` function for building a `Bucket` holding values in the process heap, retaining them for the life
