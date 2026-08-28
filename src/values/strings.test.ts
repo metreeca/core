@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { clip, dedent, escape, fill, split, tidy, isWellFormed, toWellFormed } from "./strings.js";
+import { clip, dedent, escape, fill, glob, split, tidy, isWellFormed, toWellFormed } from "./strings.js";
 
 
 describe("clip()", () => {
@@ -694,6 +694,83 @@ describe("escape()", () => {
 
 		it("should return well-formed text", async () => {
 			expect(isWellFormed(escape("a\uD800b\uDE00c"))).toBe(true);
+		});
+
+	});
+
+});
+
+describe("glob()", () => {
+
+	describe("literal patterns", () => {
+
+		it("should match a wildcard-free pattern as it stands", async () => {
+			expect(glob("a/b.txt").test("a/b.txt")).toBeTruthy();
+			expect(glob("a/b.txt").test("a/bXtxt")).toBeFalsy();
+		});
+
+		it("should match the whole string", async () => {
+			expect(glob("a/b.txt").test("xa/b.txt")).toBeFalsy();
+			expect(glob("a/b.txt").test("a/b.txtx")).toBeFalsy();
+		});
+
+		it("should match an empty pattern against the empty string alone", async () => {
+			expect(glob("").test("")).toBeTruthy();
+			expect(glob("").test("a")).toBeFalsy();
+		});
+
+	});
+
+	describe("wildcards", () => {
+
+		it("should match any run of characters within a segment on a single star", async () => {
+			expect(glob("*.txt").test("one.txt")).toBeTruthy();
+			expect(glob("*.txt").test(".txt")).toBeTruthy(); // an empty run is a run
+			expect(glob("a/*/c").test("a/b/c")).toBeTruthy();
+		});
+
+		it("should stop a single star at segment boundaries", async () => {
+			expect(glob("*.txt").test("a/one.txt")).toBeFalsy();
+			expect(glob("a/*/c").test("a/b/x/c")).toBeFalsy();
+		});
+
+		it("should match any run of characters across segments on a double star", async () => {
+			expect(glob("**/c").test("a/b/c")).toBeTruthy();
+			expect(glob("**/c").test("/c")).toBeTruthy(); // an empty run is a run
+			expect(glob("a/**").test("a/b/c")).toBeTruthy();
+		});
+
+		it("should match line terminators on a double star", async () => {
+			expect(glob("**").test("a\nb")).toBeTruthy();
+		});
+
+		it("should match a single character within a segment on a question mark", async () => {
+			expect(glob("a?c").test("abc")).toBeTruthy();
+			expect(glob("?").test("😀")).toBeTruthy(); // a supplementary code point is one character
+		});
+
+		it("should stop a question mark at segment boundaries", async () => {
+			expect(glob("?").test("/")).toBeFalsy();
+			expect(glob("?").test("ab")).toBeFalsy();
+		});
+
+	});
+
+	describe("metacharacters", () => {
+
+		it("should match regular expression metacharacters literally", async () => {
+			expect(glob("a.b").test("a.b")).toBeTruthy();
+			expect(glob("a.b").test("axb")).toBeFalsy();
+			expect(glob("a+b").test("a+b")).toBeTruthy();
+			expect(glob("a+b").test("aab")).toBeFalsy();
+			expect(glob("(a|b)").test("(a|b)")).toBeTruthy();
+			expect(glob("(a|b)").test("a")).toBeFalsy();
+			expect(glob("[abc]").test("[abc]")).toBeTruthy();
+			expect(glob("[abc]").test("a")).toBeFalsy();
+			expect(glob("a{1,2}").test("a{1,2}")).toBeTruthy();
+			expect(glob("a{1,2}").test("aa")).toBeFalsy();
+			expect(glob("^a$").test("^a$")).toBeTruthy();
+			expect(glob("a\\b").test("a\\b")).toBeTruthy();
 		});
 
 	});

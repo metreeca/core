@@ -9,6 +9,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `glob` function for compiling a wildcard pattern over slash-separated names into an anchored regular expression,
+  taking `?` for a single character, `*` for a run within one segment and `**` for a run across segments, exported from
+  `@metreeca/core/strings`
 - `Nullable<V>` type extending a type with the empty values `undefined` and `null`, as the converse of the built-in
   `NonNullable`, exported from `@metreeca/core`
 - `@metreeca/core/bucket` module for bulk content storage, exposing the `Bucket` keyed blob store contract, streaming

@@ -128,6 +128,19 @@
  * escape("a<b", /[<>]/gu, { "<": "&lt;", ">": "&gt;" }); // the angle brackets take the supplied short forms
  * ```
  *
+ * **Matching Names Against Glob Patterns**
+ *
+ * Decide whether a slash-separated name matches a wildcard pattern, taking `?` for a single character, `*` for a run
+ * within one segment and `**` for a run across segments, with everything else read literally:
+ *
+ * ```typescript
+ * import { glob } from '@metreeca/core/strings';
+ *
+ * glob("*.txt").test("notes.txt");        // true
+ * glob("*.txt").test("docs/notes.txt");   // false
+ * glob("docs/**").test("docs/notes.txt"); // true
+ * ```
+ *
  * **Checking and Repairing UTF-16 Text**
  *
  * Report whether a string is well-formed UTF-16 text, free of the isolated surrogates that denote no Unicode
@@ -256,6 +269,7 @@ export function markdown(template: TemplateStringsArray, ...values: unknown[]): 
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 /**
  * Clips a string to a code point budget.
@@ -605,6 +619,38 @@ export function escape(
 	function hex(code: number, digits: number = 0): string {
 		return code.toString(16).toUpperCase().padStart(digits, "0");
 	}
+
+}
+
+
+/**
+ * Compiles a glob pattern into a matcher.
+ *
+ * Selects slash-separated names, such as paths or resource identifiers, by wildcard, sparing the caller the regular
+ * expression syntax the equivalent test would otherwise take.
+ *
+ * Wildcards stand for:
+ *
+ * - `?` — a single character other than `/`, a supplementary code point counting as one
+ * - `*` — any run of characters other than `/`, the empty run included
+ * - `**` — any run of characters, the empty run included, spanning segments and line terminators alike
+ *
+ * Every other character is matched as it stands, the characters regular expression syntax reserves included, so a
+ * pattern collected from user input carries no syntax beyond the wildcards.
+ *
+ * @param pattern The wildcard pattern describing the names to be accepted
+ *
+ * @returns A regular expression accepting the names `pattern` describes; matching is anchored at both ends, so a name
+ *     is accepted whole or not at all, and carries no state between calls, so the matcher may be freely reused
+ */
+export function glob(pattern: string): RegExp {
+
+	return new RegExp(`^${pattern.replace(/\*\*|[*?]|[.+^${}()|[\]\\]/g, token =>
+		token === "**" ? ".*"
+			: token === "*" ? "[^/]*"
+				: token === "?" ? "[^/]"
+					: `\\${token}`
+	)}$`, "su");
 
 }
 
