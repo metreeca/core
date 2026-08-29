@@ -17,8 +17,8 @@
 /**
  * Asynchronous execution utilities.
  *
- * Provides types and utilities for accepting possibly asynchronous values, suspending execution for a given duration,
- * and pacing tasks with adaptive rate limiting and retries.
+ * Provides types and utilities for accepting possibly asynchronous values and sequences, suspending execution for a
+ * given duration, and pacing tasks with adaptive rate limiting and retries.
  *
  * **Possibly Asynchronous Values**
  *
@@ -29,6 +29,18 @@
  *
  * async function label<T>(value: Awaitable<T>): Promise<string> {
  *   return String(await value); // Handles plain values and promises alike
+ * }
+ * ```
+ *
+ * **Possibly Asynchronous Sequences**
+ *
+ * Accept series of values supplied either synchronously or asynchronously:
+ *
+ * ```typescript
+ * import type { Awaitables } from '@metreeca/core/async';
+ *
+ * async function report<T>(values: Awaitables<T>): Promise<void> {
+ *   for await (const value of values) { console.log(String(value)); } // Handles arrays and async streams alike
  * }
  * ```
  *
@@ -110,7 +122,21 @@
  *
  * @typeParam T The type of the supplied value
  */
-export type Awaitable<T> = T | PromiseLike<T>
+export type Awaitable<T> =
+	| T
+	| PromiseLike<T>;
+
+/**
+ * A possibly asynchronous sequence of values.
+ *
+ * A series of values supplied either synchronously or asynchronously, so that consumers iterate it uniformly with
+ * `for await` without forcing every provider to be asynchronous.
+ *
+ * @typeParam T The type of the supplied values, defaults to any value
+ */
+export type Awaitables<T = unknown> =
+	| Iterable<T>
+	| AsyncIterable<T>;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -77,7 +77,7 @@
  * ## Composable Guards
  *
  * Higher-order guards that combine simpler ones into arbitrary type expressions:
- * {@link isLiteral} for literal and enum-like sets, {@link isOptional} for `T | undefined`,
+ * {@link isLiteral} for literal and enum-like sets, {@link isOptional} for {@link Optional} values,
  * {@link isUnion} for `A | B`, and {@link isIntersection} for `A & B`.
  * {@link isAny} acts as a wildcard that always succeeds, typically used as a placeholder
  * inside templates.
@@ -179,6 +179,18 @@ export const key: unique symbol = Symbol("*");
 export type Nullable<V> =
 	| undefined
 	| null
+	| V;
+
+/**
+ * Optional value.
+ *
+ * Extends a type with the empty value `undefined` alone, matching the absence reported by omitted properties and
+ * missing arguments: `null` remains a value in its own right, accepted only where `V` already admits it.
+ *
+ * @typeParam V The type to extend with `undefined`
+ */
+export type Optional<V> =
+	| undefined
 	| V;
 
 /**
@@ -362,7 +374,9 @@ export type Eager<T> =
  * @returns True if the value is not `undefined`; false otherwise
  */
 export function isDefined<V>(value: V): value is Defined<V> {
+
 	return value !== undefined;
+
 }
 
 /**
@@ -765,7 +779,11 @@ export function isLiteral<T extends boolean | number | string>(value: unknown, v
 }
 
 /**
- * Checks if a value is either `undefined` or satisfies a type guard.
+ * Checks if a value is {@link Optional}.
+ *
+ * Absence is accepted on its own: `undefined` passes without consulting the guard, while every other value, `null`
+ * included, must satisfy it. Suited to optional fields in {@link isObject} templates, where a missing property and a
+ * valid one are equally acceptable.
  *
  * @typeParam T The type validated by the type guard
  *
@@ -774,7 +792,7 @@ export function isLiteral<T extends boolean | number | string>(value: unknown, v
  *
  * @returns True if the value is `undefined` or satisfies the type guard; false otherwise
  */
-export function isOptional<T>(value: unknown, is: Guard<T>): value is undefined | T {
+export function isOptional<T>(value: unknown, is: Guard<T>): value is Optional<T> {
 
 	return value === undefined || is(value);
 

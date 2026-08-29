@@ -7,6 +7,13 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unpublished](https://github.com/metreeca/core/compare/v0.9.22...HEAD)
 
+### Added
+
+- `Optional<V>` type extending a type with the empty value `undefined` alone, leaving `null` out, exported from
+  `@metreeca/core`
+- `Awaitables<T>` type accepting a series of values supplied either synchronously or asynchronously, for uniform
+  consumption with `for await`, exported from `@metreeca/core/async`
+
 ## [0.9.22](https://github.com/metreeca/core/compare/v0.9.21...v0.9.22) - 2026-08-28
 
 ### Added
