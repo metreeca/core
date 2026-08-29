@@ -201,7 +201,7 @@
  */
 
 import { clip, escape } from "../values/strings.js";
-import { type Guard, given, isFunction, isNumber, isString, key, lazy } from "../index.js";
+import { type Guard, isFunction, isNumber, isString, key, lazy, opt } from "../index.js";
 
 
 const QuoteLength = 10;
@@ -380,7 +380,7 @@ export function length(min: undefined | number, max: undefined | number): Valida
  */
 export function pattern(pattern: undefined | string | RegExp): Validator<string> {
 
-	const regex = given(pattern)(p => isString(p) ? new RegExp(p) : p);
+	const regex = opt(pattern, p => isString(p) ? new RegExp(p) : p);
 
 	if ( regex !== undefined ) {
 
@@ -682,7 +682,7 @@ export function array<T>(
 
 		return values => merge(
 			$array(values),
-			...values.map((value, index) => given($elements(value))(trace => [{ [`${index}`]: trace }]))
+			...values.map((value, index) => opt($elements(value), trace => [{ [`${index}`]: trace }]))
 		);
 
 	} else if ( elements ) {
@@ -694,7 +694,7 @@ export function array<T>(
 		return values => merge(
 			$array(values),
 			...($elements.length === values.length
-				? values.map((value, index) => given($elements[index](value))(trace => [{ [`${index}`]: trace }]))
+				? values.map((value, index) => opt($elements[index](value), trace => [{ [`${index}`]: trace }]))
 				: [mismatched])
 		);
 
@@ -761,7 +761,7 @@ export function object<T>(
 			$object(record),
 
 			...[...new Set([...Object.keys($entries), ...Object.keys(record)])].map(name =>
-				given((name in $entries ? $entries[name] : $wildcard)(record[name]))(trace => [{ [name]: trace }])
+				opt((name in $entries ? $entries[name] : $wildcard)(record[name]), trace => [{ [name]: trace }])
 			)
 		);
 
@@ -802,7 +802,7 @@ export function entry<K, V>(
 	const $key = key || pass;
 	const $value = value || pass;
 
-	return ([k, v]) => given(merge($key(k), $value(v)))(
+	return ([k, v]) => opt(merge($key(k), $value(v)),
 		faults => [{ [`${k}`]: faults }]
 	);
 
@@ -1161,9 +1161,10 @@ export function type<T>(guard: Guard<T>, matched?: Validator<T>, unknown?: Valid
 
 	const $matched = matched ?? pass;
 
-	const $unknown = unknown ?? fail(given(/^is(\p{Lu}\p{L}*)$/u.exec(guard.name) ?? undefined)(
-		([, type]) => [`{type} expected <${TypeLabels[type] ?? type}> value`]
-	) ?? ["{type} unexpected value type"]);
+	const $unknown = unknown ?? fail(opt(/^is(\p{Lu}\p{L}*)$/u.exec(guard.name) ?? undefined,
+		([, type]) => [`{type} expected <${TypeLabels[type] ?? type}> value`],
+		["{type} unexpected value type"]
+	));
 
 	return value => guard(value) ? $matched(value) : $unknown(value);
 
@@ -1190,11 +1191,11 @@ function merge(...traces: readonly (undefined | Trace)[]): undefined | Trace {
 	const messages = [...new Set(items.filter(isString))];
 	const entries = items.flatMap(item => isString(item) ? [] : Object.entries(item));
 
-	const grouped = [...new Set(entries.map(([name]) => name))].reduce((groups, name) => given(
-		merge(...entries.filter(([key]) => key === name).map(([, trace]) => trace))
-	)(
-		trace => ({ ...groups, [name]: trace })
-	) ?? groups, {});
+	const grouped = [...new Set(entries.map(([name]) => name))].reduce((groups, name) => opt(
+		merge(...entries.filter(([key]) => key === name).map(([, trace]) => trace)),
+		trace => ({ ...groups, [name]: trace }),
+		groups
+	), {});
 
 	const trace = [...messages, ...(Object.keys(grouped).length > 0 ? [grouped] : [])];
 

@@ -20,8 +20,8 @@
  * Bridges the gap between TypeScript's static type system and untrusted runtime data. Every guard returns a boolean
  * and narrows its argument on success, so validation and type inference collapse into a single call at API boundaries,
  * deserialisation sites, and other trust-crossing points. Companion utilities work along the same lines, deferring
- * values to first use, lifting total mappers over missing arguments, and reporting failures where a statement isn't
- * allowed.
+ * values to first use, binding a value to a mapper of its own with or without a tolerance for its absence, and
+ * reporting failures where a statement isn't allowed.
  *
  * ## Built-in Guards
  *
@@ -111,17 +111,6 @@
  * eager(() => 42); // 42 (resolved on every call)
  * ```
  *
- * ## Functional Idioms
- *
- * {@link given} binds a value to a mapper of its own, so a computation reads as a scoped expression rather than as a
- * temporary variable followed by a statement; a missing value short-circuits to `undefined` without calling the
- * mapper, and the result type follows suit, staying defined for a value that can't be `undefined` in the first place.
- *
- * ```typescript
- * given(8080)(port => `localhost:${port}`); // "localhost:8080"
- * given(ports.get(name))(port => `localhost:${port}`); // string or undefined (the mapper is not called)
- * ```
- *
  * ## Error Reporting
  *
  * {@link assert} validates a value against an arbitrary predicate, returning it unchanged on success and throwing a
@@ -138,6 +127,23 @@
  *
  * const port = ports.get(name) ?? error("missing required port");
  * const result = await task().catch(reason => error(reason)); // rethrow a reason of unknown type
+ * ```
+ *
+ * ## Functional Idioms
+ *
+ * Bind a value to a mapper of its own, so a computation reads as a scoped expression rather than as a temporary
+ * variable followed by a statement, with the bound name free to shadow the one the value was computed from.
+ * {@link map} always calls the mapper, whatever the value; {@link opt} extends the same mapper with a tolerance for a
+ * missing value, short-circuiting to `undefined` without calling it, or to a fallback of its own, supplied either
+ * outright or deferred until the value actually turns out to be missing. Definedness is about assignment rather than
+ * emptiness, so `null` is mapped like any other value.
+ *
+ * ```typescript
+ * map(8080, port => `localhost:${port}`); // "localhost:8080"
+ *
+ * opt(ports.get(name), port => `localhost:${port}`); // string or undefined (the mapper is not called)
+ * opt(ports.get(name), port => `localhost:${port}`, "localhost:80"); // string
+ * opt(ports.get(name), port => `localhost:${port}`, () => probe()); // string (probed only if the port is missing)
  * ```
  *
  * @module index
@@ -922,63 +928,6 @@ export function eager<T>(value: Lazy<T>): T {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Applies a mapper to a defined value.
- *
- * Binds a value to a mapper of its own, so a computation reads as a scoped expression rather than as a temporary
- * variable followed by a statement. The value is known to be defined, so the mapper is always called and its result
- * is reported unchanged.
- *
- * @typeParam V The type of the value to map, known to exclude `undefined`
- *
- * @param value The value to hand on to the mapper
- *
- * @returns A function reporting the value computed from `value` by its `mapper` argument; errors raised by the mapper
- * propagate to the caller unchanged
- *
- * @example
- *
- * ```typescript
- * given(8080)(port => `localhost:${port}`); // "localhost:8080"
- * ```
- */
-export function given<V extends Defined>(value: V): (<R>(mapper: (value: V) => R) => R);
-
-/**
- * Applies a mapper to a possibly undefined value.
- *
- * Extends the mapper with a tolerance for undefined values: a defined value is handed on to it stripped of `undefined`,
- * while an undefined one short-circuits to `undefined` without calling it, so an optional value flows through a chain
- * of total functions without a guard at every step. Definedness is about assignment rather than emptiness, so `null`
- * is mapped like any other value.
- *
- * @typeParam V The type of the value to map, possibly including `undefined`
- *
- * @param value The value to hand on to the mapper, if defined
- *
- * @returns A function reporting `undefined` if `value` is undefined, and the value computed by its `mapper` argument
- * otherwise; errors raised by the mapper propagate to the caller unchanged
- *
- * @example
- *
- * ```typescript
- * given(ports.get(name))(port => `localhost:${port}`); // string or undefined (the mapper is not called)
- * ```
- */
-export function given<V>(value: V): (<R>(mapper: (value: Defined<V>) => R) => undefined | R);
-
-/**
- * Applies a mapper to a value, short-circuiting an undefined one.
- */
-export function given<V>(value: V): (<R>(mapper: (value: Defined<V>) => R) => undefined | R) {
-
-	return mapper => isDefined(value) ? mapper(value) : undefined;
-
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
  * Validates a value against a predicate and returns it.
  *
  * Applies the predicate to the value: if it passes, returns the value unchanged; otherwise, throws a `TypeError`. When
@@ -1055,5 +1004,110 @@ export function assert<T>(value: T, predicate: (value: T) => boolean, message?: 
 export function error<T>(cause: unknown): T {
 
 	throw isError(cause) ? cause : new Error(String(cause));
+
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Applies a mapper to a value.
+ *
+ * Names an intermediate value inside the expression that consumes it, so a computation stays a single expression
+ * instead of splitting into a temporary variable and a statement, and the name is free to shadow the one the value was
+ * computed from, putting the raw value out of reach for the rest of the mapper.
+ *
+ * The mapper is always called and its result reported unchanged, whatever the value: an undefined value is handed on
+ * like any other, so reach for {@link opt} where it is to bypass the mapper instead.
+ *
+ * @typeParam V The type of the value to map
+ * @typeParam R The type of the value reported by `mapper`
+ *
+ * @param value The value to hand on to `mapper`
+ * @param mapper The mapper to apply to `value`
+ *
+ * @returns The value computed from `value` by `mapper`; errors raised by `mapper` propagate to the caller unchanged
+ *
+ * @example
+ *
+ * ```typescript
+ * function label(...tags: string[]): string { // the raw tags are unreachable past the mapper
+ *     return map(tags.filter(tag => tag !== ""), tags => tags.length === 0 ? "untagged" : tags.join(", "));
+ * }
+ * ```
+ */
+export function map<V, R>(value: V, mapper: (value: V) => R): R {
+
+	return mapper(value);
+
+}
+
+
+/**
+ * Applies a mapper to an optional value.
+ *
+ * Extends a mapper with a tolerance for undefined values: a defined value is handed on to it stripped of `undefined`,
+ * while an undefined one short-circuits to `undefined` without calling it, so an optional value flows through a chain
+ * of total functions without a guard at every step.
+ *
+ * Unlike optional chaining, this covers an arbitrary mapper rather than property access alone, and short-circuits on
+ * `undefined` alone: definedness is about assignment rather than emptiness, so `null` is mapped like any other value.
+ *
+ * @typeParam V The type of the value to map, possibly including `undefined`
+ * @typeParam R The type of the value reported by `mapper`
+ *
+ * @param value The value to hand on to `mapper`, if defined
+ * @param mapper The mapper to apply to `value`, if defined
+ *
+ * @returns `undefined` if `value` is undefined, and the value computed from `value` by `mapper` otherwise; errors
+ * raised by `mapper` propagate to the caller unchanged
+ *
+ * @example
+ *
+ * ```typescript
+ * opt(ports.get(name), port => `localhost:${port}`); // string or undefined (the mapper is not called)
+ * ```
+ */
+export function opt<V, R>(value: V, mapper: (value: Defined<V>) => R): Optional<R>;
+
+/**
+ * Applies a mapper to an optional value, falling back to a default.
+ *
+ * Closes the undefined case with a value of its own, so the result is defined whatever the input: a defined value is
+ * mapped as above, while an undefined one reports `fallback` without calling the mapper. This states a total
+ * computation in one call, where the two-argument form would leave the caller to close the gap with `??`.
+ *
+ * The fallback may be deferred as a no-arg function, matching the short-circuiting `??` supplies: a deferred fallback
+ * is resolved only if the value is actually undefined, so a costly default is not computed on the mapped path.
+ *
+ * > [!IMPORTANT]
+ * > A fallback supplied as a function is always taken as a deferred one. Where `R` is itself a function type, wrap the
+ * > default in a thunk reporting it (`() => fallback`), or it is called instead of being reported.
+ *
+ * @typeParam V The type of the value to map, possibly including `undefined`
+ * @typeParam R The type of the value reported by `mapper` and of the fallback
+ *
+ * @param value The value to hand on to `mapper`, if defined
+ * @param mapper The mapper to apply to `value`, if defined
+ * @param fallback The value reported if `value` is undefined, either outright or as a function computing it on demand
+ *
+ * @returns The value computed from `value` by `mapper` if `value` is defined, and `fallback` otherwise; errors raised
+ * by `mapper` or by a deferred `fallback` propagate to the caller unchanged
+ *
+ * @example
+ *
+ * ```typescript
+ * opt(ports.get(name), port => `localhost:${port}`, "localhost:80"); // string
+ * opt(ports.get(name), port => `localhost:${port}`, () => probe()); // string (probed only if the port is missing)
+ * ```
+ */
+export function opt<V, R>(value: V, mapper: (value: Defined<V>) => R, fallback: Lazy<R>): R;
+
+/**
+ * Applies a mapper to an optional value, short-circuiting an undefined one.
+ */
+export function opt<V, R>(value: V, mapper: (value: Defined<V>) => R, fallback?: Lazy<R>): Optional<R> {
+
+	return isDefined(value) ? mapper(value) : eager(fallback);
 
 }

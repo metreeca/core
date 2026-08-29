@@ -13,6 +13,16 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `@metreeca/core`
 - `Awaitables<T>` type accepting a series of values supplied either synchronously or asynchronously, for uniform
   consumption with `for await`, exported from `@metreeca/core/async`
+- `map` function for binding a value to a mapper of its own, always calling it and reporting its result unchanged,
+  exported from `@metreeca/core`
+- `opt` function for binding an optional value to a mapper of its own, short-circuiting an undefined value to
+  `undefined` without calling the mapper, or to a fallback supplied either outright or deferred until the value turns
+  out to be missing, exported from `@metreeca/core`
+
+### Removed
+
+- `given` function, superseded by `map` and `opt`, which take the value and the mapper in a single call
+  (`@metreeca/core`)
 
 ## [0.9.22](https://github.com/metreeca/core/compare/v0.9.21...v0.9.22) - 2026-08-28
 

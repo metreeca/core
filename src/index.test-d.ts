@@ -15,7 +15,7 @@
  */
 
 import { describe, expectTypeOf, test } from "vitest";
-import { isDefined, given } from "./index.js";
+import { isDefined, map, opt } from "./index.js";
 
 
 describe("built-in guards", () => {
@@ -66,29 +66,49 @@ describe("built-in guards", () => {
 
 describe("functional idioms", () => {
 
-	describe("given()", () => {
+	describe("map()", () => {
 
-		test("should report a defined result for a defined value", () => {
+		test("should report a defined result", () => {
 
 			const value = "value" as string;
 
-			expectTypeOf(given(value)(mapped => mapped.length)).toEqualTypeOf<number>();
+			expectTypeOf(map(value, mapped => mapped.length)).toEqualTypeOf<number>();
 
 		});
+
+		test("should accept a nullable value", () => {
+
+			const value = null as string | null;
+
+			expectTypeOf(map(value, mapped => mapped)).toEqualTypeOf<string | null>();
+
+		});
+
+		test("should accept a value that may be missing", () => {
+
+			const value = undefined as string | undefined;
+
+			expectTypeOf(map(value, mapped => mapped)).toEqualTypeOf<string | undefined>();
+
+		});
+
+	});
+
+	describe("opt()", () => {
 
 		test("should report an optional result for an optional value", () => {
 
 			const value = undefined as string | undefined;
 
-			expectTypeOf(given(value)(mapped => mapped.length)).toEqualTypeOf<number | undefined>();
+			expectTypeOf(opt(value, mapped => mapped.length)).toEqualTypeOf<number | undefined>();
 
 		});
 
-		test("should report a defined result for a nullable value", () => {
+		test("should report an optional result for a defined value", () => {
 
-			const value = null as string | null;
+			const value = "value" as string;
 
-			expectTypeOf(given(value)(mapped => mapped)).toEqualTypeOf<string | null>();
+			expectTypeOf(opt(value, mapped => mapped.length)).toEqualTypeOf<number | undefined>();
 
 		});
 
@@ -96,7 +116,32 @@ describe("functional idioms", () => {
 
 			const value = undefined as string | null | undefined;
 
-			given(value)(mapped => expectTypeOf(mapped).toEqualTypeOf<string | null>());
+			opt(value, mapped => expectTypeOf(mapped).toEqualTypeOf<string | null>());
+
+		});
+
+		test("should report a defined result under a fallback", () => {
+
+			const value = undefined as string | undefined;
+
+			expectTypeOf(opt(value, mapped => mapped.length, 0)).toEqualTypeOf<number>();
+
+		});
+
+		test("should report a defined result under a deferred fallback", () => {
+
+			const value = undefined as string | undefined;
+
+			expectTypeOf(opt(value, mapped => mapped.length, () => 0)).toEqualTypeOf<number>();
+
+		});
+
+		test("should reject a fallback of a different type", () => {
+
+			const value = undefined as string | undefined;
+
+			// @ts-expect-error the fallback must match the type reported by the mapper
+			opt(value, mapped => mapped.length, "none");
 
 		});
 

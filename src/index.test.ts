@@ -45,7 +45,8 @@ import {
 	isValue,
 	key,
 	lazy,
-	given
+	map,
+	opt
 } from "./index.js";
 
 
@@ -1174,19 +1175,39 @@ describe("deferred values", () => {
 
 describe("functional idioms", () => {
 
-	describe("given()", () => {
+	describe("map()", () => {
+
+		it("should report the value computed by the mapper", async () => {
+			expect(map("value", value => value.toUpperCase())).toBe("VALUE");
+		});
+
+		it("should map null as any other value", async () => {
+			expect(map(null, value => String(value))).toBe("null");
+		});
+
+		it("should map undefined as any other value", async () => {
+			expect(map(undefined, value => String(value))).toBe("undefined");
+		});
+
+		it("should propagate errors thrown by the mapper", async () => {
+			expect(() => map("value", () => error(new RangeError("failed")))).toThrow(RangeError);
+		});
+
+	});
+
+	describe("opt()", () => {
 
 		it("should map a defined value", async () => {
-			expect(given("value")(value => value.toUpperCase())).toBe("VALUE");
+			expect(opt("value", value => value.toUpperCase())).toBe("VALUE");
 		});
 
 		it("should map null as any other defined value", async () => {
-			expect(given(null)(value => String(value))).toBe("null");
+			expect(opt(null, value => String(value))).toBe("null");
 		});
 
 		it("should report a missing value as undefined", async () => {
 
-			const upper = (value: undefined | string) => given(value)(defined => defined.toUpperCase());
+			const upper = (value: undefined | string) => opt(value, defined => defined.toUpperCase());
 
 			expect(upper(undefined)).toBeUndefined();
 
@@ -1195,7 +1216,7 @@ describe("functional idioms", () => {
 		it("should not call the mapper on a missing value", async () => {
 
 			const mapper = vi.fn((value: string) => value.toUpperCase());
-			const upper = (value: undefined | string) => given(value)(mapper);
+			const upper = (value: undefined | string) => opt(value, mapper);
 
 			upper(undefined);
 
@@ -1204,7 +1225,56 @@ describe("functional idioms", () => {
 		});
 
 		it("should propagate errors thrown by the mapper", async () => {
-			expect(() => given("value")(() => error(new RangeError("failed")))).toThrow(RangeError);
+			expect(() => opt("value", () => error(new RangeError("failed")))).toThrow(RangeError);
+		});
+
+		describe("with a fallback", () => {
+
+			it("should report the fallback for a missing value", async () => {
+
+				const upper = (value: undefined | string) => opt(value, defined => defined.toUpperCase(), "NONE");
+
+				expect(upper(undefined)).toBe("NONE");
+
+			});
+
+			it("should ignore the fallback for a defined value", async () => {
+
+				const upper = (value: undefined | string) => opt(value, defined => defined.toUpperCase(), "NONE");
+
+				expect(upper("value")).toBe("VALUE");
+
+			});
+
+			it("should resolve a deferred fallback for a missing value", async () => {
+
+				const upper = (value: undefined | string) => opt(value, defined => defined.toUpperCase(), () => "NONE");
+
+				expect(upper(undefined)).toBe("NONE");
+
+			});
+
+			it("should not resolve a deferred fallback for a defined value", async () => {
+
+				const fallback = vi.fn(() => "NONE");
+				const upper = (value: undefined | string) => opt(value, defined => defined.toUpperCase(), fallback);
+
+				upper("value");
+
+				expect(fallback).not.toHaveBeenCalled();
+
+			});
+
+			it("should propagate errors thrown by a deferred fallback", async () => {
+
+				const upper = (value: undefined | string) => opt(value, defined => defined.toUpperCase(),
+					() => error<string>(new RangeError("failed"))
+				);
+
+				expect(() => upper(undefined)).toThrow(RangeError);
+
+			});
+
 		});
 
 	});
