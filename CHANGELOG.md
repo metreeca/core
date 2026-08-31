@@ -23,6 +23,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `Awaitable<T>` type now defaulting its type parameter to any value, so that it may be written unparameterised
+  (`@metreeca/core/async`)
 - `isPromise` guard now recognising native `Promise` instances alone, so that `catch()` and `finally()` may be relied
   on alongside `then()`; foreign promise implementations and bare thenables are matched by `isPromiseLike` instead
   (`@metreeca/core`)

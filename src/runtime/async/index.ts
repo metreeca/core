@@ -120,9 +120,9 @@
  * A value supplied either directly or as a promise, so that consumers await it uniformly without forcing every
  * provider to be asynchronous; any thenable is accepted, not just a native `Promise`.
  *
- * @typeParam T The type of the supplied value
+ * @typeParam T The type of the supplied value, defaults to any value
  */
-export type Awaitable<T> =
+export type Awaitable<T = unknown> =
 	| T
 	| PromiseLike<T>;
 
