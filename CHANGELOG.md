@@ -18,6 +18,14 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `opt` function for binding an optional value to a mapper of its own, short-circuiting an undefined value to
   `undefined` without calling the mapper, or to a fallback supplied either outright or deferred until the value turns
   out to be missing, exported from `@metreeca/core`
+- `isPromiseLike` guard recognising any thenable value, whatever the promise implementation that produced it, exported
+  from `@metreeca/core`
+
+### Changed
+
+- `isPromise` guard now recognising native `Promise` instances alone, so that `catch()` and `finally()` may be relied
+  on alongside `then()`; foreign promise implementations and bare thenables are matched by `isPromiseLike` instead
+  (`@metreeca/core`)
 
 ### Removed
 

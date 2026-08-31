@@ -37,6 +37,7 @@ import {
 	isOptional,
 	isPrimitive,
 	isPromise,
+	isPromiseLike,
 	isRegExp,
 	isScalar,
 	isString,
@@ -280,14 +281,34 @@ describe("built-in guards", () => {
 			expect(isPromise(new Promise(() => {}))).toBeTruthy();
 		});
 
-		it("should return true for thenables", () => {
-			expect(isPromise({ then: () => {} })).toBeTruthy();
+		it("should return false for thenables", () => {
+			expect(isPromise({ then: () => {} })).toBeFalsy();
+			expect(isPromise({ then: () => {}, catch: () => {}, finally: () => {} })).toBeFalsy();
 		});
 
 		it("should return false for non-promises", () => {
 			expect(isPromise({})).toBeFalsy();
 			expect(isPromise(null)).toBeFalsy();
 			expect(isPromise(() => {})).toBeFalsy();
+		});
+
+	});
+
+	describe("isPromiseLike()", () => {
+
+		it("should return true for promises", () => {
+			expect(isPromiseLike(Promise.resolve())).toBeTruthy();
+			expect(isPromiseLike(new Promise(() => {}))).toBeTruthy();
+		});
+
+		it("should return true for thenables", () => {
+			expect(isPromiseLike({ then: () => {} })).toBeTruthy();
+		});
+
+		it("should return false for non-thenables", () => {
+			expect(isPromiseLike({})).toBeFalsy();
+			expect(isPromiseLike(null)).toBeFalsy();
+			expect(isPromiseLike(() => {})).toBeFalsy();
 		});
 
 	});

@@ -39,7 +39,8 @@
  * isError(new Error()); // true
  * isRegExp(/pattern/); // true
  * isDate(new Date()); // true
- * isPromise(Promise.resolve()); // true
+ * isPromise(Promise.resolve()); // true (native promises only)
+ * isPromiseLike({ then: () => {} }); // true (any thenable, whatever its provenance)
  * isIterable([1, 2, 3]); // true
  * isAsyncIterable(asyncGenerator()); // true
  * ```
@@ -482,13 +483,35 @@ export function isDate(value: unknown): value is Date {
 /**
  * Checks if a value is a promise.
  *
+ * Admits only native `Promise` instances, so that `catch()` and `finally()` may be relied on alongside `then()`;
+ * foreign promise implementations and bare thenables are rejected and matched by {@link isPromiseLike} instead.
+ *
  * @typeParam T The type of the promised value
  *
  * @param value The value to check
  *
- * @returns True if the value is a thenable object (has a `then` method); false otherwise
+ * @returns True if the value is a `Promise` instance; false otherwise
  */
 export function isPromise<T = unknown>(value: unknown): value is Promise<T> {
+
+	return value instanceof Promise;
+
+}
+
+/**
+ * Checks if a value is thenable.
+ *
+ * Admits any value exposing a `then()` method, whatever its provenance, so that a possibly asynchronous value is told
+ * apart from a settled one without ruling out foreign promise implementations; nothing beyond `then()` is guaranteed,
+ * and {@link isPromise} is required where `catch()` and `finally()` are also relied on.
+ *
+ * @typeParam T The type of the promised value
+ *
+ * @param value The value to check
+ *
+ * @returns True if the value exposes a `then()` method; false otherwise
+ */
+export function isPromiseLike<T = unknown>(value: unknown): value is PromiseLike<T> {
 
 	return value != null && typeof value === "object" && "then" in value && isFunction(value.then);
 
