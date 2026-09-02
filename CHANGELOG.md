@@ -20,6 +20,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   out to be missing, exported from `@metreeca/core`
 - `isPromiseLike` guard recognising any thenable value, whatever the promise implementation that produced it, exported
   from `@metreeca/core`
+- `unescape` function reading string literal content back from its escapes, taking the JSON forms or a syntax of the
+  caller's choosing and recovering rather than rejecting sequences the syntax doesn't account for, exported from
+  `@metreeca/core/strings`
 
 ### Changed
 

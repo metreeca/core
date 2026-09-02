@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { clip, dedent, escape, fill, glob, split, tidy, isWellFormed, toWellFormed } from "./strings.js";
+import { clip, dedent, escape, fill, glob, split, tidy, unescape, isWellFormed, toWellFormed } from "./strings.js";
 
 
 describe("clip()", () => {
@@ -694,6 +694,182 @@ describe("escape()", () => {
 
 		it("should return well-formed text", async () => {
 			expect(isWellFormed(escape("a\uD800b\uDE00c"))).toBe(true);
+		});
+
+	});
+
+});
+
+describe("unescape()", () => {
+
+	describe("unescaped text", () => {
+
+		it("should leave text carrying no escape as it is", async () => {
+			expect(unescape("")).toBe("");
+			expect(unescape("plain text")).toBe("plain text");
+			expect(unescape("uno€due")).toBe("uno€due");
+			expect(unescape("one😀two")).toBe("one😀two");
+		});
+
+		it("should leave the solidus as it is", async () => {
+			expect(unescape("a/b")).toBe("a/b");
+		});
+
+	});
+
+	describe("escape sequences", () => {
+
+		it("should read the quotation mark and the reverse solidus", async () => {
+			expect(unescape("\\\"")).toBe("\"");
+			expect(unescape("\\\\")).toBe("\\");
+		});
+
+		it("should read the two-character control escapes", async () => {
+			expect(unescape("\\b\\f\\n\\r\\t")).toBe("\b\f\n\r\t");
+		});
+
+		it("should read the optional solidus escape", async () => {
+			expect(unescape("a\\/b")).toBe("a/b"); // assigned no short form, recovered as plain text
+		});
+
+		it("should read four-digit escapes", async () => {
+			expect(unescape("\\u0000")).toBe(String.fromCharCode(0x00)); // first C0 control
+			expect(unescape("a\\u000Bb")).toBe(`a${ String.fromCharCode(0x0B) }b`); // vertical tab
+			expect(unescape("\\uFFFF")).toBe(String.fromCharCode(0xFFFF)); // last BMP code point
+		});
+
+		it("should read eight-digit escapes", async () => {
+			expect(unescape("a\\U0001F600b")).toBe("a😀b");
+			expect(unescape("\\U00010000")).toBe(String.fromCodePoint(0x10000)); // first supplementary
+			expect(unescape("\\U0010FFFF")).toBe(String.fromCodePoint(0x10FFFF)); // last code point
+		});
+
+		it("should read hexadecimal digits in either case", async () => {
+			expect(unescape("\\u20ac")).toBe("€");
+			expect(unescape("\\U0001f600")).toBe("😀");
+		});
+
+		it("should tell the four-digit and the eight-digit forms apart", async () => {
+			expect(unescape("\\u0001f600")).toBe(`${ String.fromCharCode(0x01) }f600`); // the short form takes four
+		});
+
+		it("should read an escaped surrogate pair as a single character", async () => {
+			expect(unescape("\\uD83D\\uDE00")).toBe("😀");
+		});
+
+		it("should read escaped isolated surrogates as they stand", async () => {
+			expect(unescape("\\uD800")).toBe(String.fromCharCode(0xD800));
+			expect(unescape("a\\uDE00\\uD83Db")).toBe(`a${ String.fromCharCode(0xDE00, 0xD83D) }b`); // reversed pair
+		});
+
+		it("should read one escape at a time", async () => {
+			expect(unescape("\\\\n")).toBe("\\n"); // the recovered reverse solidus doesn't escape again
+			expect(unescape("\\\\u0041")).toBe("\\u0041");
+		});
+
+	});
+
+	describe("unaccounted sequences", () => {
+
+		it("should read an unassigned escape as the character it introduces", async () => {
+			expect(unescape("\\x")).toBe("x");
+			expect(unescape("a\\qb")).toBe("aqb");
+			expect(unescape("\\ ")).toBe(" ");
+			expect(unescape("a\\😀b")).toBe("a😀b"); // a supplementary code point is introduced whole
+		});
+
+		it("should read an incomplete numeric escape as plain text", async () => {
+			expect(unescape("\\u12")).toBe("u12");
+			expect(unescape("\\U0001F6")).toBe("U0001F6");
+		});
+
+		it("should read a numeric escape outside the Unicode range as the replacement character", async () => {
+			expect(unescape("\\U00110000")).toBe(String.fromCharCode(0xFFFD)); // past the last code point
+		});
+
+		it("should leave a trailing reverse solidus as it is", async () => {
+			expect(unescape("a\\")).toBe("a\\"); // nothing left to escape
+		});
+
+	});
+
+	describe("custom patterns", () => {
+
+		it("should read the sequences the pattern selects", async () => {
+			expect(unescape("a\\<b\\>c", /\\[<>]/gu)).toBe("a<b>c");
+		});
+
+		it("should leave the sequences the pattern ignores as they are", async () => {
+			expect(unescape("a\\<b\\nc", /\\[<>]/gu)).toBe("a<b\\nc");
+		});
+
+		it("should leave a selected sequence carrying no reverse solidus as it is", async () => {
+			expect(unescape("a&lt;b&gt;c", /&\w+;/gu, { "&lt;": "<" })).toBe("a<b&gt;c");
+		});
+
+	});
+
+	describe("custom escapes", () => {
+
+		it("should take characters from the given map", async () => {
+			expect(unescape("a\\<b\\>c", /\\[<>]/gu, { "\\<": "<", "\\>": ">" })).toBe("a<b>c");
+		});
+
+		it("should take characters from the given mapper", async () => {
+			expect(unescape("a\\<b\\>c", /\\[<>]/gu, s => s === "\\<" ? "<" : ">")).toBe("a<b>c");
+		});
+
+		it("should read sequences the escapes don't cover from the numeric or the plain form", async () => {
+			expect(unescape("a\\u0041b", /\\u[0-9A-Fa-f]{4}/gu, {})).toBe("aAb");
+			expect(unescape("a\\nb", /\\[\s\S]/gu, {})).toBe("anb"); // the default short forms are replaced
+			expect(unescape("a\\nb", /\\[\s\S]/gu, () => undefined)).toBe("anb");
+		});
+
+	});
+
+	describe("irregular matches", () => {
+
+		it("should leave a zero-width match as it is", async () => {
+			expect(unescape("ab", /(?:)/gu)).toBe("ab"); // an empty match introduces no character
+		});
+
+	});
+
+	describe("validation", () => {
+
+		it("should throw on a pattern that is not global", async () => {
+			expect(() => unescape("a\\<b", /\\[<>]/u)).toThrow(TypeError);
+		});
+
+	});
+
+	describe("conformance", () => {
+
+		it("should agree with a JSON parser", async () => {
+
+			const samples = [
+				"", "plain text", "uno€due", "one😀two",
+				"\\\"\\\\\\/\\b\\f\\n\\r\\t",
+				"\\u0000\\u001F\\uFFFF",
+				"\\uD83D\\uDE00"
+			];
+
+			expect(samples.map(sample => unescape(sample)))
+				.toEqual(samples.map(sample => JSON.parse(`"${ sample }"`)));
+
+		});
+
+		it("should read back escaped text", async () => {
+
+			const samples = [
+				"", "plain text", "uno€due", "one😀two",
+				"\"\\/\b\f\n\r\t",
+				String.fromCharCode(0x00, 0x1F, 0x7F, 0x2028),
+				`a${ String.fromCharCode(0xD800) }b${ String.fromCharCode(0xDE00) }c`
+			];
+
+			expect(samples.map(sample => unescape(escape(sample)))).toEqual(samples);
+
 		});
 
 	});

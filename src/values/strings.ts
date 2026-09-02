@@ -128,6 +128,22 @@
  * escape("a<b", /[<>]/gu, { "<": "&lt;", ">": "&gt;" }); // the angle brackets take the supplied short forms
  * ```
  *
+ * **Unescaping Text from String Literals**
+ *
+ * Read back the escapes a JSON string literal may carry, or a syntax of your own, taking any sequence the syntax
+ * doesn't account for to stand for the character it introduces, so that hand-written content is recovered rather than
+ * rejected:
+ *
+ * ```typescript
+ * import { unescape } from '@metreeca/core/strings';
+ *
+ * unescape(String.raw`line\nbreak`);  // the two-character escape is read back as a line break
+ * unescape(String.raw`a\U0001F600b`); // the eight-digit form is read back as the emoji
+ * unescape(String.raw`a\xb`);         // the unaccounted escape is read back as the character it introduces
+ *
+ * unescape("a&lt;b", /&\w+;/gu, { "&lt;": "<" }); // the entity reference takes the supplied character
+ * ```
+ *
  * **Matching Names Against Glob Patterns**
  *
  * Decide whether a slash-separated name matches a wildcard pattern, taking `?` for a single character, `*` for a run
@@ -162,6 +178,15 @@ import { error, isFunction, isString } from "../index.js";
 
 
 /**
+ * The Unicode replacement character.
+ *
+ * Stands in for text that denotes no character, as {@link toWellFormed} substitutes it for isolated surrogates.
+ *
+ * @see {@link https://www.unicode.org/glossary/#replacement_character Unicode Glossary - Replacement Character}
+ */
+const UnicodeReplacement = 0xFFFD;
+
+/**
  * Inclusive upper bound of the Unicode Basic Multilingual Plane.
  *
  * Separates plane 0, whose code points a single UTF-16 code unit represents, from the supplementary planes, whose
@@ -170,6 +195,16 @@ import { error, isFunction, isString } from "../index.js";
  * @see {@link https://www.unicode.org/glossary/#basic_multilingual_plane Unicode Glossary - Basic Multilingual Plane}
  */
 const BMPMax = 0xFFFF;
+
+/**
+ * Inclusive upper bound of the Unicode code space.
+ *
+ * Marks the last code point the Unicode code space admits; a numeric value beyond it denotes no character.
+ *
+ * @see {@link https://www.unicode.org/glossary/#code_point Unicode Glossary - Code Point}
+ */
+const UnicodeMax = 0x10FFFF;
+
 
 /**
  * Maps characters to their two-character escape.
@@ -186,6 +221,16 @@ const JSONEscapes = Object.freeze({
 	"\r": "\\r",
 	"\t": "\\t"
 });
+
+/**
+ * Maps two-character escapes to the character they stand for.
+ *
+ * Covers every short form {@link JSONEscapes} assigns; anything else the default {@link unescape} pattern selects is
+ * read as a numeric sequence or, failing that, as the character the escape introduces.
+ */
+const JSONUnescapes = Object.freeze(Object.fromEntries(
+	Object.entries(JSONEscapes).map(([character, escape]) => [escape, character])
+));
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -602,13 +647,13 @@ export function escape(
 		throw new TypeError(`expected global pattern <${pattern}>`);
 	}
 
-	const mapper = isFunction(escapes) ? escapes : (c: string) => escapes[c];
+	const escaper = isFunction(escapes) ? escapes : (c: string) => escapes[c];
 
 	return string.replace(pattern, c => {
 
-		const code = c.codePointAt(0) ?? 0xFFFD; // a zero-width match denotes no character
+		const code = c.codePointAt(0) ?? UnicodeReplacement; // a zero-width match denotes no character
 
-		return mapper(c) ?? (code > BMPMax
+		return escaper(c) ?? (code > BMPMax
 				? `\\U${hex(code, 8)}`
 				: `\\u${hex(code, 4)}`
 		);
@@ -619,6 +664,98 @@ export function escape(
 	function hex(code: number, digits: number = 0): string {
 		return code.toString(16).toUpperCase().padStart(digits, "0");
 	}
+
+}
+
+
+/**
+ * Unescapes a string as string literal content.
+ *
+ * Reads every escape back as the character it stands for, taking the character assigned to it, or, failing that, the
+ * code point its `\uXXXX` / `\UXXXXXXXX` numeric form denotes; everything else is left as it is.
+ *
+ * Reading is lenient, so hand-written content is recovered rather than rejected: an escape neither the assigned forms
+ * nor the numeric ones account for stands for the character it introduces, so `\x` reads back as `x`, and a reverse
+ * solidus trailing at the end of the string, with nothing to escape, is left as it is. No input is malformed and none
+ * is refused.
+ *
+ * **JSON unescaping — `unescape(string)`**
+ *
+ * Reads the escapes a JSON string may carry: the seven two-character forms (`\"`, `\\`, `\b`, `\f`, `\n`, `\r`, `\t`),
+ * the optional `\/`, and the four-digit numeric form, plus the eight-digit form {@link escape} spells supplementary
+ * code points with. Hexadecimal digits are read in either case, while `\u` and `\U` are told apart, as they introduce
+ * forms of different width. A pair of escaped surrogates reads back as the single supplementary character it denotes,
+ * and an isolated one as itself, so text {@link escape} produced is recovered exactly, ill-formed halves included.
+ *
+ * **Custom unescaping — `unescape(string, pattern, escapes?)`**
+ *
+ * Reads a syntax of the caller's choosing: `pattern` selects the sequences to be read, for instance the entity
+ * references of a markup syntax, and `escapes` supplies the character each stands for, as a {@link Resolver} listing
+ * them or computing them on demand. A selected sequence `escapes` assigns no character to still falls back to the
+ * numeric forms and then to the plain form, so a syntax sharing the numeric convention need only list its short forms.
+ *
+ * **Unaccounted sequences**
+ *
+ * A selected sequence no character is assigned to and no numeric form accounts for is read as the sequence stripped of
+ * its leading reverse solidus, and, where it carries none, as the sequence itself; the incomplete numeric forms, whose
+ * digits are too few, are read this way too. A numeric form whose code point falls outside the Unicode range denotes no
+ * character and is read as `U+FFFD` REPLACEMENT CHARACTER, the stand-in {@link toWellFormed} likewise substitutes for
+ * text that denotes no character. A zero-width match, which selects no sequence at all, contributes nothing and leaves
+ * the text around it as it is.
+ *
+ * @param string The string to unescape
+ * @param pattern The pattern selecting the escape sequences to read; must be global; defaults to the JSON set
+ * @param escapes The lookup supplying the character each selected sequence stands for, taken in preference to the
+ *     numeric forms; defaults to the two-character JSON escapes
+ *
+ * @returns A copy of `string` with every sequence `pattern` selects replaced by the character `escapes` assigns it, or
+ *     by the code point its numeric form denotes, or, where neither accounts for it, by the sequence stripped of a
+ *     leading reverse solidus, a numeric form outside the Unicode range contributing the replacement character
+ *
+ * @throws {TypeError} If `pattern` doesn't carry the `g` flag
+ *
+ * @see {@link https://www.rfc-editor.org/rfc/rfc8259#section-7 RFC 8259 - Strings}
+ */
+export function unescape(
+	string: string,
+	pattern: RegExp = /\\(?:U[0-9A-Fa-f]{8}|u[0-9A-Fa-f]{4}|[\s\S])/gu,
+	escapes: Resolver = JSONUnescapes
+): string {
+
+	if ( !pattern.global ) {
+		throw new TypeError(`expected global pattern <${pattern}>`);
+	}
+
+	const unescaper = isFunction(escapes) ? escapes : (s: string) => escapes[s];
+
+	return string.replace(pattern, sequence => {
+
+		const character = unescaper(sequence);
+
+		if ( character === undefined ) {
+
+			const digits = /^\\u([0-9A-Fa-f]{4})$/u.exec(sequence)?.[1]
+				?? /^\\U([0-9A-Fa-f]{8})$/u.exec(sequence)?.[1];
+
+			if ( digits === undefined ) {
+
+				return sequence.startsWith("\\") ? sequence.slice(1) : sequence;
+
+			} else {
+
+				const code = parseInt(digits, 16);
+
+				return String.fromCodePoint(code > UnicodeMax ? UnicodeReplacement : code); // out of range, no char
+
+			}
+
+		} else {
+
+			return character;
+
+		}
+
+	});
 
 }
 
