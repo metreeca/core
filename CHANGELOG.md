@@ -23,6 +23,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `unescape` function reading string literal content back from its escapes, taking the JSON forms or a syntax of the
   caller's choosing and recovering rather than rejecting sequences the syntax doesn't account for, exported from
   `@metreeca/core/strings`
+- `Many<T>` type accepting a collection of values whatever its shape, from an array to a `Set`, a `Map` view or a
+  generator, exported from `@metreeca/core/arrays`
 
 ### Changed
 
@@ -35,6 +37,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   predicate still leaves it at the declared type of the value (`@metreeca/core`)
 - `assert` default error message now naming the expected type in angle brackets, as in `expected <string> value`,
   matching the messages produced by the `type` validator of `@metreeca/core/trace` (`@metreeca/core`)
+- `Some<T>` type now accepting any collection of values alongside a bare value or an array, so that sets, map views and
+  generators may be passed without conversion; strings stay singular (`@metreeca/core/arrays`)
+- `some`, `unique`, `union` and `intersection` functions now taking collections rather than arrays alone, drawing each
+  source once, so that single-pass iterators are safe to pass (`@metreeca/core/arrays`)
 
 ### Removed
 

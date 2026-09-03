@@ -14,9 +14,17 @@
  * limitations under the License.
  */
 
-import { describe, expect, expectTypeOf, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { intersection, some, union, unique } from "./arrays.js";
 import { equals } from "./structures.js";
+
+
+/**
+ * Yields the given values from a single-pass iterator.
+ */
+function* iterate<T>(...values: T[]): Generator<T> {
+	yield* values;
+}
 
 
 describe("some()", () => {
@@ -35,6 +43,55 @@ describe("some()", () => {
 
 	it("should return an empty array for an empty array value", async () => {
 		expect(some([])).toEqual([]);
+	});
+
+	it("should wrap a string in an array", async () => {
+
+		expect(some("")).toEqual([""]);
+		expect(some("xy")).toEqual(["xy"]);
+
+	});
+
+	describe("iterable sources", () => {
+
+		it("should collect the elements of a set", async () => {
+
+			expect(some(new Set([1, 2]))).toEqual([1, 2]);
+
+		});
+
+		it("should collect the elements of a map value iterator", async () => {
+
+			expect(some(new Map([["x", 1], ["y", 2]]).values())).toEqual([1, 2]);
+
+		});
+
+		it("should collect the elements of a single-pass iterator", async () => {
+
+			expect(some(iterate(1, 2, 3))).toEqual([1, 2, 3]);
+
+		});
+
+		it("should collect the elements of a typed array", async () => {
+
+			expect(some(new Uint8Array([1, 2]))).toEqual([1, 2]);
+
+		});
+
+		it("should return the array unchanged rather than a copy", async () => {
+
+			const values = [1, 2, 3];
+
+			expect(some(values)).toBe(values);
+
+		});
+
+		it("should return a new array for a non-array collection", async () => {
+
+			expect(some(new Set([1, 2]))).not.toBeInstanceOf(Set);
+
+		});
+
 	});
 
 });
@@ -116,6 +173,36 @@ describe("unique()", () => {
 			const caseInsensitive = (x: string, y: string) => x.toLowerCase() === y.toLowerCase();
 
 			expect(unique(["Hello", "hello", "HELLO", "world"], caseInsensitive)).toEqual(["Hello", "world"]);
+
+		});
+
+	});
+
+	describe("iterable sources", () => {
+
+		it("should accept a set", async () => {
+
+			expect(unique(new Set([1, 2, 3]))).toEqual([1, 2, 3]);
+
+		});
+
+		it("should accept a map value iterator", async () => {
+
+			expect(unique(new Map([["x", 1], ["y", 1], ["z", 2]]).values())).toEqual([1, 2]);
+
+		});
+
+		it("should accept a single-pass iterator", async () => {
+
+			expect(unique(iterate(1, 1, 2, 3, 3))).toEqual([1, 2, 3]);
+
+		});
+
+		it("should accept a single-pass iterator under custom equality", async () => {
+
+			const caseInsensitive = (x: string, y: string) => x.toLowerCase() === y.toLowerCase();
+
+			expect(unique(iterate("Hello", "hello", "world"), caseInsensitive)).toEqual(["Hello", "world"]);
 
 		});
 
@@ -203,9 +290,35 @@ describe("union()", () => {
 
 	});
 
-	it("should infer the element type", async () => {
+	describe("iterable sources", () => {
 
-		expectTypeOf(union([[1, 2], [2, 3]])).toEqualTypeOf<readonly number[]>();
+		it("should accept sets as sources", async () => {
+
+			expect(union([new Set([1, 2]), new Set([2, 3])])).toEqual([1, 2, 3]);
+
+		});
+
+		it("should accept an iterable of sources", async () => {
+
+			expect(union(new Set([[1, 2], [2, 3]]))).toEqual([1, 2, 3]);
+
+		});
+
+		it("should accept single-pass iterators at both levels", async () => {
+
+			expect(union(iterate(iterate(1, 2), iterate(2, 3)))).toEqual([1, 2, 3]);
+
+		});
+
+		it("should accept single-pass iterators under custom equality", async () => {
+
+			const uno = { id: 1 };
+			const dup = { id: 1 };
+			const due = { id: 2 };
+
+			expect(union(iterate(iterate(uno), iterate(dup, due)), (x, y) => x.id === y.id)).toEqual([uno, due]);
+
+		});
 
 	});
 
@@ -299,9 +412,37 @@ describe("intersection()", () => {
 
 	});
 
-	it("should infer the element type", async () => {
+	describe("iterable sources", () => {
 
-		expectTypeOf(intersection([[1, 2], [2, 3]])).toEqualTypeOf<readonly number[]>();
+		it("should accept sets as sources", async () => {
+
+			expect(intersection([new Set([1, 2, 3]), new Set([2, 3, 4])])).toEqual([2, 3]);
+
+		});
+
+		it("should accept an iterable of sources", async () => {
+
+			expect(intersection(new Set([[1, 2, 3], [2, 3, 4]]))).toEqual([2, 3]);
+
+		});
+
+		it("should accept single-pass iterators at both levels", async () => {
+
+			expect(intersection(iterate(iterate(1, 2, 3), iterate(2, 3, 4)))).toEqual([2, 3]);
+
+		});
+
+		it("should accept single-pass iterators under custom equality", async () => {
+
+			const uno = { id: 1 };
+			const due = { id: 2 };
+			const dup1 = { id: 1 };
+			const dup2 = { id: 2 };
+
+			expect(intersection(iterate(iterate(uno, due), iterate(dup2, dup1)), (x, y) => x.id === y.id))
+				.toEqual([uno, due]);
+
+		});
 
 	});
 

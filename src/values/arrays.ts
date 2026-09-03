@@ -19,27 +19,31 @@
  *
  * **Normalising a Value to an Array**
  *
- * Coerce an optional or single-or-many value into an array for uniform iteration:
+ * Coerce an optional, single or multi-valued input into an array for uniform iteration:
  *
  * ```typescript
  * import { some } from '@metreeca/core/arrays';
  *
- * const tags = some(input); // undefined -> [], "x" -> ["x"], ["x", "y"] -> ["x", "y"]
+ * some(undefined);           // []
+ * some("x");                 // ["x"]
+ * some(["x", "y"]);          // ["x", "y"]
+ * some(new Set(["x", "y"])); // ["x", "y"]
  * ```
  *
  * **Retaining Unique Values**
  *
- * Keep the unique values of an array, dropping later duplicates:
+ * Keep the unique values of a collection, dropping later duplicates:
  *
  * ```typescript
  * import { unique } from '@metreeca/core/arrays';
  *
- * unique([1, 1, 2, 3, 3]); // [1, 2, 3]
+ * unique([1, 1, 2, 3, 3]);      // [1, 2, 3]
+ * unique(new Set([1, 2]));      // [1, 2]
  * ```
  *
- * **Combining Arrays as Sets**
+ * **Combining Collections**
  *
- * Merge several arrays into their union or narrow them to their shared intersection, deduplicating either way:
+ * Merge several collections into their union or narrow them to their shared intersection, deduplicating either way:
  *
  * ```typescript
  * import { intersection, union } from '@metreeca/core/arrays';
@@ -55,12 +59,32 @@
 /**
  * Zero, one, or many values of type `T`.
  *
- * Models a value that may be absent (`undefined`), singular (a bare `T`), or plural (a `T[]`), letting an API accept
- * flexible input that {@link some} normalises into an array.
+ * Widens a parameter to every shape a caller may have at hand: nothing (`undefined`), a lone value, or any
+ * {@link Many collection} of values, leaving {@link some} to normalise the argument into an array.
+ *
+ * `T` itself may not be an object iterable: a `Set`, `Map`, typed array, array, or generator passed as a value is
+ * indistinguishable from a collection of values and is read as the latter. Strings are exempt and stay singular.
  *
  * @typeParam T The type of the contained values
  */
-export type Some<T> = undefined | T | readonly T[];
+export type Some<T> =
+	| undefined
+	| T
+	| readonly T[] // redundant against Many<T>, but reports a mismatched array by element type, not iterator protocol
+	| Many<T>;
+
+/**
+ * Zero or more values of type `T`.
+ *
+ * Widens a parameter to any iterable a caller may have at hand: an array, a `Set`, a `Map` view, a generator.
+ *
+ * @typeParam T The type of the contained values
+ */
+export type Many<T> = {
+
+	[Symbol.iterator](): Iterator<T> // ;(structural) Iterable<T> breaks element inference when nested
+
+};
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -73,34 +97,45 @@ export type Some<T> = undefined | T | readonly T[];
  *
  * @typeParam T The type of the contained values
  *
- * @param values The value to normalise: `undefined`, a single `T`, or an array of `T`
+ * @param values The value to normalise: `undefined`, a single `T`, or a collection of `T` drawn from exactly once,
+ *     so single-pass iterators are safe to pass
  *
  * @returns An array holding the given values: empty if `values` is `undefined`, a single-element array if `values` is a
- *     bare `T`, or `values` itself if it is already an array
+ *     bare `T`, `values` itself if it is already an array, or its elements collected in iteration order otherwise
  */
 export function some<T>(values: Some<T>): readonly T[] {
 
-	return values === undefined ? [] : Array.isArray(values) ? values : [values as T];
+	return values === undefined ? []
+		: Array.isArray(values) ? values
+			: isMany(values) ? [...values]
+				: [values as T]; // ;(cast) the residue of a union TS cannot narrow by excluding the collection arms
+
+
+	function isMany(value: Some<T>): value is Many<T> {
+		return value !== null
+			&& typeof value === "object" // excludes strings, iterable but denoting a single value
+			&& Symbol.iterator in value;
+	}
 
 }
 
 /**
- * Retains the unique values of an array.
+ * Retains the unique values of a collection.
  *
  * Keeps the first occurrence of each value, dropping later duplicates. Without a comparator, values are deduplicated by
  * identity the way a `Set` does (`SameValueZero`, so `NaN` collapses and `-0` equals `+0`) in a single pass; pass
- * `equal` to compare by a custom relation instead, at the cost of a scan over the earlier values for each item.
+ * `equal` to compare by a custom relation instead, at the cost of a scan over the earlier values for each value.
  *
- * @typeParam T The type of the array items
+ * @typeParam T The type of the contained values
  *
- * @param values The array to reduce to its unique values
- * @param equal An optional custom equality function for comparing items; without it, items are compared by `Set`
+ * @param values The values to deduplicate; drawn from exactly once, so single-pass iterators are safe to pass
+ * @param equal An optional custom equality function for comparing values; without it, values are compared by `Set`
  *     identity (`SameValueZero`)
  *
  * @returns A new array holding the first occurrence of each unique value from `values`, preserving their original
  *     order
  */
-export function unique<T>(values: readonly T[], equal?: (x: T, y: T) => boolean): readonly T[] {
+export function unique<T>(values: Iterable<T>, equal?: (x: T, y: T) => boolean): readonly T[] {
 
 	if ( equal === undefined ) {
 
@@ -108,8 +143,10 @@ export function unique<T>(values: readonly T[], equal?: (x: T, y: T) => boolean)
 
 	} else {
 
-		return values.filter((value, index) =>
-			values.findIndex(other => equal(value, other)) === index
+		const array = [...values];
+
+		return array.filter((value, index) =>
+			array.findIndex(other => equal(value, other)) === index
 		);
 
 	}
@@ -117,51 +154,52 @@ export function unique<T>(values: readonly T[], equal?: (x: T, y: T) => boolean)
 }
 
 /**
- * Combines arrays into their set union.
+ * Combines collections into their set union.
  *
- * Flattens the given arrays and keeps each distinct element once, in first-seen order, so several sources combine into
- * a single list without duplicates. Without a comparator, elements are compared by identity the way a `Set` does
+ * Flattens the given collections and keeps each distinct element once, in first-seen order, so several sources combine
+ * into a single list without duplicates. Without a comparator, elements are compared by identity the way a `Set` does
  * (`SameValueZero`) in a single pass; pass `equal` to merge by a custom relation instead, at the cost of a scan over
  * the earlier elements for each element.
  *
- * @typeParam T The element type of the arrays
+ * @typeParam T The element type of the collections
  *
- * @param arrays The arrays to combine
+ * @param values The collections to combine; each is drawn from exactly once, so single-pass iterators are safe to pass
  * @param equal An optional custom equality function for comparing elements; without it, elements are compared by `Set`
  *     identity (`SameValueZero`)
  *
- * @returns A new array holding every distinct element drawn from `arrays`, in first-seen order
+ * @returns A new array holding every distinct element drawn from `values`, in first-seen order
  *
- * @see {@link intersection} for the dual, keeping only the elements common to every array
+ * @see {@link intersection} for the dual, keeping only the elements common to every collection
  */
-export function union<T>(arrays: readonly (readonly T[])[], equal?: (x: T, y: T) => boolean): readonly T[] {
+export function union<T>(values: Iterable<Many<T>>, equal?: (x: T, y: T) => boolean): readonly T[] {
 
-	return unique(arrays.flat(), equal);
+	return unique([...values].flatMap(collection => [...collection]), equal);
 
 }
 
 /**
- * Reduces arrays to their set intersection.
+ * Reduces collections to their set intersection.
  *
- * Keeps each element present in every one of the given arrays, once, in the order it first appears in the first array,
- * so several sources narrow to the elements they share without duplicates. Without a comparator, elements are compared
- * by identity the way a `Set` does (`SameValueZero`); pass `equal` to intersect by a custom relation instead. Given no
- * arrays, the result is empty.
+ * Keeps each element present in every one of the given collections, once, in the order it first appears in the first
+ * collection, so several sources narrow to the elements they share without duplicates. Without a comparator, elements
+ * are compared by identity the way a `Set` does (`SameValueZero`); pass `equal` to intersect by a custom relation
+ * instead. Given no collections, the result is empty.
  *
- * @typeParam T The element type of the arrays
+ * @typeParam T The element type of the collections
  *
- * @param arrays The arrays to intersect
+ * @param values The collections to intersect; each is drawn from at most once, so single-pass iterators are safe to
+ *     pass
  * @param equal An optional custom equality function for comparing elements; without it, elements are compared by `Set`
  *     identity (`SameValueZero`)
  *
- * @returns A new array holding every element common to all of `arrays`, in the order they first appear in the first
- *     array
+ * @returns A new array holding every element common to all of `values`, in the order they first appear in the first
+ *     collection
  *
- * @see {@link union} for the dual, combining the elements of every array
+ * @see {@link union} for the dual, combining the elements of every collection
  */
-export function intersection<T>(arrays: readonly (readonly T[])[], equal?: (x: T, y: T) => boolean): readonly T[] {
+export function intersection<T>(values: Iterable<Many<T>>, equal?: (x: T, y: T) => boolean): readonly T[] {
 
-	const [first, ...rest] = arrays;
+	const [first, ...rest] = values;
 
 	if ( first === undefined ) {
 
@@ -169,12 +207,12 @@ export function intersection<T>(arrays: readonly (readonly T[])[], equal?: (x: T
 
 	} else if ( equal === undefined ) {
 
-		return rest.reduce(
-			(intersection, array) => {
+		return rest.reduce<readonly T[]>(
+			(intersection, collection) => {
 
 				if ( intersection.length === 0 ) { return intersection; } else {
 
-					const values = new Set(array);
+					const values = new Set(collection);
 
 					return intersection.filter(value => values.has(value));
 
@@ -186,12 +224,14 @@ export function intersection<T>(arrays: readonly (readonly T[])[], equal?: (x: T
 
 	} else {
 
-		return rest.reduce(
-			(intersection, array) => {
+		return rest.reduce<readonly T[]>(
+			(intersection, collection) => {
 
 				if ( intersection.length === 0 ) { return intersection; } else {
 
-					return intersection.filter(value => array.some(other => equal(value, other)));
+					const values = [...collection];
+
+					return intersection.filter(value => values.some(other => equal(value, other)));
 
 				}
 
