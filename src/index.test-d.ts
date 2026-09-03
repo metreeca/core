@@ -15,7 +15,7 @@
  */
 
 import { describe, expectTypeOf, test } from "vitest";
-import { isDefined, map, opt } from "./index.js";
+import { assert, isDefined, isString, map, opt } from "./index.js";
 
 
 describe("built-in guards", () => {
@@ -57,6 +57,76 @@ describe("built-in guards", () => {
 			const values = [] as (string | undefined)[];
 
 			expectTypeOf(values.filter(isDefined)).toEqualTypeOf<string[]>();
+
+		});
+
+	});
+
+});
+
+describe("error reporting", () => {
+
+	describe("assert()", () => {
+
+		test("should report the guarded type for an unknown value", () => {
+
+			const value = "value" as unknown;
+
+			expectTypeOf(assert(value, isString)).toEqualTypeOf<string>();
+
+		});
+
+		test("should report the guarded type for a typed value", () => {
+
+			const value = "value" as string | number;
+
+			expectTypeOf(assert(value, isString)).toEqualTypeOf<string>();
+
+		});
+
+		test("should report the declared type under a plain predicate", () => {
+
+			const value = "value" as string;
+
+			expectTypeOf(assert(value, (checked: string) => checked.length > 0)).toEqualTypeOf<string>();
+
+		});
+
+		test("should bind an inline predicate parameter to the declared type", () => {
+
+			const value = "value" as string;
+
+			expectTypeOf(assert(value, checked => {
+
+				expectTypeOf(checked).toEqualTypeOf<string>();
+
+				return checked.length > 0;
+
+			})).toEqualTypeOf<string>();
+
+		});
+
+		test("should bind an inline predicate parameter to a generic declared type", () => {
+
+			function required<V>(values: Iterable<V>): V {
+				return assert(Array.from(values), values => values.length === 1, "expected single value")[0];
+			}
+
+			expectTypeOf(required(["value"])).toEqualTypeOf<string>();
+
+		});
+
+		test("should hand the declared value on to the message factory of a plain predicate", () => {
+
+			const value = "value" as string | number;
+
+			assert(value, (checked: string | number) => checked !== 0, offending => {
+
+				expectTypeOf(offending).toEqualTypeOf<string | number>();
+
+				return "message";
+
+			});
 
 		});
 

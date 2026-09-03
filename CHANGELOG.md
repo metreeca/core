@@ -31,6 +31,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `isPromise` guard now recognising native `Promise` instances alone, so that `catch()` and `finally()` may be relied
   on alongside `then()`; foreign promise implementations and bare thenables are matched by `isPromiseLike` instead
   (`@metreeca/core`)
+- `assert` function now narrowing its result to the guarded type when validating against a type guard, while a plain
+  predicate still leaves it at the declared type of the value (`@metreeca/core`)
+- `assert` default error message now naming the expected type in angle brackets, as in `expected <string> value`,
+  matching the messages produced by the `type` validator of `@metreeca/core/trace` (`@metreeca/core`)
 
 ### Removed
 

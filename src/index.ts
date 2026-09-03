@@ -114,17 +114,17 @@
  *
  * ## Error Reporting
  *
- * {@link assert} validates a value against an arbitrary predicate, returning it unchanged on success and throwing a
- * `TypeError` otherwise, with a message derived from the predicate name or computed from the offending value;
- * validation doesn't narrow, so values are returned at their declared type, whatever type the predicate tests for.
+ * {@link assert} validates a value against a type guard or an arbitrary predicate, returning it unchanged on success
+ * and throwing a `TypeError` otherwise, with a message derived from the predicate name or computed from the offending
+ * value; guards narrow the result to the guarded type, while plain predicates leave it at its declared type.
  *
  * {@link error} throws where a statement isn't allowed, turning a failure into an expression: `Error` causes are
  * thrown as they are, anything else wrapped in a generic `Error` reporting its string representation.
  *
  * ```typescript
- * assert(input, isString); // returns input, or throws TypeError("expected string")
+ * assert(input, isString); // returns input as a string, or throws TypeError("expected <string> value")
  * assert(data, isNumber, "count must be numeric"); // with a fixed message
- * assert(value, v => v > 0, v => `expected positive port <${v}>`); // with a computed message
+ * assert(port, port => port > 0, port => `expected positive port <${port}>`); // with a computed message
  *
  * const port = ports.get(name) ?? error("missing required port");
  * const result = await task().catch(reason => error(reason)); // rethrow a reason of unknown type
@@ -951,17 +951,36 @@ export function eager<T>(value: Lazy<T>): T {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * Validates a value against a type guard and returns it at the guarded type.
+ *
+ * Returns the value unchanged if the guard accepts it, narrowed to the guarded type; otherwise, throws a `TypeError`
+ * reporting the expected type, as read from the name of the guard when it is in `isXxx` form (for example,
+ * {@link isAsyncIterable} produces "expected <async iterable> value"), or a generic "assertion failed" otherwise.
+ *
+ * @typeParam T The declared type of the value to validate
+ * @typeParam G The type guarded by `guard`
+ *
+ * @param value The value to validate, whatever its declared type
+ * @param guard The {@link Guard} to apply to `value`, declared over its type or over any supertype of it
+ * @param message Optional custom error message, either a string or a factory computing it from the offending value;
+ * factories are evaluated only if `guard` fails, so building expensive messages costs nothing on success; defaults to
+ * a message derived from the guard function name
+ *
+ * @returns The `value` argument, unchanged, typed as `G`
+ *
+ * @throws {TypeError} When `guard` returns `false`
+ */
+export function assert<T, G extends T>(value: T, guard: (value: T) => value is G, message?: string | ((value: T) => string)): G;
+
+/**
  * Validates a value against a predicate and returns it.
  *
- * Applies the predicate to the value: if it passes, returns the value unchanged; otherwise, throws a `TypeError`. When
- * no custom message is provided, derives a descriptive message from the predicate function name: names in `isXxx` form
- * report the camel case suffix as separate lowercase words (for example, {@link isAsyncIterable} produces "expected
- * async iterable"), while other names produce "assertion failed".
+ * Returns the value unchanged if the predicate accepts it; otherwise, throws a `TypeError` reporting the expected
+ * type, as read from the name of the predicate when it is in `isXxx` form (for example, {@link isString} produces
+ * "expected <string> value"), or a generic "assertion failed" otherwise.
  *
- * The predicate may be declared over the type of the value or over any of its supertypes, so {@link Guard} functions
- * accepting `unknown` are taken as is and the result keeps the declared type of the value, without widening it to the
- * predicate parameter type. Validation doesn't narrow, though: a value declared as `unknown` is returned as `unknown`,
- * whatever type the predicate checks for.
+ * A plain predicate carries no narrowing information, so the result keeps the declared type of the value, whatever the
+ * predicate tests for.
  *
  * @typeParam T The declared type of the value to validate
  *
@@ -974,15 +993,18 @@ export function eager<T>(value: Lazy<T>): T {
  * @returns The `value` argument, unchanged
  *
  * @throws {TypeError} When `predicate` returns `false`
- *
- * @see {@link error} for throwing where a statement isn't allowed
+ */
+export function assert<T>(value: T, predicate: (value: T) => boolean, message?: string | ((value: T) => string)): T;
+
+/**
+ * Validates a value against a type guard or a predicate.
  */
 export function assert<T>(value: T, predicate: (value: T) => boolean, message?: string | ((value: T) => string)): T {
 
 	return predicate(value) ? value : error(new TypeError(
 		isString(message) ? message
 			: message !== undefined ? message(value)
-				: /^is\p{Uppercase}/u.test(predicate.name) ? `expected ${label(predicate.name.slice(2))}`
+				: /^is\p{Uppercase}/u.test(predicate.name) ? `expected <${label(predicate.name.slice(2))}> value`
 					: "assertion failed"
 	));
 
@@ -995,6 +1017,7 @@ export function assert<T>(value: T, predicate: (value: T) => boolean, message?: 
 	}
 
 }
+
 
 /**
  * Throws an error in expression contexts.
@@ -1021,8 +1044,6 @@ export function assert<T>(value: T, predicate: (value: T) => boolean, message?: 
  * const value = isValid(input) ? input : error(new RangeError("invalid input"));
  * const result = await task().catch(reason => error(reason)); // rethrow a reason of unknown type
  * ```
- *
- * @see {@link assert} for validating a value against a predicate, throwing a `TypeError` if it fails
  */
 export function error<T>(cause: unknown): T {
 

@@ -1332,20 +1332,20 @@ describe("error reporting", () => {
 		describe("default message generation", () => {
 
 			it("should derive message from guard name starting with 'is'", async () => {
-				// isString -> "expected string"
-				expect(() => assert(123, isString)).toThrow("expected string");
+				// isString -> "expected <string> value"
+				expect(() => assert(123, isString)).toThrow("expected <string> value");
 			});
 
 			it("should split camel case words in guard name", async () => {
-				// isNonEmpty -> "expected non empty"
+				// isNonEmpty -> "expected <non empty> value"
 				const isNonEmpty = (v: unknown): v is string => typeof v === "string" && v.length > 0;
-				expect(() => assert("", isNonEmpty)).toThrow("expected non empty");
+				expect(() => assert("", isNonEmpty)).toThrow("expected <non empty> value");
 			});
 
 			it("should handle consecutive uppercase letters (acronyms)", async () => {
-				// isHTTPError -> "expected h t t p error"
+				// isHTTPError -> "expected <http error> value"
 				const isHTTPError = (v: unknown): v is Error => v instanceof Error;
-				expect(() => assert("not an error", isHTTPError)).toThrow("expected http error");
+				expect(() => assert("not an error", isHTTPError)).toThrow("expected <http error> value");
 			});
 
 			it("should use fallback message for guards not matching pattern", async () => {
