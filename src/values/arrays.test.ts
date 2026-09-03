@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { intersection, some, union, unique } from "./arrays.js";
+import { intersection, multiple, optional, required, some, union, unique } from "./arrays.js";
 import { equals } from "./structures.js";
 
 
@@ -95,6 +95,7 @@ describe("some()", () => {
 	});
 
 });
+
 
 describe("unique()", () => {
 
@@ -441,6 +442,152 @@ describe("intersection()", () => {
 
 			expect(intersection(iterate(iterate(uno, due), iterate(dup2, dup1)), (x, y) => x.id === y.id))
 				.toEqual([uno, due]);
+
+		});
+
+	});
+
+});
+
+
+describe("required()", () => {
+
+	it("should return the single value of a one-element collection", async () => {
+
+		expect(required([42])).toBe(42);
+
+	});
+
+	it("should return a bare value as-is", async () => {
+
+		expect(required(42)).toBe(42);
+		expect(required("xy")).toBe("xy");
+
+	});
+
+	it("should reject an undefined value", async () => {
+
+		expect(() => required(undefined)).toThrow(TypeError);
+
+	});
+
+	it("should reject an empty collection", async () => {
+
+		expect(() => required([])).toThrow(TypeError);
+
+	});
+
+	it("should reject a collection holding more than one value", async () => {
+
+		expect(() => required([1, 2])).toThrow(TypeError);
+
+	});
+
+	describe("iterable sources", () => {
+
+		it("should accept a set", async () => {
+
+			expect(required(new Set([42]))).toBe(42);
+
+		});
+
+		it("should accept a single-pass iterator", async () => {
+
+			expect(required(iterate(42))).toBe(42);
+			expect(() => required(iterate(1, 2))).toThrow(TypeError);
+
+		});
+
+	});
+
+});
+
+describe("optional()", () => {
+
+	it("should return the single value of a one-element collection", async () => {
+
+		expect(optional([42])).toBe(42);
+
+	});
+
+	it("should return a bare value as-is", async () => {
+
+		expect(optional(42)).toBe(42);
+		expect(optional("xy")).toBe("xy");
+
+	});
+
+	it("should return undefined for an undefined value", async () => {
+
+		expect(optional(undefined)).toBeUndefined();
+
+	});
+
+	it("should return undefined for an empty collection", async () => {
+
+		expect(optional([])).toBeUndefined();
+
+	});
+
+	it("should reject a collection holding more than one value", async () => {
+
+		expect(() => optional([1, 2])).toThrow(TypeError);
+
+	});
+
+	describe("iterable sources", () => {
+
+		it("should accept a set", async () => {
+
+			expect(optional(new Set([42]))).toBe(42);
+
+		});
+
+		it("should accept a single-pass iterator", async () => {
+
+			expect(optional(iterate(42))).toBe(42);
+			expect(() => optional(iterate(1, 2))).toThrow(TypeError);
+
+		});
+
+	});
+
+});
+
+describe("multiple()", () => {
+
+	it("should return an empty array for an undefined value", async () => {
+
+		expect(multiple(undefined)).toEqual([]);
+
+	});
+
+	it("should wrap a bare value in an array", async () => {
+
+		expect(multiple(42)).toEqual([42]);
+		expect(multiple("xy")).toEqual(["xy"]);
+
+	});
+
+	it("should return the array unchanged rather than a copy", async () => {
+
+		const values = [1, 2, 3];
+
+		expect(multiple(values)).toBe(values);
+
+	});
+
+	describe("iterable sources", () => {
+
+		it("should collect the elements of a set", async () => {
+
+			expect(multiple(new Set([1, 2]))).toEqual([1, 2]);
+
+		});
+
+		it("should collect the elements of a single-pass iterator", async () => {
+
+			expect(multiple(iterate(1, 2, 3))).toEqual([1, 2, 3]);
 
 		});
 

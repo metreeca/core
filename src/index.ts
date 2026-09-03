@@ -1152,6 +1152,6 @@ export function opt<V, R>(value: V, mapper: (value: Defined<V>) => R, fallback: 
  */
 export function opt<V, R>(value: V, mapper: (value: Defined<V>) => R, fallback?: Lazy<R>): Optional<R> {
 
-	return isDefined(value) ? mapper(value) : eager(fallback);
+	return value !== undefined ? mapper(value) : eager(fallback);
 
 }

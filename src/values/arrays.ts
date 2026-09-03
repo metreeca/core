@@ -52,8 +52,25 @@
  * intersection([[1, 2, 3], [2, 3, 4]]); // [2, 3]
  * ```
  *
+ * **Expecting a Cardinality**
+ *
+ * Reduce an optional, single or multi-valued input to the number of values a call site expects, failing at the
+ * boundary when the input doesn't match:
+ *
+ * ```typescript
+ * import { multiple, optional, required } from '@metreeca/core/arrays';
+ *
+ * required(["x"]);      // "x"
+ * required(["x", "y"]); // TypeError
+ * optional(undefined);  // undefined
+ * optional(["x", "y"]); // TypeError
+ * multiple("x");        // ["x"]
+ * ```
+ *
  * @module
  */
+
+import { assert } from "../index.js";
 
 
 /**
@@ -118,6 +135,7 @@ export function some<T>(values: Some<T>): readonly T[] {
 	}
 
 }
+
 
 /**
  * Retains the unique values of a collection.
@@ -241,4 +259,61 @@ export function intersection<T>(values: Iterable<Many<T>>, equal?: (x: T, y: T) 
 
 	}
 
+}
+
+
+/**
+ * Reduces a {@link Some} value to the single value it must hold.
+ *
+ * Converts a flexible input into a plain value where the call site expects exactly one, so the expectation is stated
+ * once and broken inputs fail at the boundary rather than downstream.
+ *
+ * @typeParam T The type of the contained values
+ *
+ * @param values The value to reduce: `undefined`, a single `T`, or a collection of `T` drawn from exactly once, so
+ *     single-pass iterators are safe to pass
+ *
+ * @returns The single value held by `values`
+ *
+ * @throws {TypeError} When `values` holds no value or more than one
+ */
+export function required<T>(values: Some<T>): T {
+	return assert(some(values), values => values.length === 1, "expected exactly one value")[0];
+}
+
+/**
+ * Reduces a {@link Some} value to the single value it may hold.
+ *
+ * Converts a flexible input into a plain optional value where the call site accepts one value at most, so the
+ * expectation is stated once and broken inputs fail at the boundary rather than downstream.
+ *
+ * @typeParam T The type of the contained values
+ *
+ * @param values The value to reduce: `undefined`, a single `T`, or a collection of `T` drawn from exactly once, so
+ *     single-pass iterators are safe to pass
+ *
+ * @returns The single value held by `values`, or `undefined` if it holds none
+ *
+ * @throws {TypeError} When `values` holds more than one value
+ */
+export function optional<T>(values: Some<T>): undefined | T {
+	return assert(some(values), values => values.length <= 1, "expected at most one value").at(0);
+}
+
+/**
+ * Reduces a {@link Some} value to the values it holds.
+ *
+ * Converts a flexible input into an array where the call site places no constraint on the number of values, stating an
+ * unbounded expectation in the same terms as {@link required} and {@link optional}.
+ *
+ * @typeParam T The type of the contained values
+ *
+ * @param values The value to reduce: `undefined`, a single `T`, or a collection of `T` drawn from exactly once, so
+ *     single-pass iterators are safe to pass
+ *
+ * @returns An array holding the given values: empty if `values` is `undefined`, a single-element array if `values` is
+ *     a bare `T`, `values` itself if it is already an array, or its elements collected in iteration order otherwise
+ */
+export function multiple<T>(values: Some<T>): readonly T[] {
+	return some(values);
 }

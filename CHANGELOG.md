@@ -25,6 +25,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `@metreeca/core/strings`
 - `Many<T>` type accepting a collection of values whatever its shape, from an array to a `Set`, a `Map` view or a
   generator, exported from `@metreeca/core/arrays`
+- `required`, `optional` and `multiple` functions for reducing an optional, single or multi-valued input to exactly one
+  value, at most one value or an array of values, throwing a `TypeError` when the input doesn't match the expected
+  cardinality, exported from `@metreeca/core/arrays`
 
 ### Changed
 
