@@ -28,6 +28,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `required`, `optional` and `multiple` functions for reducing an optional, single or multi-valued input to exactly one
   value, at most one value or an array of values, throwing a `TypeError` when the input doesn't match the expected
   cardinality, exported from `@metreeca/core/arrays`
+- `nameTag` function for naming the language a tag identifies, given in English or in a language of the caller's
+  choosing, falling back on the tag as it stands when no name is available, exported from `@metreeca/core/language`
 
 ### Changed
 

@@ -17,11 +17,9 @@
 /**
  * BCP 47 language tags and RFC 4647 basic language ranges.
  *
- * Provides types and utilities for working with BCP 47 language tags ({@link Tag}) and RFC 4647 basic language
- * ranges ({@link TagRange}). Use {@link isTag} and {@link isTagRange} as type guards, and {@link matchTag} to test tags
- * against range patterns.
- *
  * **Language Tags**
+ *
+ * Confirm that a value carries a well-formed language tag before handing it to an API that expects one:
  *
  * ```typescript
  * import { isTag } from "@metreeca/core/language";
@@ -33,6 +31,8 @@
  *
  * **Basic Language Ranges**
  *
+ * Confirm in the same way that a value carries a well-formed basic language range, wildcard included:
+ *
  * ```typescript
  * import { isTagRange } from "@metreeca/core/language";
  *
@@ -43,10 +43,23 @@
  *
  * **Matching**
  *
+ * Select the content whose language answers a request, testing a tag against the ranges a client accepts:
+ *
  * ```typescript
  * import { matchTag } from "@metreeca/core/language";
  *
  * matchTag("de-CH", "de");  // true - Swiss German matches German range
+ * ```
+ *
+ * **Naming**
+ *
+ * Present a tag to readers as the name of the language it identifies, in a language they understand:
+ *
+ * ```typescript
+ * import { nameTag } from "@metreeca/core/language";
+ *
+ * nameTag("zh-Hans");        // "Simplified Chinese" - named in English by default
+ * nameTag("zh-Hans", "it");  // "cinese semplificato" - named in Italian
  * ```
  *
  * @module
@@ -232,5 +245,37 @@ export function matchTag(tag: Tag, range: TagRange): boolean {
 	// subtag prefix of it (the character following the prefix in the tag is "-")
 
 	return $range === "*" || $tag === $range || $tag.startsWith(`${$range}-`);
+
+}
+
+/**
+ * Names the language identified by a language tag.
+ *
+ * Every subtag a tag carries is taken into account: the name reflects the language, script, region and variant
+ * subtags, while extension and private use subtags, which carry no name of their own, are ignored.
+ *
+ * > [!IMPORTANT]
+ * > Names are supplied by the JavaScript runtime: availability and wording vary with the platform and with the
+ * > language the name is given in. Names are intended for display and must not be relied on as stable values for
+ * > comparison or storage.
+ *
+ * @param tag The language {@link Tag} identifying the language to be named
+ * @param locale The language {@link Tag} identifying the language the name is to be given in; defaults to English; a
+ * well-formed tag the runtime doesn't support is replaced by the runtime default language
+ *
+ * @returns The name of the language identified by `tag`, given in the language identified by `locale`, or `tag` as it
+ * stands if either tag isn't well-formed or no name is available
+ */
+export function nameTag(tag: Tag, locale: Tag = "en"): string {
+
+	try {
+
+		return new Intl.DisplayNames([locale], { type: "language" }).of(new Intl.Locale(tag).baseName) || tag;
+
+	} catch {
+
+		return tag;
+
+	}
 
 }

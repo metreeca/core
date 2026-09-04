@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { isTag, isTagRange, matchTag } from "./language.js";
+import { isTag, isTagRange, matchTag, nameTag } from "./language.js";
 
 
 const tags = {
@@ -214,6 +214,113 @@ describe("matchTag()", () => {
 			expect(() => matchTag("de-Latn-DE", "de-*-DE")).toThrow();
 			expect(() => matchTag("en-US", "*-US")).toThrow();
 			expect(() => matchTag("fr-Latn-CH", "*-CH")).toThrow();
+		});
+
+	});
+
+});
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+describe("nameTag()", () => {
+
+	describe("language subtag", () => {
+
+		it("should name a language identified by a 2-letter subtag", async () => {
+			expect(nameTag("en")).toBe("English");
+			expect(nameTag("fr")).toBe("French");
+			expect(nameTag("de")).toBe("German");
+		});
+
+		it("should name a language identified by a 3-letter subtag", async () => {
+			expect(nameTag("eng")).toBe("English");
+			expect(nameTag("fra")).toBe("French");
+		});
+
+	});
+
+	describe("script, region and variant subtags", () => {
+
+		it("should qualify the name with the script subtag", async () => {
+			expect(nameTag("zh-Hans")).toBe("Simplified Chinese");
+			expect(nameTag("zh-Hant")).toBe("Traditional Chinese");
+		});
+
+		it("should qualify the name with the region subtag", async () => {
+			expect(nameTag("en-US")).toBe("American English");
+			expect(nameTag("en-GB")).toBe("British English");
+			expect(nameTag("fr-CA")).toBe("Canadian French");
+			expect(nameTag("es-419")).toBe("Latin American Spanish");
+		});
+
+		it("should qualify the name with the variant subtag", async () => {
+			expect(nameTag("de-CH-1901")).toBe("Swiss High German (Traditional German orthography)");
+		});
+
+		it("should qualify the name with script and region subtags together", async () => {
+			expect(nameTag("sr-Latn-RS")).toBe("Serbian (Latin, Serbia)");
+			expect(nameTag("zh-Hans-CN")).toBe("Chinese (Simplified, China)");
+		});
+
+	});
+
+	describe("locale-only subtags", () => {
+
+		it("should leave private use subtags out of the name", async () => {
+			expect(nameTag("en-US-x-private")).toBe("American English");
+		});
+
+		it("should leave extension subtags out of the name", async () => {
+			expect(nameTag("en-u-ca-gregory")).toBe("English");
+		});
+
+	});
+
+	describe("case insensitivity", () => {
+
+		it("should name a language whatever the case of its subtags", async () => {
+			expect(nameTag("EN-us")).toBe("American English");
+			expect(nameTag("ZH-hans")).toBe("Simplified Chinese");
+		});
+
+	});
+
+	describe("naming language", () => {
+
+		it("should default to English", async () => {
+			expect(nameTag("fr")).toBe(nameTag("fr", "en"));
+		});
+
+		it("should give the name in the requested language", async () => {
+			expect(nameTag("fr", "it")).toBe("francese");
+			expect(nameTag("zh-Hans", "it")).toBe("cinese semplificato");
+			expect(nameTag("en-US", "fr")).toBe("anglais américain");
+			expect(nameTag("de", "de")).toBe("Deutsch");
+		});
+
+		it("should fall back on the runtime default language if the requested one isn't supported", async () => {
+			expect(nameTag("en", "zz")).toBe("English");
+		});
+
+	});
+
+	describe("fallback", () => {
+
+		it("should return a malformed tag as it stands", async () => {
+			expect(nameTag("en_US")).toBe("en_US");
+			expect(nameTag("")).toBe("");
+			expect(nameTag("toolongprimary")).toBe("toolongprimary");
+		});
+
+		it("should return the tag as it stands if the naming language is malformed", async () => {
+			expect(nameTag("fr", "it_IT")).toBe("fr");
+			expect(nameTag("fr", "")).toBe("fr");
+		});
+
+		it("should return a tag it knows no name for as it stands", async () => {
+			expect(nameTag("qaa")).toBe("qaa");
+			expect(nameTag("zzz")).toBe("zzz");
 		});
 
 	});
