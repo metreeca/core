@@ -200,8 +200,8 @@
  * @module
  */
 
+import { type Guard, isFunction, isNumber, isString, key, lazy, opt, type Optional } from "../index.js";
 import { clip, escape } from "../values/strings.js";
-import { type Guard, isFunction, isNumber, isString, key, lazy, opt } from "../index.js";
 
 
 const QuoteLength = 10;
@@ -280,7 +280,7 @@ export class TraceError extends RangeError {
  * @typeParam T The type of the validated value
  */
 export type Validator<T> =
-	(value: T) => undefined | Trace;
+	(value: T) => Optional<Trace>;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -295,7 +295,9 @@ export type Validator<T> =
  * @typeParam T The type admitted when the validator is present
  */
 export type Modal<T> =
-	undefined | false | T;
+	| undefined
+	| false
+	| T;
 
 /**
  * Named entries with an optional wildcard entry.

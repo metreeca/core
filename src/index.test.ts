@@ -30,8 +30,8 @@ import {
 	isIntersection,
 	isIterable,
 	isLazy,
-	isLiteral,
 	isNull,
+	isNullable,
 	isNumber,
 	isObject,
 	isOptional,
@@ -47,6 +47,7 @@ import {
 	key,
 	lazy,
 	map,
+	type Optional,
 	opt
 } from "./index.js";
 
@@ -69,6 +70,34 @@ describe("built-in guards", () => {
 			expect(isDefined(false)).toBeTruthy();
 			expect(isDefined({})).toBeTruthy();
 			expect(isDefined([])).toBeTruthy();
+		});
+
+		it("should return true when a defined value satisfies the type guard", () => {
+			expect(isDefined("test", isString)).toBeTruthy();
+			expect(isDefined(123, isNumber)).toBeTruthy();
+			expect(isDefined(null, isNull)).toBeTruthy();
+		});
+
+		it("should return false when a defined value fails the type guard", () => {
+			expect(isDefined("test", isNumber)).toBeFalsy();
+			expect(isDefined(null, isString)).toBeFalsy();
+		});
+
+		it("should reject undefined whatever the type guard admits", () => {
+
+			const isAdmitting = (value: unknown): value is Optional<string> => isOptional(value, isString);
+
+			expect(isDefined(undefined, isAdmitting)).toBeFalsy();
+			expect(isDefined("test", isAdmitting)).toBeTruthy();
+
+		});
+
+		it("should not consult the type guard for undefined", () => {
+
+			const isThrowing = (_value: unknown): _value is never => { throw new Error("consulted"); };
+
+			expect(isDefined(undefined, isThrowing)).toBeFalsy();
+
 		});
 
 	});
@@ -821,73 +850,56 @@ describe("composable guards", () => {
 
 	});
 
-	describe("isLiteral()", () => {
+	describe("isNullable()", () => {
 
-		it("should return true for matching string literal", () => {
-			expect(isLiteral("foo", "foo")).toBeTruthy();
-			expect(isLiteral("bar", "bar")).toBeTruthy();
+		it("should return true for undefined", () => {
+			expect(isNullable(undefined, isString)).toBeTruthy();
+			expect(isNullable(undefined, isNumber)).toBeTruthy();
+			expect(isNullable(undefined, isBoolean)).toBeTruthy();
 		});
 
-		it("should return false for non-matching string literal", () => {
-			expect(isLiteral("foo", "bar")).toBeFalsy();
-			expect(isLiteral("FOO", "foo")).toBeFalsy();
+		it("should return true for null", () => {
+			expect(isNullable(null, isString)).toBeTruthy();
+			expect(isNullable(null, isNumber)).toBeTruthy();
+			expect(isNullable(null, isBoolean)).toBeTruthy();
 		});
 
-		it("should return true for matching number literal", () => {
-			expect(isLiteral(42, 42)).toBeTruthy();
-			expect(isLiteral(0, 0)).toBeTruthy();
-			expect(isLiteral(-1, -1)).toBeTruthy();
+		it("should return true when value satisfies type guard", () => {
+			expect(isNullable("test", isString)).toBeTruthy();
+			expect(isNullable(123, isNumber)).toBeTruthy();
+			expect(isNullable(true, isBoolean)).toBeTruthy();
 		});
 
-		it("should return false for non-matching number literal", () => {
-			expect(isLiteral(42, 43)).toBeFalsy();
-			expect(isLiteral(0, 1)).toBeFalsy();
+		it("should return false when value is neither empty marker nor satisfies type guard", () => {
+			expect(isNullable(123, isString)).toBeFalsy();
+			expect(isNullable("test", isNumber)).toBeFalsy();
+			expect(isNullable(0, isString)).toBeFalsy();
+			expect(isNullable("", isNumber)).toBeFalsy();
 		});
 
-		it("should return true for matching boolean literal", () => {
-			expect(isLiteral(true, true)).toBeTruthy();
-			expect(isLiteral(false, false)).toBeTruthy();
+		it("should accept empty markers without consulting the type guard", () => {
+
+			const isRejecting = (_v: unknown): _v is never => false;
+
+			expect(isNullable(undefined, isRejecting)).toBeTruthy();
+			expect(isNullable(null, isRejecting)).toBeTruthy();
+
 		});
 
-		it("should return false for non-matching boolean literal", () => {
-			expect(isLiteral(true, false)).toBeFalsy();
-			expect(isLiteral(false, true)).toBeFalsy();
+		it("should work with complex type guards", () => {
+			expect(isNullable({ a: 1 }, isObject)).toBeTruthy();
+			expect(isNullable([1, 2, 3], isArray)).toBeTruthy();
+			expect(isNullable("string", isObject)).toBeFalsy();
 		});
 
-		it("should return true when value matches one of array values", () => {
-			expect(isLiteral("foo", ["foo", "bar", "baz"])).toBeTruthy();
-			expect(isLiteral("bar", ["foo", "bar", "baz"])).toBeTruthy();
-			expect(isLiteral("baz", ["foo", "bar", "baz"])).toBeTruthy();
-		});
+		it("should work with custom type guards", () => {
 
-		it("should return false when value does not match any array value", () => {
-			expect(isLiteral("qux", ["foo", "bar", "baz"])).toBeFalsy();
-			expect(isLiteral("FOO", ["foo", "bar", "baz"])).toBeFalsy();
-		});
+			const isPositive = (v: unknown): v is number => isNumber(v) && v > 0;
 
-		it("should return true for matching number in array", () => {
-			expect(isLiteral(1, [1, 2, 3])).toBeTruthy();
-			expect(isLiteral(2, [1, 2, 3])).toBeTruthy();
-			expect(isLiteral(3, [1, 2, 3])).toBeTruthy();
-		});
+			expect(isNullable(5, isPositive)).toBeTruthy();
+			expect(isNullable(-5, isPositive)).toBeFalsy();
+			expect(isNullable(0, isPositive)).toBeFalsy();
 
-		it("should return false for non-matching number in array", () => {
-			expect(isLiteral(4, [1, 2, 3])).toBeFalsy();
-			expect(isLiteral(0, [1, 2, 3])).toBeFalsy();
-		});
-
-		it("should return false for wrong types", () => {
-			expect(isLiteral(null, "foo")).toBeFalsy();
-			expect(isLiteral(undefined, "foo")).toBeFalsy();
-			expect(isLiteral({}, "foo")).toBeFalsy();
-			expect(isLiteral([], "foo")).toBeFalsy();
-			expect(isLiteral("42", 42)).toBeFalsy();
-			expect(isLiteral(42, "42")).toBeFalsy();
-		});
-
-		it("should use strict equality", () => {
-			expect(isLiteral(1, [1])).toBeTruthy();
-			expect(isLiteral("1", [1] as unknown as string[])).toBeFalsy();
 		});
 
 	});

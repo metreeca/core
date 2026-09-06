@@ -23,15 +23,26 @@
  * values to first use, binding a value to a mapper of its own with or without a tolerance for its absence, and
  * reporting failures where a statement isn't allowed.
  *
- * ## Built-in Guards
+ * ## Emptiness Guards
  *
- * Guards for language-level values and host objects. {@link isDefined} pairs with the {@link Defined} type operator,
- * stripping `undefined` from the type of the checked value while retaining `null`.
+ * {@link isNullable}, {@link isOptional} and {@link isDefined} settle how the empty values are treated at a given
+ * boundary: both markers admitted, `undefined` alone admitted, or presence required. A type guard constrains whatever
+ * each of them accepts beyond emptiness, required by the first two and optional for the last, and the results narrow
+ * through the matching {@link Nullable}, {@link Optional} and {@link Defined} type operators.
  *
  * ```typescript
+ * isNullable(null, isString); // true (undefined and null both accepted)
+ * isOptional(undefined, isString); // true (undefined accepted, null rejected)
  * isDefined("value"); // true
  * isDefined(null); // true (only undefined is rejected)
- * values.filter(isDefined); // (string | undefined)[] narrowed to string[]
+ * isDefined(value, isString); // presence and type in a single check
+ * ```
+ *
+ * ## Built-in Guards
+ *
+ * Guards for language-level values and host objects.
+ *
+ * ```typescript
  * isPrimitive("value"); // true (any non-object value)
  * isIdentifier("myVar"); // true (valid ECMAScript identifier)
  * isSymbol(Symbol("key")); // true
@@ -70,25 +81,18 @@
  * isObject({ a: 1 }, { a: isNumber }); // with closed template
  * isObject({ a: 1 }, { a: isNumber, [key]: isAny }); // with open template
  * isObject({ a: 1 }, { a: isNumber, b: v => isOptional(v, isString) }); // with optional field
- * isObject({ kind: "circle" }, { kind: v => isLiteral(v, ["circle", "square"]) }); // with literal field
  * isObject({ value: 42 }, { value: v => isUnion(v, [isString, isNumber]) }); // with union field
  * isObject({}, {}); // empty object check
  * ```
  *
  * ## Composable Guards
  *
- * Higher-order guards that combine simpler ones into arbitrary type expressions:
- * {@link isLiteral} for literal and enum-like sets, {@link isOptional} for {@link Optional} values,
- * {@link isUnion} for `A | B`, and {@link isIntersection} for `A & B`.
- * {@link isAny} acts as a wildcard that always succeeds, typically used as a placeholder
- * inside templates.
+ * Higher-order guards that combine simpler ones into arbitrary type expressions: {@link isUnion} for `A | B` and
+ * {@link isIntersection} for `A & B`. {@link isAny} acts as a wildcard that always succeeds, typically used as a
+ * placeholder inside templates.
  *
  * ```typescript
  * isAny("test"); // true (wildcard, always succeeds)
- * isLiteral("foo", "foo"); // true
- * isLiteral("foo", ["foo", "bar", "baz"]); // true (matches any)
- * isOptional(undefined, isString); // true
- * isOptional("hello", isString); // true
  * isUnion("test", [isString, isNumber]); // true (matches isString)
  * isUnion(42, [isString, isNumber]); // true (matches isNumber)
  * isIntersection({ a: 1 }, [isObject, v => isObject(v, { a: isNumber })]); // true (satisfies all)
@@ -181,24 +185,24 @@ export const key: unique symbol = Symbol("*");
  * Extends a type with the empty values `undefined` and `null`, as the converse of the built-in `NonNullable`: absence
  * is accepted under either marker, so values are taken as they come, whichever convention their source follows.
  *
- * @typeParam V The type to extend with `undefined` and `null`
+ * @typeParam T The type to extend with `undefined` and `null`
  */
-export type Nullable<V> =
+export type Nullable<T> =
 	| undefined
 	| null
-	| V;
+	| T;
 
 /**
  * Optional value.
  *
  * Extends a type with the empty value `undefined` alone, matching the absence reported by omitted properties and
- * missing arguments: `null` remains a value in its own right, accepted only where `V` already admits it.
+ * missing arguments: `null` remains a value in its own right, accepted only where `T` already admits it.
  *
- * @typeParam V The type to extend with `undefined`
+ * @typeParam T The type to extend with `undefined`
  */
-export type Optional<V> =
+export type Optional<T> =
 	| undefined
-	| V;
+	| T;
 
 /**
  * Defined value.
@@ -209,10 +213,10 @@ export type Optional<V> =
  * > [!WARNING]
  * > `Defined<any>` resolves to `any` and admits `undefined` again.
  *
- * @typeParam V The type to strip `undefined` from, defaults to any value other than `undefined`
+ * @typeParam T The type to strip `undefined` from, defaults to any value other than `undefined`
  */
-export type Defined<V = null | {}> =
-	V & (null | {});
+export type Defined<T = null | {}> =
+	T & (null | {});
 
 
 /**
@@ -368,23 +372,71 @@ export type Eager<T> =
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Checks if a value is {@link Defined}.
+ * Checks if a value is {@link Nullable}.
  *
- * Only `undefined` is rejected: `null` and falsy values such as `0`, `""`, and `false` are all defined. On success
- * the value narrows to its declared type without `undefined`, so the guard doubles as a filtering predicate, as in
- * `values.filter(isDefined)`.
+ * Absence is accepted under either marker: `undefined` and `null` pass without consulting the guard, while every other
+ * value must satisfy it. Suited to data crossing a boundary that reports absence under either convention, where the
+ * choice of marker carries no meaning.
  *
- * @typeParam V The declared type of the value to check
+ * @typeParam T The type validated by the type guard
  *
  * @param value The value to check
+ * @param is A type guard function to validate the value if it is neither `undefined` nor `null`
  *
- * @returns True if the value is not `undefined`; false otherwise
+ * @returns True if the value is `undefined`, `null` or satisfies the type guard; false otherwise
  */
-export function isDefined<V>(value: V): value is Defined<V> {
+export function isNullable<T>(value: unknown, is: Guard<T>): value is Nullable<T> {
 
-	return value !== undefined;
+	return value === undefined || value === null || is(value);
 
 }
+
+/**
+ * Checks if a value is {@link Optional}.
+ *
+ * Absence is accepted on its own: `undefined` passes without consulting the guard, while every other value, `null`
+ * included, must satisfy it. Suited to optional fields in {@link isObject} templates, where a missing property and a
+ * valid one are equally acceptable.
+ *
+ * @typeParam T The type validated by the type guard
+ *
+ * @param value The value to check
+ * @param is A type guard function to validate the value if it is not `undefined`
+ *
+ * @returns True if the value is `undefined` or satisfies the type guard; false otherwise
+ */
+export function isOptional<T>(value: unknown, is: Guard<T>): value is Optional<T> {
+
+	return value === undefined || is(value);
+
+}
+
+/**
+ * Checks if a value is {@link Defined}.
+ *
+ * Only `undefined` is rejected: `null` and falsy values such as `0`, `""`, and `false` are all defined. On success the
+ * value narrows to its declared type without `undefined`, so the guard doubles as a filtering predicate, as in
+ * `values.filter(value => isDefined(value))`.
+ *
+ * A type guard may be supplied to constrain the value beyond mere presence: absence is rejected on its own, whether or
+ * not the guard would admit it, so the value narrows to the guarded type stripped of `undefined`, and a guard built
+ * over an {@link Optional} type is confined to its present values.
+ *
+ * @typeParam T The type validated by the type guard, or `unknown` where no guard is given
+ *
+ * @param value The value to check
+ * @param is An optional type guard to validate the value against once presence is established
+ *
+ * @returns True if the value is not `undefined` and satisfies the type guard, if one is given; false otherwise
+ */
+export function isDefined<T>(value: unknown, is?: Guard<T>): value is Defined<T> {
+
+	return value !== undefined && (is === undefined || is(value));
+
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Checks if a value is a {@link Primitive}.
@@ -786,44 +838,6 @@ export function isObject<T extends Record<PropertyKey, unknown> = Record<Propert
 export function isAny(value: unknown): value is unknown {
 
 	return true;
-
-}
-
-/**
- * Checks if a value matches one of the specified literal values.
- *
- * @typeParam T The literal type (boolean, number, or string)
- *
- * @param value The value to check
- * @param values A single literal value or an array of literal values to match against
- *
- * @returns True if the value strictly equals one of the specified literals; false otherwise
- */
-export function isLiteral<T extends boolean | number | string>(value: unknown, values: T | readonly T[]): value is T {
-
-	return Array.isArray(values)
-		? values.includes(value)
-		: value === values;
-
-}
-
-/**
- * Checks if a value is {@link Optional}.
- *
- * Absence is accepted on its own: `undefined` passes without consulting the guard, while every other value, `null`
- * included, must satisfy it. Suited to optional fields in {@link isObject} templates, where a missing property and a
- * valid one are equally acceptable.
- *
- * @typeParam T The type validated by the type guard
- *
- * @param value The value to check
- * @param is A type guard function to validate the value if it is not `undefined`
- *
- * @returns True if the value is `undefined` or satisfies the type guard; false otherwise
- */
-export function isOptional<T>(value: unknown, is: Guard<T>): value is Optional<T> {
-
-	return value === undefined || is(value);
 
 }
 

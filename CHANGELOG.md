@@ -9,7 +9,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- `Optional<V>` type extending a type with the empty value `undefined` alone, leaving `null` out, exported from
+- `Optional<T>` type extending a type with the empty value `undefined` alone, leaving `null` out, exported from
   `@metreeca/core`
 - `Awaitables<T>` type accepting a series of values supplied either synchronously or asynchronously, for uniform
   consumption with `for await`, exported from `@metreeca/core/async`
@@ -20,6 +20,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   out to be missing, exported from `@metreeca/core`
 - `isPromiseLike` guard recognising any thenable value, whatever the promise implementation that produced it, exported
   from `@metreeca/core`
+- `isNullable` guard validating a `Nullable` value, accepting absence under either the `undefined` or the `null` marker
+  without consulting the given guard, as the counterpart of `isOptional`, exported from `@metreeca/core`
 - `unescape` function reading string literal content back from its escapes, taking the JSON forms or a syntax of the
   caller's choosing and recovering rather than rejecting sequences the syntax doesn't account for, exported from
   `@metreeca/core/strings`
@@ -38,6 +40,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `isPromise` guard now recognising native `Promise` instances alone, so that `catch()` and `finally()` may be relied
   on alongside `then()`; foreign promise implementations and bare thenables are matched by `isPromiseLike` instead
   (`@metreeca/core`)
+- `isDefined` guard now taking an optional type guard, rejecting absence on its own and narrowing the result to the
+  guarded type stripped of `undefined`, so that a guard tolerating `undefined` may be constrained to present values;
+  taking a second argument, it is no longer assignable to the predicate of `filter()` and the like, where it now reads
+  `values.filter(value => isDefined(value))` (`@metreeca/core`)
 - `assert` function now narrowing its result to the guarded type when validating against a type guard, while a plain
   predicate still leaves it at the declared type of the value (`@metreeca/core`)
 - `assert` default error message now naming the expected type in angle brackets, as in `expected <string> value`,
@@ -51,6 +57,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - `given` function, superseded by `map` and `opt`, which take the value and the mapper in a single call
   (`@metreeca/core`)
+- `isLiteral` guard, whose enum-like sets are matched by testing the value against the expected primitive guard and
+  looking it up in the set of accepted values (`@metreeca/core`)
 
 ## [0.9.22](https://github.com/metreeca/core/compare/v0.9.21...v0.9.22) - 2026-08-28
 

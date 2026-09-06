@@ -15,7 +15,7 @@
  */
 
 import { describe, expectTypeOf, test } from "vitest";
-import { assert, isDefined, isString, map, opt } from "./index.js";
+import { assert, isDefined, isOptional, isString, map, type Optional, opt } from "./index.js";
 
 
 describe("built-in guards", () => {
@@ -56,7 +56,29 @@ describe("built-in guards", () => {
 
 			const values = [] as (string | undefined)[];
 
-			expectTypeOf(values.filter(isDefined)).toEqualTypeOf<string[]>();
+			expectTypeOf(values.filter(value => isDefined(value))).toEqualTypeOf<string[]>();
+
+		});
+
+		test("should narrow to the guarded type", () => {
+
+			const value = undefined as unknown;
+
+			if ( isDefined(value, isString) ) {
+				expectTypeOf(value).toEqualTypeOf<string>();
+			}
+
+		});
+
+		test("should strip undefined from a guard admitting it", () => {
+
+			const isOptionalString = (value: unknown): value is Optional<string> => isOptional(value, isString);
+
+			const value = undefined as unknown;
+
+			if ( isDefined(value, isOptionalString) ) {
+				expectTypeOf(value).toEqualTypeOf<string>();
+			}
 
 		});
 
