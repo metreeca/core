@@ -51,7 +51,7 @@
   },
   "scripts": {
     "clean": "rm -rf dist docs node_modules",
-    "setup": "npm install",
+    "prime": "npm ci",
     "build": "rm -rf dist docs && tsc -p tsconfig.build.json && npx typedoc",
     "check": "npx vitest --typecheck run",
     "proof": "npx typedoc && (npx typedoc --watch & npx five-server docs --open)"
