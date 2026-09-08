@@ -89,8 +89,7 @@ import { assert } from "../index.js";
 export type Some<T> =
 	| undefined
 	| T
-	| readonly T[] // redundant against Many<T>, but reports a mismatched array by element type, not iterator protocol
-	| Many<T>;
+	| Many<T>
 
 /**
  * Zero or more values of type `T`.
@@ -99,11 +98,9 @@ export type Some<T> =
  *
  * @typeParam T The type of the contained values
  */
-export type Many<T> = {
-
-	[Symbol.iterator](): Iterator<T> // ;(structural) Iterable<T> breaks element inference when nested
-
-};
+export type Many<T> =
+	| readonly T[] // matches nested arrays by element type
+	| { [Symbol.iterator](): { next(): IteratorResult<T> } }  // ;( named Iterable/Iterator break nested inference
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

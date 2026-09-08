@@ -15,7 +15,7 @@
  */
 
 import { describe, expectTypeOf, it } from "vitest";
-import { intersection, type Some, some, union, unique } from "./arrays.js";
+import { difference, intersection, type Some, some, union, unique } from "./arrays.js";
 
 
 function* iterate<T>(...values: T[]): Generator<T> {
@@ -113,6 +113,21 @@ describe("union()", () => {
 
 	});
 
+	it("should infer the element type from declared array collections", async () => {
+
+		const mutable: number[] = [1, 2];
+		const immutable: readonly number[] = [2, 3];
+
+		expectTypeOf(union([mutable, immutable])).toEqualTypeOf<readonly number[]>();
+
+	});
+
+	it("should infer the element type from generator collections", async () => {
+
+		expectTypeOf(union([iterate(1, 2), iterate(2, 3)])).toEqualTypeOf<readonly number[]>();
+
+	});
+
 	it("should infer a shared element type from mixed collections", async () => {
 
 		expectTypeOf(union([[1, 2], new Set([3])])).toEqualTypeOf<readonly number[]>();
@@ -151,6 +166,21 @@ describe("intersection()", () => {
 
 	});
 
+	it("should infer the element type from declared array collections", async () => {
+
+		const mutable: number[] = [1, 2];
+		const immutable: readonly number[] = [2, 3];
+
+		expectTypeOf(intersection([mutable, immutable])).toEqualTypeOf<readonly number[]>();
+
+	});
+
+	it("should infer the element type from generator collections", async () => {
+
+		expectTypeOf(intersection([iterate(1, 2), iterate(2, 3)])).toEqualTypeOf<readonly number[]>();
+
+	});
+
 	it("should infer a shared element type from mixed collections", async () => {
 
 		expectTypeOf(intersection([[1, 2], new Set([3])])).toEqualTypeOf<readonly number[]>();
@@ -174,6 +204,59 @@ describe("intersection()", () => {
 
 		// @ts-expect-error — a number is not a collection
 		intersection([1, 2]);
+
+	});
+
+});
+
+describe("difference()", () => {
+
+	it("should infer the element type from any collection", async () => {
+
+		expectTypeOf(difference([[1, 2], [2, 3]])).toEqualTypeOf<readonly number[]>();
+		expectTypeOf(difference([new Set([1, 2])])).toEqualTypeOf<readonly number[]>();
+		expectTypeOf(difference(iterate(iterate(1, 2)))).toEqualTypeOf<readonly number[]>();
+
+	});
+
+	it("should infer the element type from declared array collections", async () => {
+
+		const mutable: number[] = [1, 2];
+		const immutable: readonly number[] = [2, 3];
+
+		expectTypeOf(difference([mutable, immutable])).toEqualTypeOf<readonly number[]>();
+
+	});
+
+	it("should infer the element type from generator collections", async () => {
+
+		expectTypeOf(difference([iterate(1, 2), iterate(2, 3)])).toEqualTypeOf<readonly number[]>();
+
+	});
+
+	it("should infer a shared element type from mixed collections", async () => {
+
+		expectTypeOf(difference([[1, 2], new Set([3])])).toEqualTypeOf<readonly number[]>();
+
+	});
+
+	it("should type the comparator on the element type", async () => {
+
+		difference(iterate(iterate({ id: 1 })), (x, y) => {
+
+			expectTypeOf(x).toEqualTypeOf<{ id: number }>();
+			expectTypeOf(y).toEqualTypeOf<{ id: number }>();
+
+			return true;
+
+		});
+
+	});
+
+	it("should reject a collection of non-collections", async () => {
+
+		// @ts-expect-error — a number is not a collection
+		difference([1, 2]);
 
 	});
 
