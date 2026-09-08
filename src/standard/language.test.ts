@@ -33,7 +33,12 @@ const tags = {
 		"es-419",
 		"sr-Latn-RS",
 		"zh-Hans-CN",
-		"en-US-x-private"
+		"en-US-x-private",
+		"EN",
+		"EN-us",
+		"en-US-X-PRIVATE",
+		"en-A-bbb",
+		"X-PRIVATE"
 	],
 	invalid: [
 		{ value: "", reason: "empty string" },
@@ -58,7 +63,9 @@ const ranges = {
 		"zh-Hans-CN",
 		"a",
 		"abcdefgh",
-		"en-12345678"
+		"en-12345678",
+		"EN-US",
+		"ZH-HANS-CN"
 	],
 	invalid: [
 		{ value: "", reason: "empty string" },

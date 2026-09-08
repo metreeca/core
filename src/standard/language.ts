@@ -69,43 +69,61 @@
  * @see {@link https://www.rfc-editor.org/rfc/rfc4647.html RFC 4647 - Matching of Language Tags}
  */
 
-
 import { assert, isString } from "../index.js";
 
 
 /**
- * Regular expression for matching BCP 47 language tags.
+ * Regular expression matching BCP 47 language tags.
  *
- * Matches strings following the language tag syntax defined in RFC 5646 § 2.1, excluding grandfathered tags.
+ * Recognises the language tag syntax defined in RFC 5646 § 2.1, excluding grandfathered tags, whatever the case of its
+ * subtags. The pattern is anchored, matching a whole tag and nothing less; carrying no flags, it keeps no state
+ * between tests and may be shared freely.
+ *
+ * Reach for it wherever a language tag is to be recognised by a regular expression rather than by a call, as in a
+ * form control or a schema; {@link isTag} validates values in code.
+ *
+ * @remarks
+ *
+ * Case tolerance is built into the expression itself rather than left to an `i` flag, so that its `source` carries the
+ * whole grammar wherever flags aren't available.
  *
  * @see {@link https://www.rfc-editor.org/info/bcp47 BCP 47 - Tags for Identifying Languages}
  * @see {@link https://www.rfc-editor.org/rfc/rfc5646.html RFC 5646 - Tags for Identifying Languages}
  */
-const TagPattern = (() => {
+export const TagPattern = (() => {
 
-	const language = "(?:[a-z]{2,3}(?:-[a-z]{3}){0,3}|[a-z]{4}|[a-z]{5,8})"; // 2-3 + extlang / 4 / 5-8 letters
-	const script = "(?:-[a-z]{4})?"; // optional 4-letter script
-	const region = "(?:-(?:[a-z]{2}|[0-9]{3}))?"; // optional 2-letter or 3-digit region
-	const variant = "(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*"; // zero or more variants
-	const extension = "(?:-[0-9a-wy-z](?:-[a-z0-9]{2,8})+)*"; // zero or more extensions
-	const privateUse = "(?:-x(?:-[a-z0-9]{1,8})+)?"; // optional private use
-	const privateOnly = "x(?:-[a-z0-9]{1,8})+"; // standalone private use tag
+	const language = "(?:[a-zA-Z]{2,3}(?:-[a-zA-Z]{3}){0,3}|[a-zA-Z]{4}|[a-zA-Z]{5,8})"; // 2-3 + extlang / 4 / 5-8
+	const script = "(?:-[a-zA-Z]{4})?"; // optional 4-letter script
+	const region = "(?:-(?:[a-zA-Z]{2}|[0-9]{3}))?"; // optional 2-letter or 3-digit region
+	const variant = "(?:-(?:[a-zA-Z0-9]{5,8}|[0-9][a-zA-Z0-9]{3}))*"; // zero or more variants
+	const extension = "(?:-[0-9a-wA-Wy-zY-Z](?:-[a-zA-Z0-9]{2,8})+)*"; // zero or more extensions
+	const privateUse = "(?:-[xX](?:-[a-zA-Z0-9]{1,8})+)?"; // optional private use
+	const privateOnly = "[xX](?:-[a-zA-Z0-9]{1,8})+"; // standalone private use tag
 	const langtag = `${language}${script}${region}${variant}${extension}${privateUse}`;
 
-	return new RegExp(`^(?:${langtag}|${privateOnly})$`, "i");
+	return new RegExp(`^(?:${langtag}|${privateOnly})$`);
 
 })();
 
 /**
- * Regular expression for matching RFC 4647 basic language ranges.
+ * Regular expression matching RFC 4647 basic language ranges.
  *
- * Matches strings following the basic language range syntax defined in RFC 4647 § 2.1: a sequence of subtags or the
- * standalone `*` wildcard.
+ * Recognises the basic language range syntax defined in RFC 4647 § 2.1, whatever the case of its subtags: a sequence
+ * of subtags or the standalone `*` wildcard. The pattern is anchored, matching a whole range and nothing less;
+ * carrying no flags, it keeps no state between tests and may be shared freely.
+ *
+ * Reach for it wherever a language range is to be recognised by a regular expression rather than by a call, as in a
+ * form control or a schema; {@link isTagRange} validates values in code.
+ *
+ * @remarks
+ *
+ * Case tolerance is built into the expression itself rather than left to an `i` flag, so that its `source` carries the
+ * whole grammar wherever flags aren't available.
  *
  * @see {@link https://www.rfc-editor.org/info/bcp47 BCP 47 - Tags for Identifying Languages}
  * @see {@link https://www.rfc-editor.org/rfc/rfc4647.html RFC 4647 - Matching of Language Tags}
  */
-const TagRangePattern = /^(?:[a-z]{1,8}(?:-[a-z0-9]{1,8})*|\*)$/i;
+export const TagRangePattern = /^(?:[a-zA-Z]{1,8}(?:-[a-zA-Z0-9]{1,8})*|\*)$/;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -172,12 +190,13 @@ export type TagRange = string
 /**
  * Checks if a value is a valid language tag.
  *
- * Validates language tags according to BCP 47/RFC 5646 § 2.1.
- * A language tag is a sequence of subtags identifying a natural language (e.g., `en`, `fr-CA`, `zh-Hans-CN`).
+ * Validates language tags according to BCP 47/RFC 5646 § 2.1, excluding grandfathered tags. A language tag is a
+ * sequence of subtags identifying a natural language, for example `en`, `fr-CA` or `zh-Hans-CN`; case is not
+ * significant, so `EN-us` is accepted alongside `en-US`.
  *
  * @param value The value to validate as a language tag
  *
- * @returns `true` if the value matches the language tag pattern; `false` otherwise
+ * @returns true if `value` is a well-formed language tag; false otherwise
  *
  * @see {@link Tag}
  */
@@ -188,12 +207,13 @@ export function isTag(value: unknown): value is Tag {
 /**
  * Checks if a value is a valid basic language range.
  *
- * Validates basic language ranges according to RFC 4647 § 2.1.
- * A basic language range is a sequence of subtags (e.g., `en`, `en-US`) or the standalone `*` wildcard.
+ * Validates basic language ranges according to RFC 4647 § 2.1. A basic language range is a sequence of subtags, for
+ * example `en` or `en-US`, or the standalone `*` wildcard; case is not significant, so `EN-US` is accepted alongside
+ * `en-US`.
  *
  * @param value The value to validate as a basic language range
  *
- * @returns `true` if the value matches the basic language range pattern; `false` otherwise
+ * @returns true if `value` is a well-formed basic language range; false otherwise
  *
  * @see {@link TagRange}
  */

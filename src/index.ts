@@ -156,14 +156,18 @@
 
 
 /**
- * Regular expression for validating ECMAScript {@link Identifier} names.
+ * Regular expression matching ECMAScript {@link Identifier} names.
  *
- * Matches strings following ECMAScript IdentifierName syntax with full Unicode support.
+ * Recognises the ECMAScript IdentifierName syntax with full Unicode support. The pattern is anchored, matching a whole
+ * name and nothing less; carrying no global flag, it keeps no state between tests and may be shared freely.
+ *
+ * Reach for it wherever an identifier is to be recognised by a regular expression rather than by a call, as in a form
+ * control or a schema; {@link isIdentifier} validates values in code.
  *
  * @see {@link https://tc39.es/ecma262/#prod-IdentifierName ECMAScript IdentifierName}
  * @see {@link https://www.unicode.org/reports/tr31/ UAX #31: Unicode Identifiers and Syntax}
  */
-const IdentifierPattern = /^[_$\p{ID_Start}][$\u200C\u200D\p{ID_Continue}]*$/u;
+export const IdentifierPattern = /^[_$\p{ID_Start}][$\u200C\u200D\p{ID_Continue}]*$/u;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -244,11 +248,8 @@ export type Primitive =
 /**
  * ECMAScript Identifier.
  *
- * A string matching ECMAScript IdentifierName syntax:
- *
- * ```js
- * /^[_$\p{ID_Start}][$\u200C\u200D\p{ID_Continue}]*$/u
- * ```
+ * A string matching the ECMAScript IdentifierName syntax recognised by {@link IdentifierPattern}, with full Unicode
+ * support.
  *
  * > [!WARNING]
  * > This is a type alias for documentation purposes only. Branding was considered but not adopted due to

@@ -35,6 +35,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   from `@metreeca/core/arrays`
 - `nameTag` function for naming the language a tag identifies, given in English or in a language of the caller's
   choosing, falling back on the tag as it stands when no name is available, exported from `@metreeca/core/language`
+- `TagPattern` and `TagRangePattern` regular expressions matching the BCP 47 language tag and the RFC 4647 basic
+  language range grammars whatever the case of their subtags, carrying no flags, so that their source may be reused as
+  it stands where flags aren't available, for wherever a pattern is called for rather than a guard, exported from
+  `@metreeca/core/language`
+- `IdentifierPattern` regular expression matching the ECMAScript identifier name grammar, for wherever a pattern is
+  called for rather than a guard, exported from `@metreeca/core`
 
 ### Changed
 
