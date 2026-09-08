@@ -620,7 +620,7 @@ export function createState<T extends State>(seed: Seed<T>): Instance<T> {
  *
  * @returns An immutable state instance manager providing snapshot, restoration, and observer operations
  *
- * @throws TypeError if the object is not a valid state instance
+ * @throws {@link !TypeError TypeError} If the object is not a valid state instance
  */
 export function manageState<T extends State>(instance: Instance<T>): Manager<T> {
 

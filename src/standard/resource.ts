@@ -405,10 +405,10 @@ export function getIRIBase(iri: string | IRI): undefined | IRI {
  *
  * @returns The resolved absolute identifier
  *
- * @throws RangeError If `base` is not a valid absolute identifier or `reference` is not a valid relative reference,
- *   for instance because it carries an isolated UTF-16 surrogate
- * @throws RangeError If the resolved path contains tree-climbing segments that would go above the root,
- *   or if a relative reference cannot be resolved against an opaque base
+ * @throws {@link !RangeError RangeError} If `base` is not a valid absolute identifier or `reference` is not a valid
+ *   relative reference, for instance because it carries an isolated UTF-16 surrogate
+ * @throws {@link !RangeError RangeError} If the resolved path contains tree-climbing segments that would go above
+ *   the root, or if a relative reference cannot be resolved against an opaque base
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986#section-5 RFC 3986 § 5 - Reference Resolution}
  * @see {@link https://www.rfc-editor.org/rfc/rfc6454#section-4 RFC 6454 § 4 - Origin of a URI}
@@ -443,9 +443,10 @@ export function resolve(base: string | IRI, reference: string | IRI): IRI {
  *
  * @returns A root-relative reference if same origin, or the normalized absolute reference otherwise
  *
- * @throws RangeError If `base` is not a valid absolute identifier or `reference` is not a valid relative reference,
- *   for instance because it carries an isolated UTF-16 surrogate
- * @throws RangeError If the resolved path contains tree-climbing segments that would go above the root
+ * @throws {@link !RangeError RangeError} If `base` is not a valid absolute identifier or `reference` is not a valid
+ *   relative reference, for instance because it carries an isolated UTF-16 surrogate
+ * @throws {@link !RangeError RangeError} If the resolved path contains tree-climbing segments that would go above
+ *   the root
  */
 export function internalize(base: string | IRI, reference: string | IRI): IRI {
 
@@ -485,9 +486,10 @@ export function internalize(base: string | IRI, reference: string | IRI): IRI {
  *
  * @returns A relative reference from `base` to `reference`, or the normalized absolute reference if not relativizable
  *
- * @throws RangeError If `base` is not a valid absolute identifier or `reference` is not a valid relative reference,
- *   for instance because it carries an isolated UTF-16 surrogate
- * @throws RangeError If the resolved path contains tree-climbing segments that would go above the root
+ * @throws {@link !RangeError RangeError} If `base` is not a valid absolute identifier or `reference` is not a valid
+ *   relative reference, for instance because it carries an isolated UTF-16 surrogate
+ * @throws {@link !RangeError RangeError} If the resolved path contains tree-climbing segments that would go above
+ *   the root
  */
 export function relativize(base: string | IRI, reference: string | IRI): IRI {
 
@@ -559,10 +561,10 @@ export function relativize(base: string | IRI, reference: string | IRI): IRI {
  *
  * @returns An immutable {@link Namespace} object with typed term properties
  *
- * @throws {RangeError} If the namespace is not a valid absolute IRI, for instance because it carries an isolated
- *   UTF-16 surrogate, or if any term produces an invalid IRI during initialisation. For open namespaces, also throws
- *   when accessing a term that produces an invalid IRI. For closed namespaces, also throws when accessing an unknown
- *   term name.
+ * @throws {@link !RangeError RangeError} If the namespace is not a valid absolute IRI, for instance because it
+ *   carries an isolated UTF-16 surrogate, or if any term produces an invalid IRI during initialisation. For open
+ *   namespaces, also throws when accessing a term that produces an invalid IRI. For closed namespaces, also throws
+ *   when accessing an unknown term name.
  *
  * @remarks
  *

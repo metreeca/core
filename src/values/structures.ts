@@ -170,7 +170,7 @@ const Immutable = Symbol("immutable");
  *
  * @returns `true` if `x` and `y` are deeply equal; `false` otherwise
  *
- * @throws {RangeError} Stack overflow when `x` or `y` contains circular references
+ * @throws {@link !RangeError RangeError} Stack overflow when `x` or `y` contains circular references
  */
 export function equals(x: unknown, y: unknown, equal: (x: unknown, y: unknown) => boolean = Object.is): boolean {
 
@@ -220,7 +220,7 @@ export function equals(x: unknown, y: unknown, equal: (x: unknown, y: unknown) =
  *
  * @returns A deeply frozen clone of `value`
  *
- * @throws {RangeError} Stack overflow when `value` contains circular references
+ * @throws {@link !RangeError RangeError} Stack overflow when `value` contains circular references
  */
 export function immutable<T>(value: T): T;
 
@@ -257,8 +257,8 @@ export function immutable<T>(value: T): T;
  *
  * @returns A deeply frozen clone of `value`, branded with the guard
  *
- * @throws {TypeError} When the guard returns `false`
- * @throws {RangeError} Stack overflow when `value` contains circular references
+ * @throws {@link !TypeError TypeError} When the guard returns `false`
+ * @throws {@link !RangeError RangeError} Stack overflow when `value` contains circular references
  */
 export function immutable<T>(value: unknown, guard: Guard<T>, message?: string): T;
 

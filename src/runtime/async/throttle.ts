@@ -88,7 +88,7 @@ export interface Throttle {
 	 *
 	 * @returns A promise that resolves to the new baseline delay in milliseconds
 	 *
-	 * @throws Error if retry is negative
+	 * @throws {@link !Error Error} If `retry` is negative
 	 */
 	adapt(retry: number): Promise<number>;
 
@@ -180,7 +180,7 @@ export interface Throttle {
  *
  * @returns An immutable throttle instance for rate-limiting operations
  *
- * @throws Error if any parameter validation fails
+ * @throws {@link !Error Error} If any parameter validation fails
  */
 export function createThrottle({
 

@@ -477,9 +477,9 @@ export function split(string: string, separator: string | RegExp = /\s+/u): read
  *     where the placeholder is marked with `%`, and every `#`-marked placeholder left unfilled and stripped of its
  *     modifier
  *
- * @throws {ReferenceError} If `variables` maps no value to the key of a placeholder to be filled
- * @throws {URIError} If a value to be percent-encoded carries an isolated surrogate, which denotes no character and
- *     has no UTF-8 representation
+ * @throws {@link !ReferenceError ReferenceError} If `variables` maps no value to the key of a placeholder to be filled
+ * @throws {@link !URIError URIError} If a value to be percent-encoded carries an isolated surrogate, which denotes no
+ *     character and has no UTF-8 representation
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986#section-2.3 RFC 3986 - Unreserved Characters}
  */
@@ -632,7 +632,7 @@ export function dedent(string: string | TemplateStringsArray, ...values: readonl
  *     by its numeric escape where `escapes` assigns none, a match spanning several characters contributing the escape
  *     of its first code point alone
  *
- * @throws {TypeError} If `pattern` doesn't carry the `g` flag
+ * @throws {@link !TypeError TypeError} If `pattern` doesn't carry the `g` flag
  *
  * @see {@link clip} for the companion length budget, shortening overlong content before escaping
  * @see {@link https://www.rfc-editor.org/rfc/rfc8259#section-7 RFC 8259 - Strings}
@@ -712,7 +712,7 @@ export function escape(
  *     by the code point its numeric form denotes, or, where neither accounts for it, by the sequence stripped of a
  *     leading reverse solidus, a numeric form outside the Unicode range contributing the replacement character
  *
- * @throws {TypeError} If `pattern` doesn't carry the `g` flag
+ * @throws {@link !TypeError TypeError} If `pattern` doesn't carry the `g` flag
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc8259#section-7 RFC 8259 - Strings}
  */

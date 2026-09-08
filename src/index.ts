@@ -982,7 +982,7 @@ export function eager<T>(value: Lazy<T>): T {
  *
  * @returns The `value` argument, unchanged, typed as `G`
  *
- * @throws {TypeError} When `guard` returns `false`
+ * @throws {@link !TypeError TypeError} When `guard` returns `false`
  */
 export function assert<T, G extends T>(value: T, guard: (value: T) => value is G, message?: string | ((value: T) => string)): G;
 
@@ -1006,7 +1006,7 @@ export function assert<T, G extends T>(value: T, guard: (value: T) => value is G
  *
  * @returns The `value` argument, unchanged
  *
- * @throws {TypeError} When `predicate` returns `false`
+ * @throws {@link !TypeError TypeError} When `predicate` returns `false`
  */
 export function assert<T>(value: T, predicate: (value: T) => boolean, message?: string | ((value: T) => string)): T;
 
@@ -1048,7 +1048,7 @@ export function assert<T>(value: T, predicate: (value: T) => boolean, message?: 
  *
  * @param cause The `Error` to throw, or the value to report as the message of a new generic `Error`
  *
- * @throws {Error} The `cause` argument, if it is an `Error`; otherwise a new `Error` reporting its string
+ * @throws {@link !Error Error} The `cause` argument, if it is an `Error`; otherwise a new `Error` reporting its string
  * representation
  *
  * @example

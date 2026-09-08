@@ -218,7 +218,8 @@ export function isTagRange(value: unknown): value is TagRange {
  *
  * @returns `true` if the tag matches the range pattern; `false` otherwise
  *
- * @throws TypeError If `tag` is not a valid language tag or `range` is not a valid basic language range
+ * @throws {@link !TypeError TypeError} If `tag` is not a valid language tag or `range` is not a valid basic language
+ *     range
  *
  * @example
  *

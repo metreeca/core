@@ -131,7 +131,8 @@ export function encodeBase64(plain: string, url = false): string {
  *
  * @returns The decoded UTF-8 string, with every malformed byte sequence replaced by `U+FFFD`
  *
- * @throws InvalidCharacterError If `encoded` contains characters outside the standard and URL-safe base64 alphabets
+ * @throws {@link !DOMException DOMException} Named `InvalidCharacterError`, if `encoded` contains characters outside
+ *     the standard and URL-safe base64 alphabets
  *
  * @see {@link encodeBase64}
  */

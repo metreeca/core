@@ -66,7 +66,7 @@
  *
  * @returns The sum of `x` and `y`, as a value of their shared numeric type
  *
- * @throws {TypeError} If one operand is a `number` and the other a `bigint`
+ * @throws {@link !TypeError TypeError} If one operand is a `number` and the other a `bigint`
  *
  * @internal
  */
@@ -93,7 +93,7 @@ export function add<V extends number | bigint>(x: V, y: V): V {
  *
  * @returns The difference between `x` and `y`, as a value of their shared numeric type
  *
- * @throws {TypeError} If one operand is a `number` and the other a `bigint`
+ * @throws {@link !TypeError TypeError} If one operand is a `number` and the other a `bigint`
  *
  * @internal
  */
@@ -121,7 +121,7 @@ export function sub<V extends number | bigint>(x: V, y: V): V {
  *
  * @returns The product of `x` by `y`, as a value of the numeric type of `x`
  *
- * @throws {RangeError} If `x` is a `bigint` and `y` is not a finite integer
+ * @throws {@link !RangeError RangeError} If `x` is a `bigint` and `y` is not a finite integer
  *
  * @internal
  */
@@ -161,7 +161,7 @@ export function mul<V extends number | bigint>(x: V, y: number): V {
  * @returns The quotient of `x` by `y`, as an IEEE 754 double for a `number` dividend, or rounded to the nearest
  *     integer, halves away from zero, for a `bigint` dividend
  *
- * @throws {RangeError} If `x` is a `bigint` and `y` is not a finite integer or is `0`
+ * @throws {@link !RangeError RangeError} If `x` is a `bigint` and `y` is not a finite integer or is `0`
  *
  * @internal
  */
