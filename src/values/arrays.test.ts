@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { intersection, multiple, optional, required, some, union, unique } from "./arrays.js";
+import { difference, intersection, multiple, optional, required, some, union, unique } from "./arrays.js";
 import { equals } from "./structures.js";
 
 
@@ -442,6 +442,134 @@ describe("intersection()", () => {
 
 			expect(intersection(iterate(iterate(uno, due), iterate(dup2, dup1)), (x, y) => x.id === y.id))
 				.toEqual([uno, due]);
+
+		});
+
+	});
+
+});
+
+describe("difference()", () => {
+
+	it("should remove the elements of the other arrays from the first", async () => {
+
+		expect(difference([[1, 2, 3], [2]])).toEqual([1, 3]);
+		expect(difference([[1, 2, 3], [2], [3]])).toEqual([1]);
+
+	});
+
+	it("should subtract the union of the other arrays", async () => {
+
+		expect(difference([[1, 2, 3], [2, 4], [3, 5]])).toEqual([1]);
+
+	});
+
+	it("should preserve the first-seen order of the first array", async () => {
+
+		expect(difference([[3, 1, 2], [1]])).toEqual([3, 2]);
+
+	});
+
+	it("should drop duplicates", async () => {
+
+		expect(difference([[1, 1, 2, 2], [2]])).toEqual([1]);
+
+	});
+
+	it("should return an empty array when the other arrays cover the first", async () => {
+
+		expect(difference([[1, 2], [1, 2, 3]])).toEqual([]);
+
+	});
+
+	it("should ignore empty arrays", async () => {
+
+		expect(difference([[1, 2], []])).toEqual([1, 2]);
+
+	});
+
+	it("should return the distinct elements of a single array", async () => {
+
+		expect(difference([[1, 1, 2]])).toEqual([1, 2]);
+
+	});
+
+	it("should return an empty array when given no arrays", async () => {
+
+		expect(difference([])).toEqual([]);
+
+	});
+
+	it("should return a new array", async () => {
+
+		const values = [1, 2, 3];
+
+		expect(difference([values])).not.toBe(values);
+
+	});
+
+	describe("identity comparison", () => {
+
+		it("should treat NaN as a single element", async () => {
+
+			expect(difference([[NaN, 1], [NaN]])).toEqual([1]);
+
+		});
+
+		it("should compare objects by reference", async () => {
+
+			const uno = { x: 1 };
+			const due = { x: 1 };
+
+			expect(difference([[uno], [uno]])).toEqual([]);
+			expect(difference([[uno], [due]])).toEqual([uno]);
+
+		});
+
+	});
+
+	describe("custom equality", () => {
+
+		it("should remove elements equal under the comparator", async () => {
+
+			const a1 = { id: 1 };
+			const a2 = { id: 2 };
+			const b1 = { id: 1 };
+			const b3 = { id: 3 };
+
+			expect(difference([[a1, a2], [b1, b3]], (x, y) => x.id === y.id)).toEqual([a2]);
+
+		});
+
+	});
+
+	describe("iterable sources", () => {
+
+		it("should accept sets as sources", async () => {
+
+			expect(difference([new Set([1, 2, 3]), new Set([2])])).toEqual([1, 3]);
+
+		});
+
+		it("should accept an iterable of sources", async () => {
+
+			expect(difference(new Set([[1, 2, 3], [2]]))).toEqual([1, 3]);
+
+		});
+
+		it("should accept single-pass iterators at both levels", async () => {
+
+			expect(difference(iterate(iterate(1, 2, 3), iterate(2)))).toEqual([1, 3]);
+
+		});
+
+		it("should accept single-pass iterators under custom equality", async () => {
+
+			const uno = { id: 1 };
+			const due = { id: 2 };
+			const dup1 = { id: 1 };
+
+			expect(difference(iterate(iterate(uno, due), iterate(dup1)), (x, y) => x.id === y.id)).toEqual([due]);
 
 		});
 

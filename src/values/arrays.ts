@@ -43,13 +43,15 @@
  *
  * **Combining Collections**
  *
- * Merge several collections into their union or narrow them to their shared intersection, deduplicating either way:
+ * Merge several collections into their union, narrow them to their shared intersection, or subtract the later ones
+ * from the first, deduplicating in every case:
  *
  * ```typescript
- * import { intersection, union } from '@metreeca/core/arrays';
+ * import { difference, intersection, union } from '@metreeca/core/arrays';
  *
  * union([[1, 2], [2, 3]]);              // [1, 2, 3]
  * intersection([[1, 2, 3], [2, 3, 4]]); // [2, 3]
+ * difference([[1, 2, 3], [2, 3, 4]]);   // [1]
  * ```
  *
  * **Expecting a Cardinality**
@@ -136,7 +138,6 @@ export function some<T>(values: Some<T>): readonly T[] {
 
 }
 
-
 /**
  * Retains the unique values of a collection.
  *
@@ -170,6 +171,7 @@ export function unique<T>(values: Iterable<T>, equal?: (x: T, y: T) => boolean):
 	}
 
 }
+
 
 /**
  * Combines collections into their set union.
@@ -261,6 +263,70 @@ export function intersection<T>(values: Iterable<Many<T>>, equal?: (x: T, y: T) 
 
 }
 
+/**
+ * Reduces collections to their set difference.
+ *
+ * Keeps each element of the first collection absent from every other collection, once, in the order it first appears,
+ * so a base list is narrowed by any number of exclusion lists without duplicates. Without a comparator, elements are
+ * compared by identity the way a `Set` does (`SameValueZero`); pass `equal` to subtract by a custom relation instead.
+ * Given no collections, the result is empty; given a single collection, the result holds its distinct elements.
+ *
+ * @typeParam T The element type of the collections
+ *
+ * @param values The collections to subtract: the first supplies the candidate elements, the others the elements to
+ *     remove; each is drawn from at most once, so single-pass iterators are safe to pass
+ * @param equal An optional custom equality function for comparing elements; without it, elements are compared by `Set`
+ *     identity (`SameValueZero`)
+ *
+ * @returns A new array holding every element of the first collection missing from all the others, in the order they
+ *     first appear in that collection
+ */
+export function difference<T>(values: Iterable<Many<T>>, equal?: (x: T, y: T) => boolean): readonly T[] {
+
+	const [first, ...rest] = values;
+
+	if ( first === undefined ) {
+
+		return [];
+
+	} else if ( equal === undefined ) {
+
+		return rest.reduce<readonly T[]>(
+			(difference, collection) => {
+
+				if ( difference.length === 0 ) { return difference; } else {
+
+					const values = new Set(collection);
+
+					return difference.filter(value => !values.has(value));
+
+				}
+
+			},
+			[...new Set(first)]
+		);
+
+	} else {
+
+		return rest.reduce<readonly T[]>(
+			(difference, collection) => {
+
+				if ( difference.length === 0 ) { return difference; } else {
+
+					const values = [...collection];
+
+					return difference.filter(value => !values.some(other => equal(value, other)));
+
+				}
+
+			},
+			unique(first, equal)
+		);
+
+	}
+
+}
+
 
 /**
  * Reduces a {@link Some} value to the single value it must hold.
@@ -275,7 +341,7 @@ export function intersection<T>(values: Iterable<Many<T>>, equal?: (x: T, y: T) 
  *
  * @returns The single value held by `values`
  *
- * @throws {TypeError} When `values` holds no value or more than one
+ * @throws {@link !TypeError TypeError} When `values` holds no value or more than one
  */
 export function required<T>(values: Some<T>): T {
 	return assert(some(values), values => values.length === 1, "expected exactly one value")[0];
@@ -294,7 +360,7 @@ export function required<T>(values: Some<T>): T {
  *
  * @returns The single value held by `values`, or `undefined` if it holds none
  *
- * @throws {TypeError} When `values` holds more than one value
+ * @throws {@link !TypeError TypeError} When `values` holds more than one value
  */
 export function optional<T>(values: Some<T>): undefined | T {
 	return assert(some(values), values => values.length <= 1, "expected at most one value").at(0);
