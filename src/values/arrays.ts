@@ -60,12 +60,14 @@
  * boundary when the input doesn't match:
  *
  * ```typescript
- * import { multiple, optional, required } from '@metreeca/core/arrays';
+ * import { multiple, nonempty, optional, required } from '@metreeca/core/arrays';
  *
  * required(["x"]);      // "x"
  * required(["x", "y"]); // TypeError
  * optional(undefined);  // undefined
  * optional(["x", "y"]); // TypeError
+ * nonempty(["x", "y"]); // ["x", "y"]
+ * nonempty(undefined);  // TypeError
  * multiple("x");        // ["x"]
  * ```
  *
@@ -364,18 +366,42 @@ export function optional<T>(values: Some<T>): undefined | T {
 }
 
 /**
- * Reduces a {@link Some} value to the values it holds.
+ * Reduces a {@link Some} value to the values it must hold.
  *
- * Converts a flexible input into an array where the call site places no constraint on the number of values, stating an
- * unbounded expectation in the same terms as {@link required} and {@link optional}.
+ * Converts a flexible input into a non-empty array where the call site expects at least one value, so the expectation
+ * is stated once and broken inputs fail at the boundary rather than downstream. The result type guarantees a first
+ * element, letting callers read it without a presence check.
  *
  * @typeParam T The type of the contained values
  *
  * @param values The value to reduce: `undefined`, a single `T`, or a collection of `T` drawn from exactly once, so
  *     single-pass iterators are safe to pass
  *
- * @returns An array holding the given values: empty if `values` is `undefined`, a single-element array if `values` is
- *     a bare `T`, `values` itself if it is already an array, or its elements collected in iteration order otherwise
+ * @returns An array holding the given values, guaranteed to hold at least one
+ *
+ * @throws {@link !TypeError TypeError} When `values` holds no value
+ */
+export function nonempty<T>(values: Some<T>): readonly [T, ...T[]] {
+	return assert(some(values),
+		(values): values is readonly [T, ...T[]] => values.length > 0,
+		"expected at least one value"
+	);
+}
+
+/**
+ * Reduces a {@link Some} value to the values it holds.
+ *
+ * Converts a flexible input into an array where the call site places no constraint on the number of values,
+ * stating an unbounded expectation in the same terms as {@link required} and {@link optional}.
+ *
+ * @typeParam T The type of the contained values
+ *
+ * @param values The value to reduce: `undefined`, a single `T`, or a collection of `T` drawn from exactly once, so
+ *     single-pass iterators are safe to pass
+ *
+ * @returns An array holding the given values: empty if `values` is `undefined`, a single-element array if `values`
+ *     is a bare `T`, `values` itself if it is already an array, or its elements collected in iteration order
+ *     otherwise
  */
 export function multiple<T>(values: Some<T>): readonly T[] {
 	return some(values);

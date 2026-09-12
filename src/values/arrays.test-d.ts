@@ -15,7 +15,7 @@
  */
 
 import { describe, expectTypeOf, it } from "vitest";
-import { difference, intersection, type Some, some, union, unique } from "./arrays.js";
+import { difference, intersection, nonempty, type Some, some, union, unique } from "./arrays.js";
 
 
 function* iterate<T>(...values: T[]): Generator<T> {
@@ -257,6 +257,33 @@ describe("difference()", () => {
 
 		// @ts-expect-error — a number is not a collection
 		difference([1, 2]);
+
+	});
+
+});
+
+describe("nonempty()", () => {
+
+	it("should guarantee a first element", async () => {
+
+		expectTypeOf(nonempty(42)).toEqualTypeOf<readonly [number, ...number[]]>();
+		expectTypeOf(nonempty([1, 2])[0]).toEqualTypeOf<number>();
+
+	});
+
+	it("should infer the element type from any collection", async () => {
+
+		expectTypeOf(nonempty(new Set([1, 2]))).toEqualTypeOf<readonly [number, ...number[]]>();
+		expectTypeOf(nonempty(iterate(1, 2))).toEqualTypeOf<readonly [number, ...number[]]>();
+
+	});
+
+	it("should reject a value of the wrong element type", async () => {
+
+		const tags = (values: Some<string>) => nonempty(values);
+
+		// @ts-expect-error — a number is not a string
+		tags(42);
 
 	});
 

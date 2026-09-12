@@ -15,7 +15,17 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { difference, intersection, multiple, optional, required, some, union, unique } from "./arrays.js";
+import {
+	difference,
+	intersection,
+	multiple,
+	nonempty,
+	optional,
+	required,
+	some,
+	union,
+	unique
+} from "./arrays.js";
 import { equals } from "./structures.js";
 
 
@@ -675,6 +685,61 @@ describe("optional()", () => {
 
 			expect(optional(iterate(42))).toBe(42);
 			expect(() => optional(iterate(1, 2))).toThrow(TypeError);
+
+		});
+
+	});
+
+});
+
+describe("nonempty()", () => {
+
+	it("should return the values of a collection", async () => {
+
+		expect(nonempty([42])).toEqual([42]);
+		expect(nonempty([1, 2, 3])).toEqual([1, 2, 3]);
+
+	});
+
+	it("should wrap a bare value in an array", async () => {
+
+		expect(nonempty(42)).toEqual([42]);
+		expect(nonempty("xy")).toEqual(["xy"]);
+
+	});
+
+	it("should return the array unchanged rather than a copy", async () => {
+
+		const values = [1, 2, 3];
+
+		expect(nonempty(values)).toBe(values);
+
+	});
+
+	it("should reject an undefined value", async () => {
+
+		expect(() => nonempty(undefined)).toThrow(TypeError);
+
+	});
+
+	it("should reject an empty collection", async () => {
+
+		expect(() => nonempty([])).toThrow(TypeError);
+
+	});
+
+	describe("iterable sources", () => {
+
+		it("should collect the elements of a set", async () => {
+
+			expect(nonempty(new Set([1, 2]))).toEqual([1, 2]);
+
+		});
+
+		it("should collect the elements of a single-pass iterator", async () => {
+
+			expect(nonempty(iterate(1, 2, 3))).toEqual([1, 2, 3]);
+			expect(() => nonempty(iterate())).toThrow(TypeError);
 
 		});
 

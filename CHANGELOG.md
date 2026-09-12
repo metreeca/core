@@ -11,6 +11,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - `Issue` type naming the atomic violations a `Trace` is built from, as self-contained human-readable text opening by
   convention with the constraint facet incurring the violation, exported from `@metreeca/core/trace`
+- `nonempty` reducing a `Some` value to the values it must hold, typed as a non-empty tuple so that a caller reads the
+  first element without a presence check, and throwing a `TypeError` where the input holds none
+  (`@metreeca/core/arrays`)
 
 ### Changed
 
