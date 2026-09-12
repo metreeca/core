@@ -7,6 +7,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unpublished](https://github.com/metreeca/core/compare/v0.10.0...HEAD)
 
+### Added
+
+- `Issue` type naming the atomic violations a `Trace` is built from, as self-contained human-readable text opening by
+  convention with the constraint facet incurring the violation, exported from `@metreeca/core/trace`
+
 ## [0.10.0](https://github.com/metreeca/core/compare/v0.9.22...v0.10.0) - 2026-09-09
 
 ### Added

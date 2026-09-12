@@ -97,8 +97,8 @@
  *
  * **Constraining Other Values**
  *
- * Adapt an arbitrary predicate to cover whatever the built-in vocabulary doesn't, reporting either a fixed message or
- * one computed from the rejected value; reject outright to close a branch reached only by values already known to be
+ * Adapt an arbitrary predicate to cover whatever the built-in vocabulary doesn't, reporting either a fixed issue or one
+ * computed from the rejected value; reject outright to close a branch reached only by values already known to be
  * illegal:
  *
  * ```typescript
@@ -107,8 +107,8 @@
  * test(value => value.length % 2 === 0 || ["expected an even number of characters"]);
  * test(value => value % 3 === 0 || [`expected a multiple of 3, found <${value}>`]);
  *
- * fail(["unexpected value"]); // reject anything, reporting a fixed message
- * fail(value => [`unexpected <${value}>`]); // as above, but computing the message
+ * fail(["unexpected value"]); // reject anything, reporting a fixed issue
+ * fail(value => [`unexpected <${value}>`]); // as above, but computing the issue
  * ```
  *
  * **Combining Validators**
@@ -141,7 +141,7 @@
  * ```
  *
  * Validators key the violations they report by the part of the value incurring them, so a nested check already yields
- * a navigable report; name a violation of your own by prefixing the message handed to {@link fail} or {@link test}
+ * a navigable report; name a violation of your own by opening the {@link Issue} handed to {@link fail} or {@link test}
  * with a facet of its own, in braces.
  *
  * Every validator slot is {@link Modal}, so a check may be switched off inline with a guard expression, without
@@ -185,7 +185,7 @@
  * if ( trace !== undefined ) { throw new TraceError("malformed product", trace); }
  * ```
  *
- * A failing run reports every violated constraint at once, keyed by property and by element position, each message
+ * A failing run reports every violated constraint at once, keyed by property and by element position, each issue
  * naming the constraint that incurred it:
  *
  * ```json
@@ -233,9 +233,8 @@ export const pass: Validator<unknown> = () => undefined;
  * Lists every violation incurred at a position, so a value breaking several constraints is diagnosed in full in one
  * read rather than one error per run. Each item takes either of two forms:
  *
- * - **a message** — an atomic violation, as self-contained human-readable text; the validators of this module prefix
- *   theirs with the constraint facet incurring it, in braces (`"{integer} expected integral value"`);
- * - **a record** — sub-traces grouped by key, nesting to mirror the shape of the value and bottoming out in messages;
+ * - **an {@link Issue}** — an atomic violation, as self-contained human-readable text;
+ * - **a record** — sub-traces grouped by key, nesting to mirror the shape of the value and bottoming out in issues;
  *   a key reporting no violation is dropped rather than mapped to an empty trace.
  *
  * The keyed form addresses the parts of a compound value: {@link array} keys element violations by decimal position
@@ -246,9 +245,31 @@ export const pass: Validator<unknown> = () => undefined;
  * branch left empty are all reported as `undefined` instead.
  */
 export type Trace = ReadonlyArray<
-	| string
+	| Issue
 	| { readonly [key: string]: Trace }
->;
+>
+
+/**
+ * Validation issue.
+ *
+ * A single violation, worded as human-readable text that stands on its own, without the surrounding {@link Trace} for
+ * context. By convention, an issue opens with the constraint facet incurring the violation, in braces
+ * (`"{integer} expected integral value"`), so a violation is traced back to the constraint that stated it.
+ */
+export type Issue =
+	string
+
+
+/**
+ * Value validator.
+ *
+ * Maps a value to the {@link Trace} possibly reporting the violations it incurs.
+ *
+ * @typeParam T The type of the validated value
+ */
+export type Validator<T> =
+	(value: T) => Optional<Trace>
+
 
 /**
  * Error carrying a structured validation {@link Trace}.
@@ -272,17 +293,6 @@ export class TraceError extends RangeError {
 }
 
 
-/**
- * Value validator.
- *
- * Maps a value to the {@link Trace} possibly reporting the violations it incurs.
- *
- * @typeParam T The type of the validated value
- */
-export type Validator<T> =
-	(value: T) => Optional<Trace>;
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -297,7 +307,7 @@ export type Validator<T> =
 export type Modal<T> =
 	| undefined
 	| false
-	| T;
+	| T
 
 /**
  * Named entries with an optional wildcard entry.
@@ -311,7 +321,7 @@ export type Modal<T> =
 export type Keyed<T> = {
 	readonly [name: string]: T;
 	readonly [key]?: T;
-};
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -323,7 +333,7 @@ export type Keyed<T> = {
  */
 export function integer(): Validator<number> {
 
-	const fractional = ["{integer} expected integral value"];
+	const fractional: readonly Issue[] = ["{integer} expected integral value"];
 
 	return value => Number.isInteger(value) ? undefined : fractional;
 
@@ -344,20 +354,20 @@ export function length(min: undefined | number, max: undefined | number): Valida
 
 	if ( min !== undefined && max !== undefined ) {
 
-		const below = [`{length} expected string length greater than or equal to <${min}>`];
-		const above = [`{length} expected string length less than or equal to <${max}>`];
+		const below: readonly Issue[] = [`{length} expected string length greater than or equal to <${min}>`];
+		const above: readonly Issue[] = [`{length} expected string length less than or equal to <${max}>`];
 
 		return value => value.length < min ? below : value.length > max ? above : undefined;
 
 	} else if ( min !== undefined ) {
 
-		const below = [`{length} expected string length greater than or equal to <${min}>`];
+		const below: readonly Issue[] = [`{length} expected string length greater than or equal to <${min}>`];
 
 		return value => value.length < min ? below : undefined;
 
 	} else if ( max !== undefined ) {
 
-		const above = [`{length} expected string length less than or equal to <${max}>`];
+		const above: readonly Issue[] = [`{length} expected string length less than or equal to <${max}>`];
 
 		return value => value.length > max ? above : undefined;
 
@@ -386,7 +396,7 @@ export function pattern(pattern: undefined | string | RegExp): Validator<string>
 
 	if ( regex !== undefined ) {
 
-		const mismatched = [`{pattern} expected string matching </${regex.source}/${regex.flags}>`];
+		const mismatched: readonly Issue[] = [`{pattern} expected string matching </${regex.source}/${regex.flags}>`];
 
 		return value => regex.test(value) ? undefined : mismatched;
 
@@ -415,7 +425,7 @@ export function normalised(multiline: boolean = false): Validator<string> {
 		? /^\S+(?:(?: |\n\n?)\S+)*$/
 		: /^\S+(?: \S+)*$/;
 
-	const denormalised = ["{normalised} expected normalised string"];
+	const denormalised: readonly Issue[] = ["{normalised} expected normalised string"];
 
 	return value => regex.test(value) ? undefined : denormalised;
 
@@ -449,13 +459,13 @@ export function gt(limit: unknown): Validator<never> {
 
 	if ( isNumber(limit) ) {
 
-		const below = [`{gt} expected value greater than <${limit}>`];
+		const below: readonly Issue[] = [`{gt} expected value greater than <${limit}>`];
 
 		return (value: number) => value > limit ? undefined : below;
 
 	} else if ( isString(limit) ) {
 
-		const below = [`{gt} expected value greater than <${format(limit)}>`];
+		const below: readonly Issue[] = [`{gt} expected value greater than <${format(limit)}>`];
 
 		return (value: string) => value > limit ? undefined : below;
 
@@ -494,13 +504,13 @@ export function gte(limit: unknown): Validator<never> {
 
 	if ( isNumber(limit) ) {
 
-		const below = [`{gte} expected value greater than or equal to <${limit}>`];
+		const below: readonly Issue[] = [`{gte} expected value greater than or equal to <${limit}>`];
 
 		return (value: number) => value >= limit ? undefined : below;
 
 	} else if ( isString(limit) ) {
 
-		const below = [`{gte} expected value greater than or equal to <${format(limit)}>`];
+		const below: readonly Issue[] = [`{gte} expected value greater than or equal to <${format(limit)}>`];
 
 		return (value: string) => value >= limit ? undefined : below;
 
@@ -539,13 +549,13 @@ export function lt(limit: unknown): Validator<never> {
 
 	if ( isNumber(limit) ) {
 
-		const above = [`{lt} expected value less than <${limit}>`];
+		const above: readonly Issue[] = [`{lt} expected value less than <${limit}>`];
 
 		return (value: number) => value < limit ? undefined : above;
 
 	} else if ( isString(limit) ) {
 
-		const above = [`{lt} expected value less than <${format(limit)}>`];
+		const above: readonly Issue[] = [`{lt} expected value less than <${format(limit)}>`];
 
 		return (value: string) => value < limit ? undefined : above;
 
@@ -584,13 +594,13 @@ export function lte(limit: unknown): Validator<never> {
 
 	if ( isNumber(limit) ) {
 
-		const above = [`{lte} expected value less than or equal to <${limit}>`];
+		const above: readonly Issue[] = [`{lte} expected value less than or equal to <${limit}>`];
 
 		return (value: number) => value <= limit ? undefined : above;
 
 	} else if ( isString(limit) ) {
 
-		const above = [`{lte} expected value less than or equal to <${format(limit)}>`];
+		const above: readonly Issue[] = [`{lte} expected value less than or equal to <${format(limit)}>`];
 
 		return (value: string) => value <= limit ? undefined : above;
 
@@ -661,7 +671,7 @@ export function domain(values: undefined | readonly (number | string)[]): Valida
  *
  * Element violations are reported keyed by element position (`"2"`). A second validator constrains the array as a
  * whole, covering cardinality, membership, and the like, so both levels are stated in one call. Whole-array violations
- * lead the report as bare messages, ahead of the record keying the element ones.
+ * lead the report as bare issues, ahead of the record keying the element ones.
  *
  * @typeParam T The element type of the array
  *
@@ -691,7 +701,7 @@ export function array<T>(
 
 		const $elements = elements.map(element => element || pass);
 
-		const mismatched: Trace = [`{size} expected <${$elements.length}> elements`];
+		const mismatched: readonly Issue[] = [`{size} expected <${$elements.length}> elements`];
 
 		return values => merge(
 			$array(values),
@@ -724,8 +734,8 @@ export function array<T>(
  *
  * Property violations are reported keyed by property name, the wildcard ones under the name of the property they were
  * reported for. A second validator constrains the record as a whole, covering constraints spanning several properties,
- * so both levels are stated in one call. Whole-record violations lead the
- * report as bare messages, ahead of the record keying the property ones.
+ * so both levels are stated in one call. Whole-record violations lead the report as bare issues, ahead of the record
+ * keying the property ones.
  *
  * @typeParam T The type of the property values
  *
@@ -828,8 +838,8 @@ export function size(
 
 	if ( min !== undefined && max !== undefined ) {
 
-		const below = [`{size} expected size greater than or equal to <${min}>`];
-		const above = [`{size} expected size less than or equal to <${max}>`];
+		const below: readonly Issue[] = [`{size} expected size greater than or equal to <${min}>`];
+		const above: readonly Issue[] = [`{size} expected size less than or equal to <${max}>`];
 
 		return value => {
 
@@ -841,13 +851,13 @@ export function size(
 
 	} else if ( min !== undefined ) {
 
-		const below = [`{size} expected size greater than or equal to <${min}>`];
+		const below: readonly Issue[] = [`{size} expected size greater than or equal to <${min}>`];
 
 		return value => extent(value) < min ? below : undefined;
 
 	} else if ( max !== undefined ) {
 
-		const above = [`{size} expected size less than or equal to <${max}>`];
+		const above: readonly Issue[] = [`{size} expected size less than or equal to <${max}>`];
 
 		return value => extent(value) > max ? above : undefined;
 
@@ -911,7 +921,7 @@ export function keys<K extends number | string>(
  * Checks the array elements or the object property values as a whole for the presence of each required value, so
  * membership is stated the same way for either.
  *
- * Every missing value is reported together in a single message.
+ * Every missing value is reported together in a single issue.
  *
  * @typeParam V The type of the required values
  *
@@ -952,8 +962,8 @@ export function values<V extends number | string>(
 /**
  * Constrains a value with a custom predicate that words its own violation.
  *
- * Adapts an arbitrary check into a validator, folding the verdict and its message into one predicate: it returns `true`
- * when the value passes, or the {@link Trace} describing the violation when it fails. Prefixing the message with a
+ * Adapts an arbitrary check into a validator, folding the verdict and its wording into one predicate: it returns `true`
+ * when the value passes, or the {@link Trace} describing the violation when it fails. Opening the {@link Issue} with a
  * facet of its own, in braces, names the violation the way a built-in constraint names its own.
  *
  * @typeParam T The type of the tested value
@@ -1071,7 +1081,7 @@ export function nullable<T>(validator: Modal<Validator<T>>): Validator<null | T>
  * Applies all validators and reports the violations of each, so a single run surfaces every constraint a value breaks
  * rather than stopping at the first.
  *
- * Reports are merged in flat: messages accumulate side by side, whichever validator contributed them, and sub-traces
+ * Reports are merged in flat: issues accumulate side by side, whichever validator contributed them, and sub-traces
  * reported against the same key accumulate under it in turn. A violation reported more than once is retained once.
  *
  * @typeParam T The type of the validated value
@@ -1091,7 +1101,7 @@ export function all<T>(...validators: readonly Modal<Validator<T>>[]): Validator
 /**
  * Requires at least one validator to pass.
  *
- * Reports a violation only if every validator fails, as a bare message. The reports of the individual alternatives are
+ * Reports a violation only if every validator fails, as a bare issue. The reports of the individual alternatives are
  * not surfaced: a failed alternative is a reading the value did not take, not a part of it a report could key against.
  *
  * @typeParam T The type of the validated value
@@ -1113,7 +1123,7 @@ export function any<T>(...validators: readonly Modal<Validator<T>>[]): Validator
  * Requires exactly one validator to pass.
  *
  * Rejects ambiguity as well as absence: matching no validator is unsatisfiable, matching several is ambiguous, and
- * both are reported as a bare message telling the two apart.
+ * both are reported as a bare issue telling the two apart.
  *
  * @typeParam T The type of the validated value
  *
@@ -1178,7 +1188,7 @@ export function type<T>(guard: Guard<T>, matched?: Validator<T>, unknown?: Valid
 /**
  * Merges the violations reported against one position.
  *
- * Canonicalises the result: unique messages first, then a single record gathering under each key the sub-traces
+ * Canonicalises the result: unique issues first, then a single record gathering under each key the sub-traces
  * reported against it, recursively. Whatever the merge leaves empty collapses to `undefined`, so an empty list, an
  * empty record, and a branch pruned down to either all state success.
  *
@@ -1190,7 +1200,7 @@ function merge(...traces: readonly (undefined | Trace)[]): undefined | Trace {
 
 	const items = traces.filter(trace => trace !== undefined).flat();
 
-	const messages = [...new Set(items.filter(isString))];
+	const messages: readonly Issue[] = [...new Set(items.filter(isString))];
 	const entries = items.flatMap(item => isString(item) ? [] : Object.entries(item));
 
 	const grouped = [...new Set(entries.map(([name]) => name))].reduce((groups, name) => opt(
@@ -1206,13 +1216,13 @@ function merge(...traces: readonly (undefined | Trace)[]): undefined | Trace {
 }
 
 /**
- * Formats a value for embedding in a violation message.
+ * Formats a value for embedding in an {@link Issue}.
  *
- * Formats numbers with US locale conventions (`en-US`); reports strings between quotation marks, shortened to a fixed
- * budget of code points and with every character with no visible glyph replaced by an escape, so that a violation
- * message states the offending value unambiguously without letting overlong or invisible content overrun it.
+ * Formats numbers with US locale conventions (`en-US`); renders strings between quotation marks, shortened to a fixed
+ * budget of code points and with every character with no visible glyph replaced by an escape, so that an issue states
+ * the offending value unambiguously without letting overlong or invisible content overrun it.
  *
- * @param value The value to report
+ * @param value The value to format
  *
  * @returns The locale-formatted number or the shortened and quoted string literal
  */
