@@ -144,9 +144,8 @@ const ExcludedPattern = /[\x00-\x1F\x7F-\x9F\s<>"{}|\\^`\uD800-\uDFFF]/u;
  * to a single application and have no deployment origin of their own. Terms are appended to the fragment component,
  * so generated IRIs are `"hierarchical"` identifiers sharing the `app:/` base.
  *
- * Lacking an authority component, `app:` IRIs are assigned an opaque origin: {@link internalize} and {@link
- * relativize} match them by scheme and report same-scheme references as root-relative paths, rather than as the
- * path-relative references origin-backed schemes such as `http:` would yield.
+ * Lacking an authority component, `app:` IRIs are reported as root-relative paths by {@link internalize} and
+ * {@link relativize}, rather than as the path-relative references authority-backed schemes such as `http:` yield.
  *
  * @example
  *
@@ -187,8 +186,8 @@ export type IRI =
  *
  * - `"hierarchical"`: Absolute with hierarchical path (`http://example.org/path`, `app:/path`)
  * - `"absolute"`: Contains scheme (`http://example.org/path`, `urn:example:resource`)
- * - `"internal"`: Root-relative path starting with `/` (`/path`)
- * - `"relative"`: Reference without scheme (`../path`, `path`)
+ * - `"internal"`: Root-relative path starting with a single `/` (`/path`)
+ * - `"relative"`: Reference without scheme or authority (`../path`, `path`)
  *
  * @remarks
  *
@@ -200,6 +199,9 @@ export type IRI =
  *
  * - The `"internal"` variant is project-specific, not formally defined in RFC 3986
  *
+ * - No variant admits an authority supplied by a reference: references opening with `//` (network-path references per
+ *   RFC 3986 § 4.2) are rejected whatever the variant
+ *
  * - For non-hierarchical (opaque) URIs such as `urn:` or `mailto:`, reference operations adapt:
  *   - {@link resolve}: Throws `RangeError` for relative references (no standard resolution)
  *   - {@link internalize}: Returns scheme-specific part if schemes match
@@ -207,7 +209,6 @@ export type IRI =
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986#section-4.2 RFC 3986 § 4.2 - Relative Reference}
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986#section-4.3 RFC 3986 § 4.3 - Absolute URI}
- * @see {@link https://www.rfc-editor.org/rfc/rfc6454#section-4 RFC 6454 § 4 - Origin of a URI}
  */
 export type Variant =
 	| "hierarchical"
@@ -256,7 +257,9 @@ export type Namespace<T extends readonly string[] = []> =
  * - `"internal"`: Root-relative (`/...`) or absolute
  * - `"relative"`: Any well-formed reference
  *
- * For non-absolute variants, rejects paths where `..` segments would climb above the root.
+ * Paths are normalized per RFC 3986 § 5.2.4, which clips `..` segments climbing above the root rather than rejecting
+ * them, so `/a/../../x` is accepted wherever the `/x` it denotes is. References opening with `//` name an authority
+ * (RFC 3986 § 4.2) and are rejected whatever the variant, as no variant admits an authority supplied by a reference.
  *
  * **Excluded characters** (per RFC 3987 § 2.2): Control characters (U+0000-U+001F, U+007F-U+009F),
  * whitespace, and `< > " { } | \ ^ `` ` (backtick)
@@ -302,7 +305,7 @@ export function isIRI(value: unknown, variant: Variant = "relative"): value is I
  * @param parent The potential parent identifier
  * @param child The potential child identifier
  *
- * @returns true if `parent` and `child` are both valid `"hierarchical"` identifiers sharing the same origin and
+ * @returns true if `parent` and `child` are both valid `"hierarchical"` identifiers sharing scheme and authority and
  *   `parent` nests `child`; false otherwise
  *
  * @see {@link Variant}
@@ -325,7 +328,7 @@ export function isNestedIRI(parent: string | IRI, child: string | IRI): boolean 
 		const parentURL = new URL(normalizedParent);
 		const childURL = new URL(normalizedChild);
 
-		if ( parentURL.origin === childURL.origin ) {
+		if ( sameOrigin(parentURL, childURL) ) {
 
 			const parentPath = parentURL.pathname.endsWith("/") ? parentURL.pathname : `${parentURL.pathname}/`;
 			const childPath = childURL.pathname.endsWith("/") ? childURL.pathname : `${childURL.pathname}/`;
@@ -346,9 +349,8 @@ export function isNestedIRI(parent: string | IRI, child: string | IRI): boolean 
 /**
  * Extracts the base identifier from a hierarchical identifier.
  *
- * Returns the scheme and authority components (the "origin" per RFC 6454) followed by a trailing slash,
- * suitable for use as a base identifier in reference resolution. Path, query, and fragment components
- * are discarded.
+ * Returns the scheme and authority components followed by a trailing slash, suitable for use as a base identifier in
+ * reference resolution. Path, query, and fragment components are discarded.
  *
  * - **With authority** (for example, `http://example.org/a/b?q#f`): returns `scheme://authority/`
  * - **Without authority** (for example, `app:/a/b`): returns `scheme:/`
@@ -362,7 +364,7 @@ export function isNestedIRI(parent: string | IRI, child: string | IRI): boolean 
  *
  * @see {@link resolve} for resolving references against a base identifier
  * @see {@link getNamespaceBase} for extracting the base identifier of a {@link Namespace}
- * @see {@link https://www.rfc-editor.org/rfc/rfc6454#section-4 RFC 6454 § 4 - Origin of a URI}
+ * @see {@link https://www.rfc-editor.org/rfc/rfc3986#section-5.1 RFC 3986 § 5.1 - Establishing a Base URI}
  */
 export function getIRIBase(iri: string | IRI): undefined | IRI {
 
@@ -390,15 +392,15 @@ export function getIRIBase(iri: string | IRI): undefined | IRI {
  * - **Opaque identifiers** (e.g., `urn:`, `mailto:`): Absolute references are returned unchanged; relative
  *   references cannot be resolved and throw an error
  *
+ * Resolution never escapes the root of `base`: `..` segments climbing above it are clipped as prescribed by the
+ * RFC 3986 § 5.4.2 abnormal examples, so the resolved identifier always carries the scheme and authority of `base`.
+ *
  * @remarks
  *
  * While RFC 3986 § 5 defines a path-merging algorithm that technically applies to all URI schemes, opaque identifiers
- * lack a hierarchical path structure, making relative resolution semantically undefined in practice. The WHATWG
- * URL Standard follows RFC 6454, which assigns opaque origins (serialized as the string `"null"`) to such URIs,
- * explicitly preventing same-origin comparisons and relative resolution.
- *
- * This implementation aligns with WHATWG/URL API behavior by rejecting relative references against opaque bases,
- * providing clearer error semantics than the underlying URL API.
+ * lack the hierarchical path such merging operates on, leaving relative resolution semantically undefined: a relative
+ * reference against an opaque base is rejected outright, rather than resolved to an identifier its scheme gives no
+ * meaning to.
  *
  * @param base The absolute base identifier to resolve against
  * @param reference The reference to resolve
@@ -406,13 +408,11 @@ export function getIRIBase(iri: string | IRI): undefined | IRI {
  * @returns The resolved absolute identifier
  *
  * @throws {@link !RangeError RangeError} If `base` is not a valid absolute identifier or `reference` is not a valid
- *   relative reference, for instance because it carries an isolated UTF-16 surrogate
- * @throws {@link !RangeError RangeError} If the resolved path contains tree-climbing segments that would go above
- *   the root, or if a relative reference cannot be resolved against an opaque base
+ *   relative reference, for instance because it carries an isolated UTF-16 surrogate or opens with `//`
+ * @throws {@link !RangeError RangeError} If a relative reference cannot be resolved against an opaque base
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986#section-5 RFC 3986 § 5 - Reference Resolution}
- * @see {@link https://www.rfc-editor.org/rfc/rfc6454#section-4 RFC 6454 § 4 - Origin of a URI}
- * @see {@link https://url.spec.whatwg.org/#origin WHATWG URL Standard - Origin}
+ * @see {@link https://www.rfc-editor.org/rfc/rfc3986#section-5.4.2 RFC 3986 § 5.4.2 - Abnormal Examples}
  */
 export function resolve(base: string | IRI, reference: string | IRI): IRI {
 
@@ -441,12 +441,11 @@ export function resolve(base: string | IRI, reference: string | IRI): IRI {
  * @param base The absolute base identifier providing the scheme and authority context
  * @param reference The reference to internalize
  *
- * @returns A root-relative reference if same origin, or the normalized absolute reference otherwise
+ * @returns A root-relative reference if `reference` shares scheme and authority with `base`, or the normalized
+ *   absolute reference otherwise
  *
  * @throws {@link !RangeError RangeError} If `base` is not a valid absolute identifier or `reference` is not a valid
- *   relative reference, for instance because it carries an isolated UTF-16 surrogate
- * @throws {@link !RangeError RangeError} If the resolved path contains tree-climbing segments that would go above
- *   the root
+ *   relative reference, for instance because it carries an isolated UTF-16 surrogate or opens with `//`
  */
 export function internalize(base: string | IRI, reference: string | IRI): IRI {
 
@@ -456,13 +455,7 @@ export function internalize(base: string | IRI, reference: string | IRI): IRI {
 	const baseURL = new URL(normalizedBase);
 	const referenceURL = merge(baseURL, normalizedReference);
 
-	// for opaque URIs (origin === "null"), compare protocols instead
-
-	const sameOrigin = baseURL.origin !== "null"
-		? baseURL.origin === referenceURL.origin
-		: baseURL.protocol === referenceURL.protocol;
-
-	return sameOrigin
+	return sameOrigin(baseURL, referenceURL)
 
 		// same origin: return root-relative path (already normalized by URL API)
 
@@ -479,7 +472,13 @@ export function internalize(base: string | IRI, reference: string | IRI): IRI {
  *
  * - **Hierarchical identifiers**: Computes the shortest path-relative reference that, when resolved against `base`,
  *   yields `reference`
+ * - **Authority-less hierarchical identifiers** (`app:/…`, `file:///…`): Returns the root-relative path
  * - **Opaque identifiers**: Returns the scheme-specific part if schemes match
+ *
+ * The returned reference always resolves back to `reference` under RFC 3986 § 5 and under any conforming URL parser:
+ * a first segment carrying a colon is prefixed with a `./` dot segment so it cannot read as a scheme, and where an
+ * empty first segment would read as an authority the absolute reference is returned instead. Callers may therefore
+ * resolve the result against `base` without further escaping.
  *
  * @param base The absolute base identifier
  * @param reference The reference to relativize
@@ -487,9 +486,7 @@ export function internalize(base: string | IRI, reference: string | IRI): IRI {
  * @returns A relative reference from `base` to `reference`, or the normalized absolute reference if not relativizable
  *
  * @throws {@link !RangeError RangeError} If `base` is not a valid absolute identifier or `reference` is not a valid
- *   relative reference, for instance because it carries an isolated UTF-16 surrogate
- * @throws {@link !RangeError RangeError} If the resolved path contains tree-climbing segments that would go above
- *   the root
+ *   relative reference, for instance because it carries an isolated UTF-16 surrogate or opens with `//`
  */
 export function relativize(base: string | IRI, reference: string | IRI): IRI {
 
@@ -499,14 +496,8 @@ export function relativize(base: string | IRI, reference: string | IRI): IRI {
 	const baseURL = new URL(normalizedBase);
 	const referenceURL = merge(baseURL, normalizedReference);
 
-	// for opaque URIs (origin === "null"), compare protocols instead
-
-	const sameOrigin = baseURL.origin !== "null"
-		? baseURL.origin === referenceURL.origin
-		: baseURL.protocol === referenceURL.protocol;
-
-	return !sameOrigin ? absolute()
-		: baseURL.origin === "null" ? internal()
+	return !sameOrigin(baseURL, referenceURL) ? absolute()
+		: baseURL.host === "" ? internal()
 			: relative();
 
 
@@ -518,7 +509,7 @@ export function relativize(base: string | IRI, reference: string | IRI): IRI {
 
 	}
 
-	// opaque URIs: return scheme-specific part (not a hierarchical path)
+	// authority-less bases: return the root-relative path, as no path-relative reference could restore the authority
 
 	function internal(): IRI {
 
@@ -542,7 +533,12 @@ export function relativize(base: string | IRI, reference: string | IRI): IRI {
 		const downSegments = refParts.slice(commonLength);
 		const relativePath = [...upSegments, ...downSegments].join("/") || ".";
 
-		return relativePath+referenceURL.search+referenceURL.hash;
+		// RFC 3986 § 4.2 — an empty first segment would read as an authority, a colon in the first segment as a
+		// scheme. Where no dot segment can disambiguate, fall back to the absolute reference.
+
+		return relativePath.startsWith("/") ? absolute()
+			: /^[^/]*:/.test(relativePath) ? `./${relativePath}${referenceURL.search}${referenceURL.hash}`
+				: relativePath+referenceURL.search+referenceURL.hash;
 
 	}
 
@@ -673,8 +669,8 @@ export function getNamespaceBase(namespace: Namespace): undefined | IRI {
 /**
  * Validates and normalizes a reference.
  *
- * Performs syntax validation (string type, excluded characters, isolated surrogates), path normalization
- * per RFC 3986 § 5.2.4 (Remove Dot Segments), and variant-specific validation.
+ * Performs syntax validation (string type, excluded characters, isolated surrogates, network-path references), path
+ * normalization per RFC 3986 § 5.2.4 (Remove Dot Segments), and variant-specific validation.
  *
  * @param value The value to validate and normalize
  * @param variant The identifier variant
@@ -688,9 +684,14 @@ function normalize(value: unknown, variant: Variant): IRI | undefined {
 	const validSyntax = isString(value) && !ExcludedPattern.test(value);
 	const hasScheme = validSyntax && SchemePattern.test(value);
 
+	// network-path references (RFC 3986 § 4.2) name an authority no variant admits: rejected rather than silently
+	// stripped of it
+
+	const hasAuthority = validSyntax && !hasScheme && value.startsWith("//");
+
 	// path normalization (URL API silently clips excessive `..` at root)
 
-	const normalized = !validSyntax ? undefined
+	const normalized = !validSyntax || hasAuthority ? undefined
 		: hasScheme ? parseURL(value, url => url.href)
 			: value.startsWith("/") ? parseURL(value, url => url.pathname+url.search+url.hash, "x:/")
 				: value; // relative paths: keep `.` and `..` for later resolution
@@ -730,6 +731,22 @@ function normalize(value: unknown, variant: Variant): IRI | undefined {
  */
 function merge(base: URL, reference: string): URL {
 	return new URL(reference, base);
+}
+
+/**
+ * Checks if two identifiers share scheme and authority.
+ *
+ * Compares the authority components directly rather than through `URL.origin`, which RFC 6454 § 4 serializes as the
+ * opaque string `"null"` for every scheme outside the WHATWG special set: identifiers differing only by authority
+ * would otherwise compare as same-origin under schemes such as `app:` and `file:`.
+ *
+ * @param base The base URL
+ * @param reference The reference URL
+ *
+ * @returns `true` if `base` and `reference` share scheme and authority; `false` otherwise
+ */
+function sameOrigin(base: URL, reference: URL): boolean {
+	return base.protocol === reference.protocol && base.host === reference.host;
 }
 
 /**

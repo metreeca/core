@@ -12,6 +12,22 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `Issue` type naming the atomic violations a `Trace` is built from, as self-contained human-readable text opening by
   convention with the constraint facet incurring the violation, exported from `@metreeca/core/trace`
 
+### Changed
+
+- `isIRI` now rejects network-path references (`//host/path`), which name an authority no variant admits, and the
+  operations built on it (`isNestedIRI`, `getIRIBase`, `resolve`, `internalize`, `relativize`) reject or throw
+  accordingly (`@metreeca/core/resource`)
+
+### Fixed
+
+- `isNestedIRI`, `internalize` and `relativize` now match identifiers on scheme and authority, in place of the WHATWG
+  origin, which every scheme outside the special set serialises as the opaque string `"null"`: identifiers differing
+  only by authority, as under `app:` and `file:`, are no longer taken for the same origin, and a base carrying an
+  authority yields path-relative rather than root-relative references (`@metreeca/core/resource`)
+- `relativize` now produces references resolving back to the given identifier under any conforming parser, prefixing a
+  first segment carrying a colon with a `./` dot segment and falling back to the absolute reference where a relative
+  one would open with an empty segment reading as an authority (`@metreeca/core/resource`)
+
 ## [0.10.0](https://github.com/metreeca/core/compare/v0.9.22...v0.10.0) - 2026-09-09
 
 ### Added

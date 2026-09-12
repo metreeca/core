@@ -253,6 +253,24 @@ describe("IRI", () => {
 				expect(isNestedIRI("http://example.com/a", "http://example.com:8080/a/b")).toBeFalsy();
 			});
 
+			// schemes outside the WHATWG special set serialize every origin as "null" (RFC 6454 § 4), so authorities
+			// are compared directly rather than through the opaque origin they share
+
+			it("should return false for different authorities on schemes with an opaque origin", async () => {
+				expect(isNestedIRI("app://example.com/a", "app://other.com/a/b")).toBeFalsy();
+				expect(isNestedIRI("file:///a", "file://example.com/a/b")).toBeFalsy();
+			});
+
+			it("should return false when only one identifier carries an authority", async () => {
+				expect(isNestedIRI("app:/a", "app://example.com/a/b")).toBeFalsy();
+				expect(isNestedIRI("app://example.com/a", "app:/a/b")).toBeFalsy();
+			});
+
+			it("should return true for matching authorities on schemes with an opaque origin", async () => {
+				expect(isNestedIRI("app://example.com/a", "app://example.com/a/b")).toBeTruthy();
+				expect(isNestedIRI("app:/a", "app:/a/b")).toBeTruthy();
+			});
+
 		});
 
 		describe("non-hierarchical identifiers", () => {
@@ -535,6 +553,26 @@ describe("IRI", () => {
 
 		});
 
+		describe("hierarchical URIs with an opaque origin", () => {
+
+			it("should extract root-relative path for matching authority", () => {
+				expect(internalize("app:/a/b", "app:/x/y")).toBe("/x/y");
+				expect(internalize("app://example.com/a/b", "app://example.com/x/y")).toBe("/x/y");
+				expect(internalize("file:///a/b", "file:///x/y")).toBe("/x/y");
+			});
+
+			it("should return reference unchanged if different authority", () => {
+				expect(internalize("app://example.com/a/b", "app://other.com/x/y")).toBe("app://other.com/x/y");
+				expect(internalize("file:///a/b", "file://example.com/x/y")).toBe("file://example.com/x/y");
+			});
+
+			it("should return reference unchanged if only one side carries an authority", () => {
+				expect(internalize("app:/a/b", "app://example.com/x/y")).toBe("app://example.com/x/y");
+				expect(internalize("app://example.com/a/b", "app:/x/y")).toBe("app:/x/y");
+			});
+
+		});
+
 		describe("opaque URIs", () => {
 
 			it("should extract scheme-specific part for same scheme", () => {
@@ -593,6 +631,70 @@ describe("IRI", () => {
 
 		});
 
+		describe("hierarchical URIs with an opaque origin", () => {
+
+			it("should return a root-relative path when the base carries no authority", () => {
+				expect(relativize("app:/a/b", "app:/a/c")).toBe("/a/c");
+			});
+
+			it("should return a path-relative reference when the base carries an authority", () => {
+				expect(relativize("app://example.com/a/b", "app://example.com/a/c")).toBe("c");
+			});
+
+			it("should return reference unchanged if different authority", () => {
+				expect(relativize("app://example.com/a/b", "app://other.com/a/c")).toBe("app://other.com/a/c");
+				expect(relativize("file:///a/b", "file://example.com/a/c")).toBe("file://example.com/a/c");
+			});
+
+			it("should return reference unchanged if only one side carries an authority", () => {
+				expect(relativize("app:/a/b", "app://example.com/a/c")).toBe("app://example.com/a/c");
+				expect(relativize("app://example.com/a/b", "app:/a/c")).toBe("app:/a/c");
+			});
+
+		});
+
+		// RFC 3986 § 4.2 — a relative reference must not begin with two slashes, which would read as an authority,
+		// nor carry a colon in its first segment, which would read as a scheme
+
+		describe("well-formed relative references", () => {
+
+			it("should prefix a first segment carrying a colon with a dot segment", () => {
+				const base = "http://example.com/x/y";
+				const reference = "http://example.com/x/a:b";
+
+				expect(relativize(base, reference)).toBe("./a:b");
+				expect(new URL(relativize(base, reference), base).href).toBe(reference);
+			});
+
+			it("should return the absolute reference when no well-formed relative form exists", () => {
+				const base = "http://example.com/a";
+
+				expect(relativize(base, "http://example.com//x")).toBe("http://example.com//x");
+				expect(relativize(base, "http://example.com///x")).toBe("http://example.com///x");
+			});
+
+			it("should never produce a reference resolving to a different authority", () => {
+				const base = "http://example.com/a";
+				const reference = "http://example.com///evil.example/x";
+
+				expect(new URL(relativize(base, reference), base).host).toBe("example.com");
+			});
+
+			it("should round-trip through the standard URL API", () => {
+				const base = "http://example.com/a";
+
+				[
+					"http://example.com/a/c",
+					"http://example.com/x/a:b",
+					"http://example.com//x",
+					"http://example.com///evil.example/x"
+				].forEach(reference => {
+					expect(new URL(relativize(base, reference), base).href).toBe(reference);
+				});
+			});
+
+		});
+
 		describe("opaque URIs", () => {
 
 			it("should return scheme-specific part if same scheme", () => {
@@ -609,6 +711,68 @@ describe("IRI", () => {
 
 	});
 
+
+	// RFC 3986 § 4.2 — a reference opening with two slashes names an authority; the module admits no authority
+	// through a reference, so such references are rejected rather than silently stripped of it
+
+	describe("network-path references", () => {
+
+		const references = [
+			"//example.com/x",
+			"//example.com",
+			"//example.com/x/../y",
+			"////example.com/x"
+		];
+
+		const variants: Variant[] = ["hierarchical", "absolute", "internal", "relative"];
+
+		it("should reject network-path references in every variant", async () => {
+			references.forEach(reference => {
+				variants.forEach(variant => {
+					expect(isIRI(reference, variant)).toBe(false);
+				});
+			});
+		});
+
+		it("should reject network-path references in reference operations", async () => {
+			const base = "http://example.com/a/b";
+
+			references.forEach(reference => {
+				expect(() => resolve(base, reference)).toThrow(RangeError);
+				expect(() => internalize(base, reference)).toThrow(RangeError);
+				expect(() => relativize(base, reference)).toThrow(RangeError);
+			});
+		});
+
+		it("should report network-path references as not nesting", async () => {
+			references.forEach(reference => {
+				expect(isNestedIRI("http://example.com/", reference)).toBe(false);
+				expect(isNestedIRI(reference, "http://example.com/x")).toBe(false);
+			});
+		});
+
+	});
+
+	// RFC 3986 § 5.4.2 — the normative abnormal examples fix clipping, not rejection, as the conformant outcome for
+	// dot segments climbing above the root
+
+	describe("dot segment clipping", () => {
+
+		const base = "http://a/b/c/d;p?q";
+
+		it("should clip climbing dot segments at the root as prescribed by RFC 3986 § 5.4.2", async () => {
+			expect(resolve(base, "/./g")).toBe("http://a/g");
+			expect(resolve(base, "/../g")).toBe("http://a/g");
+			expect(resolve(base, "../../../g")).toBe("http://a/g");
+			expect(resolve(base, "../../../../g")).toBe("http://a/g");
+		});
+
+		it("should accept internal references carrying climbing dot segments", async () => {
+			expect(isIRI("/../x", "internal")).toBe(true);
+			expect(isIRI("/a/../../x", "internal")).toBe(true);
+		});
+
+	});
 
 	describe("well-formedness", () => {
 
