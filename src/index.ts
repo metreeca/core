@@ -173,10 +173,12 @@ export const IdentifierPattern = /^[_$\p{ID_Start}][$\u200C\u200D\p{ID_Continue}
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Wildcard symbol for open template validation in {@link isObject}.
+ * Object key wildcard.
  *
- * When used as a key in a template object, specifies the predicate for properties not explicitly listed.
- * Templates without this symbol are closed and reject extra properties.
+ * Keys the catch-all entry of an object mapping property names to values, standing in for every name left unlisted.
+ *
+ * For instance, in an {@link isObject} template the predicate filed under the wildcard validates every property the
+ * template doesn't name.
  */
 export const key: unique symbol = Symbol("*");
 
