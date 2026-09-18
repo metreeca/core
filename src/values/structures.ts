@@ -17,6 +17,23 @@
 /**
  * General-purpose structural operations.
  *
+ * **Deep Views**
+ *
+ * State at the type level what the operations below enforce at run time: a structure no caller may write to, or one
+ * stated slot by slot without loosening the type of any slot:
+ *
+ * ```typescript
+ * import { type DeepReadonly, type DeepPartial } from '@metreeca/core/structures';
+ *
+ * type User = { name: string, address: { city: string } };
+ *
+ * declare const frozen: DeepReadonly<User>;
+ * frozen.address.city = "Rome"; // rejected at compile time
+ *
+ * const probe: DeepPartial<User> = { address: { city: "Rome" } }; // partial at any depth
+ * const typo: DeepPartial<User> = { address: { town: "Rome" } }; // rejected: no such slot
+ * ```
+ *
  * **Deep Equality**
  *
  * Compare nested structures for structural equality:
@@ -39,7 +56,7 @@
  *
  * **Deep Freezing**
  *
- * Create deeply frozen structures that prevent all mutations:
+ * Create deeply frozen clones of plain objects and arrays, leaving every other value untouched:
  *
  * ```typescript
  * import { immutable } from '@metreeca/core/structures';
@@ -51,16 +68,15 @@
  * frozen.a[0] = 999; // throws Error
  * frozen.b.c = 999; // throws Error
  *
- * // Primitives and functions
+ * // Primitives, functions and non-plain objects
  * immutable(42); // 42
  * immutable("hello"); // "hello"
  *
  * const fn = () => "hello";
  * fn.config = { port: 3000 };
- * const frozenFn = immutable(fn);
  *
- * frozenFn(); // "hello" (function still works)
- * frozenFn.config.port = 8080; // throws Error
+ * immutable(fn) === fn; // true (handed back unchanged, properties still mutable)
+ * immutable(new Date()); // the same Date, not a frozen clone
  * ```
  *
  * **Stable Identity**
@@ -133,7 +149,7 @@
  * @module
  */
 
-import { assert, type Guard, isArray, isObject } from "../index.js";
+import { assert, type Guard, isArray, isObject, type Primitive } from "../index.js";
 
 
 /**
@@ -149,13 +165,72 @@ const Immutable = Symbol("immutable");
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * A deeply read-only view of a value.
+ *
+ * Marks every property read-only at any nesting depth, arrays and tuples included, and carries an {@link Atomic}
+ * through unchanged: a caller holding a frozen structure is refused a write by the compiler, rather than by an
+ * assignment that throws at run time. This is the view {@link immutable} hands back.
+ *
+ * @typeParam T The type to be viewed as deeply read-only
+ */
+export type DeepReadonly<T> =
+	T extends Atomic ? T
+		: T extends object ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
+			: T;
+
+/**
+ * A deeply partial view of a value.
+ *
+ * Makes every property optional at any nesting depth, holding each stated slot to its declared type and carrying an
+ * {@link Atomic} through unchanged: a caller states only the slots it cares about, while a misspelled slot or a value
+ * of the wrong type is still refused. Arrays keep their arity and are widened item by item, and `readonly` is carried
+ * over from the source rather than imposed, so the two views compose as `DeepPartial<DeepReadonly<T>>`.
+ *
+ * @typeParam T The type to be viewed as deeply partial
+ */
+export type DeepPartial<T> =
+	T extends Atomic ? T
+		: T extends readonly unknown[] ? { [K in keyof T]: DeepPartial<T[K]> }
+			: T extends object ? { [K in keyof T]?: DeepPartial<T[K]> }
+				: T;
+
+
+/**
+ * A value treated as atomic by the deep operations.
+ *
+ * Names the values {@link equals}, {@link immutable} and {@link seal} take whole rather than descending into them: a
+ * {@link Primitive}, a function, and the built-in objects a value graph commonly holds. {@link DeepReadonly} and
+ * {@link DeepPartial} branch on the same set, so what a type promises about a structure and what the operations do
+ * with it agree.
+ *
+ * > [!WARNING]
+ * > Membership is decided at run time by `Object.getPrototypeOf(value) === Object.prototype`, a test with no
+ * > type-level counterpart: a class instance is structurally indistinguishable from a record, so it is taken whole at
+ * > run time while {@link DeepReadonly} and {@link DeepPartial} still map it property by property. Model such a value
+ * > as one of the members listed below, or expect the two levels to disagree about it.
+ */
+export type Atomic =
+	| Primitive
+	| Function
+	| Date
+	| RegExp
+	| Promise<unknown>
+	| ReadonlyMap<unknown, unknown>
+	| ReadonlySet<unknown>
+	| WeakMap<WeakKey, unknown>
+	| WeakSet<WeakKey>
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
  * Checks deep object equality.
  *
  * Object pairs are deeply equal if they contain:
  *
  * - two {@link isObject plain objects} with deeply equal entry sets
  * - two {@link isArray arrays} with pairwise deeply equal items
- * - two values otherwise equal according to `equal` or `Object.is` by default
+ * - two {@link Atomic atoms} otherwise equal according to `equal` or `Object.is` by default
  *
  * > [!CAUTION]
  * > **Circular references are not supported**. Do not pass objects with cycles.
@@ -203,8 +278,8 @@ export function equals(x: unknown, y: unknown, equal: (x: unknown, y: unknown) =
  *
  * - **Cloned and frozen**: {@link isObject plain objects} and {@link isArray arrays}; nested structures are cloned
  *   recursively; accessor properties are preserved as read-only (getters only, setters removed)
- * - **Returned as-is**: primitives, functions, and non-plain objects (for example, `Date`, `Map`, `Set`, class
- *   instances, or objects with `null` prototype)
+ * - **Returned as-is**: {@link Atomic atoms}, that is primitives, functions, and non-plain objects (for example,
+ *   `Date`, `Map`, `Set`, class instances, or objects with `null` prototype)
  *
  * This function is idempotent at every depth: every cloned object and array is branded internally, so calling it again
  * on a frozen clone, or on any nested member extracted from one, returns the same reference. Members reached through
@@ -218,11 +293,11 @@ export function equals(x: unknown, y: unknown, equal: (x: unknown, y: unknown) =
  *
  * @param value The value to make immutable
  *
- * @returns A deeply frozen clone of `value`
+ * @returns A deeply frozen clone of `value`, typed as {@link DeepReadonly deeply read-only}
  *
  * @throws {@link !RangeError RangeError} Stack overflow when `value` contains circular references
  */
-export function immutable<T>(value: T): T;
+export function immutable<T>(value: T): DeepReadonly<T>;
 
 /**
  * Creates an immutable deep clone, validating against a type guard.
@@ -231,8 +306,8 @@ export function immutable<T>(value: T): T;
  *
  * - **Cloned and frozen**: {@link isObject plain objects} and {@link isArray arrays}; nested structures are cloned
  *   recursively; accessor properties are preserved as read-only (getters only, setters removed)
- * - **Returned as-is**: primitives, functions, and non-plain objects (for example, `Date`, `Map`, `Set`, class
- *   instances, or objects with `null` prototype)
+ * - **Returned as-is**: {@link Atomic atoms}, that is primitives, functions, and non-plain objects (for example,
+ *   `Date`, `Map`, `Set`, class instances, or objects with `null` prototype)
  *
  * Validates `value` against the guard before freezing:
  *
@@ -255,12 +330,12 @@ export function immutable<T>(value: T): T;
  * @param guard Type guard function to validate `value`
  * @param message Optional error message when validation fails
  *
- * @returns A deeply frozen clone of `value`, branded with the guard
+ * @returns A deeply frozen clone of `value`, branded with the guard and typed as {@link DeepReadonly deeply read-only}
  *
  * @throws {@link !TypeError TypeError} When the guard returns `false`
  * @throws {@link !RangeError RangeError} Stack overflow when `value` contains circular references
  */
-export function immutable<T>(value: unknown, guard: Guard<T>, message?: string): T;
+export function immutable<T>(value: unknown, guard: Guard<T>, message?: string): DeepReadonly<T>;
 
 /**
  * Creates an immutable deep clone, optionally validating against a type guard.
@@ -296,7 +371,10 @@ export function seal<T>(value: unknown, seal: symbol): undefined | T;
  *
  * Both the sealed clone and any object or array `content` are deep-frozen and branded at every depth, so
  * {@link immutable} returns them unchanged: the result, its members, the `content`, and the `content` members all
- * keep a stable identity across calls.
+ * keep a stable identity across calls. An {@link Atomic atom} is returned as-is, with nothing sealed on it.
+ *
+ * The result keeps the declared type of `value` rather than the {@link DeepReadonly} view {@link immutable} hands
+ * back, so writes to a sealed clone are refused at run time rather than by the compiler.
  *
  * @typeParam V The type of the value being sealed
  *
