@@ -22,6 +22,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- `Version<T>` is now read-only at any depth, matching the frozen snapshot `capture()` hands out, so a write to a
+  captured version is refused by the compiler rather than throwing at run time (`@metreeca/core/state`)
 - `immutable` now returns a `DeepReadonly` view of its argument, so a write to a frozen clone is refused by the
   compiler rather than throwing at run time; code assigning the result to a mutable type must take the read-only view
   (`@metreeca/core/structures`)

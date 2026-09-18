@@ -15,7 +15,7 @@
  */
 
 import { describe, expectTypeOf, test } from "vitest";
-import { createState, State } from "./state.js";
+import { createState, manageState, State, Version } from "./state.js";
 
 
 describe("State", () => {
@@ -276,6 +276,39 @@ describe("State", () => {
 			expectTypeOf(s.increment).returns.toExtend<Counter>();
 
 		});
+
+	});
+
+});
+
+
+describe("Version", () => {
+
+	interface Cart extends State {
+		readonly items: string[];
+		readonly meta: { label: string };
+
+		clear(): this;
+	}
+
+	const cart = createState<Cart>({
+		items: [],
+		meta: { label: "" },
+		clear() { return { items: [] }; }
+	});
+
+
+	test("should be read-only at any depth", () => {
+
+		expectTypeOf<Version<Cart>["items"]>().toEqualTypeOf<readonly string[]>();
+		expectTypeOf<Version<Cart>["meta"]>().toEqualTypeOf<{ readonly label: string }>();
+
+	});
+
+	test("should be captured and restored without further qualification", () => {
+
+		expectTypeOf(manageState(cart).capture()).toEqualTypeOf<Version<Cart>>();
+		expectTypeOf(manageState(cart).restore).parameter(0).toEqualTypeOf<Version<Cart>>();
 
 	});
 

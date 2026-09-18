@@ -25,7 +25,7 @@
  *
  * - {@link State}: An interface defining version data properties and transition methods
  * - {@link Version}: The data properties of a {@link State}, excluding transition methods and
- *   observers
+ *   observers, read-only at any depth
  * - {@link Transition}: A method that takes inputs and returns a new {@link State} with updated
  *   version data
  * - {@link Update}: A function that accesses current version data via `this` and returns partial
@@ -206,7 +206,7 @@
  * @module
  */
 
-import { immutable } from "../values/structures.js";
+import { type DeepReadonly, immutable } from "../values/structures.js";
 
 
 /**
@@ -283,7 +283,7 @@ export type Manager<T extends State> = {
 	 * Returns an {@link immutable} snapshot containing only the data properties, excluding transition
 	 * methods and observers. Useful for persistence, undo/redo, or time-travel debugging.
 	 *
-	 * @returns Immutable snapshot of the current version
+	 * @returns A deeply read-only snapshot of the current version
 	 */
 	capture(): Version<T>;
 
@@ -309,7 +309,7 @@ export type Manager<T extends State> = {
 	 * The operation is idempotent - attaching an already-attached observer returns the
 	 * same State reference. Observer identity is determined by reference equality (`===`).
 	 *
-	 * @param observer Function called with the new version after each transition
+	 * @param observer Function called with the new state after each transition
 	 *
 	 * @returns A new state with observer attached, or same reference if already attached
 	 */
@@ -334,9 +334,16 @@ export type Manager<T extends State> = {
 /**
  * State version.
  *
- * The data properties of a {@link State}, excluding transition methods and observers.
+ * The data properties of a {@link State}, excluding transition methods and observers, read-only at any depth:
+ * snapshots are frozen when handed out, and a holder is refused a write by the compiler rather than by an assignment
+ * that throws at run time.
  */
-export type Version<T extends State> = {
+export type Version<T extends State> = DeepReadonly<Data<T>>;
+
+/**
+ * The mutable data shape a {@link Version} is derived from.
+ */
+type Data<T extends State> = {
 
 	[K in keyof T as T[K] extends Function ? never : K]: T[K]
 
@@ -345,7 +352,7 @@ export type Version<T extends State> = {
 /**
  * State observer.
  *
- * Receives version data after a transition and performs side effects. Observers are
+ * Receives the new state after a transition and performs side effects. Observers are
  * called asynchronously via `queueMicrotask()`. Errors are caught and silently ignored
  * to prevent affecting other observers or the transition itself.
  *
@@ -549,7 +556,7 @@ export function createState<T extends State>(seed: Seed<T>): Instance<T> {
 
 		return immutable(Object.fromEntries(Object.entries(this)
 			.filter(([, value]) => typeof value !== "function")
-		) as Version<T>);
+		) as Data<T>);
 
 	}
 
