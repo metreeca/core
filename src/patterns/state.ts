@@ -206,7 +206,7 @@
  * @module
  */
 
-import { type DeepReadonly, immutable } from "../values/structures.js";
+import { type DeepReadonly, immutable } from "../types/values.js";
 
 
 /**

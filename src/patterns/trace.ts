@@ -201,7 +201,7 @@
  */
 
 import { type Guard, isFunction, isNumber, isString, key, lazy, opt, type Optional } from "../index.js";
-import { clip, escape } from "../values/strings.js";
+import { clip, escape } from "../types/strings.js";
 
 
 const QuoteLength = 10;

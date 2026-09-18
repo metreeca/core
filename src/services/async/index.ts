@@ -15,7 +15,7 @@
  */
 
 /**
- * Asynchronous execution utilities.
+ * Asynchronous execution.
  *
  * Provides types and utilities for accepting possibly asynchronous values and sequences, suspending execution for a
  * given duration, and pacing tasks with adaptive rate limiting and retries.

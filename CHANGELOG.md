@@ -16,17 +16,21 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`@metreeca/core/arrays`)
 - `DeepReadonly<T>` and `DeepPartial<T>` types stating at the type level what the deep operations enforce at run time,
   the first refusing a write at any nesting depth, the second making every slot optional at any depth while holding a
-  stated slot to its declared type (`@metreeca/core/structures`)
+  stated slot to its declared type (`@metreeca/core/values`)
 - `Atomic` type naming the values the deep operations take whole rather than descending into them, that is a
-  `Primitive`, a function and the built-in objects a value graph commonly holds (`@metreeca/core/structures`)
+  `Primitive`, a function and the built-in objects a value graph commonly holds (`@metreeca/core/values`)
 
 ### Changed
 
+- `@metreeca/core/structures` module renamed to `@metreeca/core/values`; the `equals`, `immutable` and `seal`
+  operations and the `DeepReadonly`, `DeepPartial` and `Atomic` types are unchanged
+- Source layout reorganised: `values/` → `types/`, `runtime/` → `services/`, `functional/` → `patterns/`, `standard/` →
+  `standards/`; import specifiers are unchanged
 - `Version<T>` is now read-only at any depth, matching the frozen snapshot `capture()` hands out, so a write to a
   captured version is refused by the compiler rather than throwing at run time (`@metreeca/core/state`)
 - `immutable` now returns a `DeepReadonly` view of its argument, so a write to a frozen clone is refused by the
   compiler rather than throwing at run time; code assigning the result to a mutable type must take the read-only view
-  (`@metreeca/core/structures`)
+  (`@metreeca/core/values`)
 - `isIRI` now rejects network-path references (`//host/path`), which name an authority no variant admits, and the
   operations built on it (`isNestedIRI`, `getIRIBase`, `resolve`, `internalize`, `relativize`) reject or throw
   accordingly (`@metreeca/core/resource`)

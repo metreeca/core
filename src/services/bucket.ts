@@ -40,7 +40,7 @@
  * @see {@link https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream MDN - ReadableStream}
  */
 
-import { immutable } from "../values/structures.js";
+import { immutable } from "../types/values.js";
 
 
 /**

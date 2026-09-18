@@ -26,7 +26,7 @@ import {
 	union,
 	unique
 } from "./arrays.js";
-import { equals } from "./structures.js";
+import { equals } from "./values.js";
 
 
 /**

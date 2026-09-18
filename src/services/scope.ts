@@ -62,7 +62,7 @@
  * @module
  */
 
-import { immutable } from "../values/structures.js";
+import { immutable } from "../types/values.js";
 
 
 /**

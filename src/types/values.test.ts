@@ -17,7 +17,7 @@
 import { describe, expect, it } from "vitest";
 import { isNumber, isObject, isString } from "../index.js";
 
-import { equals, immutable, seal } from "./structures.js";
+import { equals, immutable, seal } from "./values.js";
 
 
 describe("equals()", () => {

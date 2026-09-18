@@ -17,7 +17,7 @@
 import { assertType, describe, expectTypeOf, test } from "vitest";
 import type { Guard } from "../index.js";
 
-import { type Atomic, type DeepReadonly, immutable, type DeepPartial } from "./structures.js";
+import { type Atomic, type DeepReadonly, immutable, type DeepPartial } from "./values.js";
 
 
 describe("immutable(value)", () => {
