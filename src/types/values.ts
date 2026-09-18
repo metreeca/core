@@ -169,7 +169,8 @@ const Immutable = Symbol("immutable");
  *
  * Marks every property read-only at any nesting depth, arrays and tuples included, and carries an {@link Atomic}
  * through unchanged: a caller holding a frozen structure is refused a write by the compiler, rather than by an
- * assignment that throws at run time. This is the view {@link immutable} hands back.
+ * assignment that throws at run time. Take this view where a structure is handed out for reading only:
+ * {@link immutable} keeps the declared type of its argument, so the constraint holds only where the type states it.
  *
  * @typeParam T The type to be viewed as deeply read-only
  */
@@ -286,6 +287,9 @@ export function equals(x: unknown, y: unknown, equal: (x: unknown, y: unknown) =
  * multiple paths, or extracted and re-nested into another structure, keep a stable identity. This makes it safe and
  * efficient to use defensively.
  *
+ * The clone keeps the declared type of `value`, so a write is refused at run time rather than by the compiler: state
+ * the constraint with {@link DeepReadonly} where a holder is to be held to it at compile time.
+ *
  * > [!CAUTION]
  * > **Circular references are not supported**. Do not pass objects with cycles.
  *
@@ -293,11 +297,11 @@ export function equals(x: unknown, y: unknown, equal: (x: unknown, y: unknown) =
  *
  * @param value The value to make immutable
  *
- * @returns A deeply frozen clone of `value`, typed as {@link DeepReadonly deeply read-only}
+ * @returns A deeply frozen clone of `value`, keeping its declared type
  *
  * @throws {@link !RangeError RangeError} Stack overflow when `value` contains circular references
  */
-export function immutable<T>(value: T): DeepReadonly<T>;
+export function immutable<T>(value: T): T;
 
 /**
  * Creates an immutable deep clone, validating against a type guard.
@@ -318,6 +322,9 @@ export function immutable<T>(value: T): DeepReadonly<T>;
  * The guard brands only the top-level clone; nested members carry the default brand, so they remain stable under
  * guard-less {@link immutable} calls while a guarded call on a nested member revalidates it.
  *
+ * The clone keeps the type the guard validates, so a write is refused at run time rather than by the compiler: state
+ * the constraint with {@link DeepReadonly} where a holder is to be held to it at compile time.
+ *
  * > [!CAUTION]
  * > **Circular references are not supported**. Do not pass objects with cycles.
  *
@@ -330,12 +337,12 @@ export function immutable<T>(value: T): DeepReadonly<T>;
  * @param guard Type guard function to validate `value`
  * @param message Optional error message when validation fails
  *
- * @returns A deeply frozen clone of `value`, branded with the guard and typed as {@link DeepReadonly deeply read-only}
+ * @returns A deeply frozen clone of `value`, branded with the guard and typed as the validated type
  *
  * @throws {@link !TypeError TypeError} When the guard returns `false`
  * @throws {@link !RangeError RangeError} Stack overflow when `value` contains circular references
  */
-export function immutable<T>(value: unknown, guard: Guard<T>, message?: string): DeepReadonly<T>;
+export function immutable<T>(value: unknown, guard: Guard<T>, message?: string): T;
 
 /**
  * Creates an immutable deep clone, optionally validating against a type guard.
@@ -373,8 +380,8 @@ export function seal<T>(value: unknown, seal: symbol): undefined | T;
  * {@link immutable} returns them unchanged: the result, its members, the `content`, and the `content` members all
  * keep a stable identity across calls. An {@link Atomic atom} is returned as-is, with nothing sealed on it.
  *
- * The result keeps the declared type of `value` rather than the {@link DeepReadonly} view {@link immutable} hands
- * back, so writes to a sealed clone are refused at run time rather than by the compiler.
+ * The result keeps the declared type of `value`, so a write is refused at run time rather than by the compiler: state
+ * the constraint with {@link DeepReadonly} where a holder is to be held to it at compile time.
  *
  * @typeParam V The type of the value being sealed
  *

@@ -237,7 +237,8 @@ const Observers = Symbol("observers");
  *
  * **Immutability**
  *
- * - States are immutable; all changes go through transition methods
+ * - States are immutable: members are read-only, so a write is refused by the compiler rather than throwing at run
+ *   time, and every change goes through a transition method
  * - Transition methods return new immutable States
  *
  * **Transitions**
@@ -246,7 +247,7 @@ const Observers = Symbol("observers");
  */
 export interface State {
 
-	[member: string]: unknown | Transition<this, readonly unknown[]>;
+	readonly [member: string]: unknown | Transition<this, readonly unknown[]>;
 
 }
 
@@ -338,16 +339,11 @@ export type Manager<T extends State> = {
  * snapshots are frozen when handed out, and a holder is refused a write by the compiler rather than by an assignment
  * that throws at run time.
  */
-export type Version<T extends State> = DeepReadonly<Data<T>>;
-
-/**
- * The mutable data shape a {@link Version} is derived from.
- */
-type Data<T extends State> = {
+export type Version<T extends State> = DeepReadonly<{
 
 	[K in keyof T as T[K] extends Function ? never : K]: T[K]
 
-};
+}>
 
 /**
  * State observer.
@@ -362,7 +358,7 @@ export type Observer<T extends State> = {
 
 	(version: Instance<T>): void
 
-};
+}
 
 
 /**
@@ -389,7 +385,7 @@ export type Seed<T> = {
 		: T[K] extends Function ? never
 			: T[K];
 
-};
+}
 
 
 /**
@@ -405,7 +401,7 @@ export type Transition<T, I extends readonly unknown[]> = {
 
 	(...inputs: I): T
 
-};
+}
 
 /**
  * State update.
@@ -420,7 +416,7 @@ export type Update<T, I extends readonly unknown[]> = {
 
 	(...inputs: I): Partial<T>
 
-};
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -556,7 +552,7 @@ export function createState<T extends State>(seed: Seed<T>): Instance<T> {
 
 		return immutable(Object.fromEntries(Object.entries(this)
 			.filter(([, value]) => typeof value !== "function")
-		) as Data<T>);
+		)) as Version<T>; // ;(cast) the runtime function filter mirrors the compile-time key filter in Version
 
 	}
 

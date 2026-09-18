@@ -49,45 +49,33 @@ describe("immutable(value)", () => {
 
 	});
 
-	test("should infer read-only object type", () => {
+	test("should infer object type", () => {
 
 		const value = { name: "Alice", age: 30 };
 		const result = immutable(value);
 
-		expectTypeOf(result).toEqualTypeOf<{ readonly name: string; readonly age: number }>();
+		expectTypeOf(result).toEqualTypeOf<{ name: string; age: number }>();
 
 	});
 
-	test("should infer read-only array type", () => {
+	test("should infer array type", () => {
 
 		const value = [1, 2, 3];
 		const result = immutable(value);
 
-		expectTypeOf(result).toEqualTypeOf<readonly number[]>();
+		expectTypeOf(result).toEqualTypeOf<number[]>();
 
 	});
 
-	test("should infer read-only nested object type", () => {
+	test("should infer nested object type", () => {
 
 		const value = { user: { name: "Alice" }, items: [1, 2] };
 		const result = immutable(value);
 
 		expectTypeOf(result).toEqualTypeOf<{
-			readonly user: { readonly name: string };
-			readonly items: readonly number[];
+			user: { name: string };
+			items: number[];
 		}>();
-
-	});
-
-	test("should reject writes to the frozen graph", () => {
-
-		const result = immutable({ user: { name: "Alice" }, items: [1, 2] });
-
-		// @ts-expect-error - nested property is read-only
-		result.user.name = "Bob";
-
-		// @ts-expect-error - nested array is read-only
-		result.items[0] = 3;
 
 	});
 
@@ -97,9 +85,9 @@ describe("immutable(value)", () => {
 		const result = immutable(value);
 
 		expectTypeOf(result).toEqualTypeOf<{
-			readonly at: Date;
-			readonly tags: Set<string>;
-			readonly run: () => string;
+			at: Date;
+			tags: Set<string>;
+			run: () => string;
 		}>();
 
 	});
@@ -129,7 +117,7 @@ describe("immutable(value, guard)", () => {
 		const value: unknown = { name: "Alice", age: 30 };
 		const result = immutable(value, guard);
 
-		expectTypeOf(result).toEqualTypeOf<{ readonly name: string; readonly age: number }>();
+		expectTypeOf(result).toEqualTypeOf<{ name: string; age: number }>();
 
 	});
 
@@ -152,7 +140,7 @@ describe("immutable(value, guard)", () => {
 		const value: unknown = [1, 2, 3];
 		const result = immutable(value, guard);
 
-		expectTypeOf(result).toEqualTypeOf<readonly number[]>();
+		expectTypeOf(result).toEqualTypeOf<number[]>();
 
 	});
 

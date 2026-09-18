@@ -2,9 +2,6 @@
   "tsconfig": "./tsconfig.build.json",
   "includeVersion": true,
   "excludeExternals": true,
-  "intentionallyNotExported": [
-    "src/patterns/state.ts:Data"
-  ],
   "sort": [
     "source-order"
   ],
