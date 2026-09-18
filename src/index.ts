@@ -54,6 +54,8 @@
  * isPromiseLike({ then: () => {} }); // true (any thenable, whatever its provenance)
  * isIterable([1, 2, 3]); // true
  * isAsyncIterable(asyncGenerator()); // true
+ * isURLLike("http://example.com/"); // true (any string, whether or not it parses as a URL)
+ * isURLLike(new URL("http://example.com/")); // true
  * ```
  *
  * ## JSON Guards
@@ -225,6 +227,8 @@ export type Defined<T = null | {}> =
 	T & (null | {});
 
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /**
  * ECMAScript primitive value.
  *
@@ -263,6 +267,21 @@ export type Primitive =
 export type Identifier =
 	string
 
+/**
+ * URL reference.
+ *
+ * A URL supplied either as a parsed {@link !URL URL} instance or as a string, covering the two shapes a reference
+ * arrives in without forcing a conversion on the way in. Strings are unconstrained, absolute or relative and not
+ * necessarily well-formed, so parsing and resolution against a base stay with whoever consumes the reference.
+ *
+ * @see [WHATWG URL Standard](https://url.spec.whatwg.org/)
+ */
+export type URLLike =
+	| string
+	| URL;
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Immutable JSON value.
@@ -306,6 +325,8 @@ export type Object =
 	{ readonly [name: string]: Value };
 
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /**
  * A type guard function.
  *
@@ -345,6 +366,8 @@ export type Intersection<G extends readonly Guard[]> =
 		? (U extends unknown ? (x: U) => void : never) extends (x: infer I) => void ? I : never
 		: never;
 
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * A value or a function returning a value.
@@ -600,6 +623,22 @@ export function isIterable<T = unknown>(value: unknown): value is Iterable<T> {
 export function isAsyncIterable<T = unknown>(value: unknown): value is AsyncIterable<T> {
 
 	return value != null && isFunction((value as { [Symbol.asyncIterator]?: unknown })[Symbol.asyncIterator]);
+
+}
+
+/**
+ * Checks if a value is {@link URLLike}.
+ *
+ * Every string qualifies, whether or not it parses as a URL: only the shape of the reference is settled here, while
+ * parsing and resolution against a base remain with the consumer.
+ *
+ * @param value The value to check
+ *
+ * @returns True if the value is a string or a {@link !URL URL} instance; false otherwise
+ */
+export function isURLLike(value: unknown): value is URLLike {
+
+	return typeof value === "string" || value instanceof URL;
 
 }
 

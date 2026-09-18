@@ -19,6 +19,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   stated slot to its declared type (`@metreeca/core/values`)
 - `Atomic` type naming the values the deep operations take whole rather than descending into them, that is a
   `Primitive`, a function and the built-in objects a value graph commonly holds (`@metreeca/core/values`)
+- `URLLike` type naming a URL supplied either as a parsed `URL` instance or as a string, together with the matching
+  `isURLLike` guard, which admits any string whether or not it parses as a URL, leaving parsing and resolution against
+  a base to the consumer (`@metreeca/core`)
 
 ### Changed
 

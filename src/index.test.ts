@@ -43,6 +43,7 @@ import {
 	isString,
 	isSymbol,
 	isUnion,
+	isURLLike,
 	isValue,
 	key,
 	lazy,
@@ -374,6 +375,29 @@ describe("built-in guards", () => {
 			expect(isAsyncIterable([])).toBeFalsy();
 			expect(isAsyncIterable({})).toBeFalsy();
 			expect(isAsyncIterable(null)).toBeFalsy();
+		});
+
+	});
+
+	describe("isURLLike()", () => {
+
+		it("should return true for strings", () => {
+			expect(isURLLike("http://example.com/resource")).toBeTruthy();
+			expect(isURLLike("/resource")).toBeTruthy();
+			expect(isURLLike("")).toBeTruthy();
+		});
+
+		it("should return true for URL instances", () => {
+			expect(isURLLike(new URL("http://example.com/resource"))).toBeTruthy();
+			expect(isURLLike(new URL("resource", "http://example.com/"))).toBeTruthy();
+		});
+
+		it("should return false for other values", () => {
+			expect(isURLLike(123)).toBeFalsy();
+			expect(isURLLike(null)).toBeFalsy();
+			expect(isURLLike(undefined)).toBeFalsy();
+			expect(isURLLike({ href: "http://example.com/" })).toBeFalsy();
+			expect(isURLLike(new URLSearchParams())).toBeFalsy();
 		});
 
 	});
