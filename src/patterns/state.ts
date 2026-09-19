@@ -23,26 +23,27 @@
  *
  * **Concepts**
  *
- * - {@link State}: An interface defining version data properties and transition methods
- * - {@link Version}: The data properties of a {@link State}, excluding transition methods and
- *   observers, read-only at any depth
- * - {@link Transition}: A method that takes inputs and returns a new {@link State} with updated
+ * - {@link State}: The contract a state type is held to, declaring version data properties and transition methods
+ * - {@link Version}: The data properties of a state, excluding transition methods and observers,
+ *   read-only at any depth
+ * - {@link Transition}: A method that takes inputs and returns a new state with updated
  *   version data
  * - {@link Update}: A function that accesses current version data via `this` and returns partial
  *   version data to be merged into the state
  * - {@link Observer}: A function called asynchronously when state transitions occur
  * - {@link Manager}: Housekeeping operations (snapshots, observers) accessed via {@link manageState}`(state)`,
- *   kept separate from {@link State} to avoid polluting user-defined interfaces
+ *   kept separate from {@link State} to avoid polluting user-defined state types
  *
- * States are created by the {@link State} factory from a {@link Seed} where transition
+ * States are created by the {@link createState} factory from a {@link Seed} where transition
  * methods are implemented as {@link Update} functions that return partial updates. These
  * updates are merged into a new immutable state, and transition methods return the
  * new state. Eliminates manual state spreading and ensures type-safe updates.
  *
  * **Basic Usage**
  *
- * Define a state interface with data properties and transition methods, then create a state
- * by providing initial values and update functions:
+ * Define a state type with data properties and transition methods as a plain interface or object type, with no base
+ * to extend, then create a state by supplying the type to {@link createState} together with initial values and update
+ * functions:
  *
  * ```typescript
  * import { createState } from '@metreeca/core/state';
@@ -211,13 +212,13 @@ import { type DeepReadonly, immutable } from "../types/values.js";
 
 /**
  * Symbol used to store managers on state instances.
- * Non-enumerable to prevent enumeration and maintain clean state interface.
+ * Non-enumerable to keep the state type members the only enumerable ones.
  */
 const Manager = Symbol("manager");
 
 /**
  * Symbol used to store observers on state instances.
- * Non-enumerable to prevent enumeration and maintain clean state interface.
+ * Non-enumerable to keep the state type members the only enumerable ones.
  */
 const Observers = Symbol("observers");
 
@@ -225,15 +226,26 @@ const Observers = Symbol("observers");
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Versioned data.
+ * State contract.
  *
- * An immutable object combining:
+ * The contract a state type is held to, as an immutable object combining:
  *
  * - **Version Data** - Data properties describing the current state
- * - **Transition Methods** - Methods with signature like `transition(...inputs): this` that
- *   take inputs and generate a new immutable state with updated version data.
+ * - **Transition Methods** - Methods with signature like `transition(...inputs): this` that take inputs and generate
+ *   a new immutable state with updated version data
+ *
+ * @typeParam T The state type being constrained
  *
  * @remarks
+ *
+ * **Declaration**
+ *
+ * - State types are declared as plain interfaces or object types, with no base to extend: they are admitted wherever
+ *   this module declares a state type parameter, bound as `T extends State<T>`
+ * - A method returning anything other than the state itself is refused by the compiler where the state type is
+ *   supplied, as are non-object types
+ * - Read-only data properties are a contract the compiler cannot enforce, since `readonly` modifiers don't take part
+ *   in assignability
  *
  * **Immutability**
  *
@@ -245,9 +257,9 @@ const Observers = Symbol("observers");
  *
  * - Transition methods can be destructured and called independently (e.g., `const { increment } = state; increment();`)
  */
-export interface State {
+export type State<T> = object & {
 
-	readonly [member: string]: unknown | Transition<this, readonly unknown[]>;
+	[K in keyof T]: T[K] extends Transition<infer O, never> ? (O extends T ? T[K] : never) : T[K];
 
 }
 
@@ -255,18 +267,32 @@ export interface State {
 /**
  * State instance.
  *
- * A concrete {@link State} implementation created by the {@link createState} factory. Combines state
- * interface members (data properties and transition methods) with {@link Manager} operations
- * accessible via {@link manageState}`(state)`.
+ * A concrete state created by the {@link createState} factory. Combines the members of the state type (data
+ * properties and transition methods) with {@link Manager} operations accessible via {@link manageState}`(state)`.
  *
  * > [!WARNING]
  * > This is a type alias for documentation purposes only. Branding was considered but not adopted due to
  * > interoperability issues with tools relying on static code analysis. Instances must be created
  * > using {@link createState}.
  *
- * @typeParam T The state interface type
+ * @typeParam T The state type
  */
-export type Instance<T extends State> = T;
+export type Instance<T extends State<T>> = T;
+
+/**
+ * State version.
+ *
+ * The data properties of a state, excluding transition methods and observers, read-only at any depth:
+ * snapshots are frozen when handed out, and a holder is refused a write by the compiler rather than by an assignment
+ * that throws at run time.
+ *
+ * @typeParam T The state type
+ */
+export type Version<T extends State<T>> = DeepReadonly<{
+
+	[K in keyof T as T[K] extends Function ? never : K]: T[K]
+
+}>
 
 /**
  * State manager.
@@ -276,7 +302,7 @@ export type Instance<T extends State> = T;
  *
  * @typeParam T The state type this manager is attached to
  */
-export type Manager<T extends State> = {
+export type Manager<T extends State<T>> = {
 
 	/**
 	 * Captures a snapshot of the current version.
@@ -333,28 +359,15 @@ export type Manager<T extends State> = {
 }
 
 /**
- * State version.
- *
- * The data properties of a {@link State}, excluding transition methods and observers, read-only at any depth:
- * snapshots are frozen when handed out, and a holder is refused a write by the compiler rather than by an assignment
- * that throws at run time.
- */
-export type Version<T extends State> = DeepReadonly<{
-
-	[K in keyof T as T[K] extends Function ? never : K]: T[K]
-
-}>
-
-/**
  * State observer.
  *
  * Receives the new state after a transition and performs side effects. Observers are
  * called asynchronously via `queueMicrotask()`. Errors are caught and silently ignored
  * to prevent affecting other observers or the transition itself.
  *
- * @typeParam T The State type
+ * @typeParam T The state type
  */
-export type Observer<T extends State> = {
+export type Observer<T extends State<T>> = {
 
 	(version: Instance<T>): void
 
@@ -364,13 +377,13 @@ export type Observer<T extends State> = {
 /**
  * State seed value.
  *
- * Maps a state interface to the seed value type required by {@link State} factory:
+ * Maps a state type to the seed value type required by the {@link createState} factory:
  *
  * - Data properties are preserved unchanged
  * - {@link Transition} methods are mapped to {@link Update} functions with inferred parameter types
  * - Other function types are excluded
  *
- * @typeParam T The state interface type
+ * @typeParam T The state type
  *
  * @remarks
  *
@@ -429,11 +442,11 @@ export type Update<T, I extends readonly unknown[]> = {
  * - For each data property: initial value
  * - For each {@link Transition} method: {@link Update} function taking the same inputs
  *
- * @typeParam T The state interface type to be implemented
+ * @typeParam T The state type to be implemented
  *
  * @param seed Seed value with initial data and update functions
  *
- * @returns A new state implementation enforcing deep immutability with attached manager metadata
+ * @returns A new deeply immutable state whose housekeeping operations are reachable through {@link manageState}
  *
  * @remarks
  *
@@ -443,13 +456,13 @@ export type Update<T, I extends readonly unknown[]> = {
  * - Returns same state reference when all partial values are shallowly equal (`Object.is`) to
  *   current values
  */
-export function createState<T extends State>(seed: Seed<T>): Instance<T> {
+export function createState<T extends State<T>>(seed: Seed<T>): Instance<T> {
 
 	/**
 	 * Internal type representing a state object with observer storage.
 	 * Extends the immutable state with non-enumerable observer set.
 	 */
-	type Observed<T extends State> = Instance<T> & {
+	type Observed<T extends State<T>> = Instance<T> & {
 
 		[Observers]?: Set<Observer<T>>;
 
@@ -488,7 +501,7 @@ export function createState<T extends State>(seed: Seed<T>): Instance<T> {
 		}]));
 
 
-	// actions overwrite transition methods in seed; the final object conforms to the expected interface
+	// actions overwrite transition methods in seed; the final object conforms to the expected state type
 
 	return bind(Object.assign({}, immutable(seed)));
 
@@ -625,7 +638,7 @@ export function createState<T extends State>(seed: Seed<T>): Instance<T> {
  *
  * @throws {@link !TypeError TypeError} If the object is not a valid state instance
  */
-export function manageState<T extends State>(instance: Instance<T>): Manager<T> {
+export function manageState<T extends State<T>>(instance: Instance<T>): Manager<T> {
 
 	if ( instance === null || typeof instance !== "object" || !(Manager in instance) ) {
 		throw new TypeError("expected state instance");

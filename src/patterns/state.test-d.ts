@@ -24,33 +24,31 @@ describe("State", () => {
 
 		test("should reject action returning string instead of this", () => {
 
-			interface InvalidReturnType extends State {
+			interface InvalidReturnType {
 				readonly value: number;
 
 				step(): string;
 			}
 
-			createState<InvalidReturnType>({
-				value: 0,
-				// @ts-expect-error - action method returns `string` instead of `this`
-				step() { return "invalid"; }
-			});
+			expectTypeOf<InvalidReturnType>().not.toExtend<State<InvalidReturnType>>();
 
 		});
 
 		test("should reject async actions (Promise<this>)", () => {
 
-			interface InvalidPromiseReturn extends State {
+			interface InvalidPromiseReturn {
 				readonly data: string;
 
 				load(): Promise<this>;
 			}
 
-			createState<InvalidPromiseReturn>({
-				data: "",
-				// @ts-expect-error - async actions not supported (returns `Promise<this>` not `this`)
-				load() { return { data: "loaded" }; }
-			});
+			expectTypeOf<InvalidPromiseReturn>().not.toExtend<State<InvalidPromiseReturn>>();
+
+		});
+
+		test("should reject non-object state types", () => {
+
+			expectTypeOf<string>().not.toExtend<State<string>>();
 
 		});
 
@@ -60,7 +58,7 @@ describe("State", () => {
 
 		test("should reject transition returning wrong type", () => {
 
-			interface ValidInterface extends State {
+			interface ValidInterface {
 				readonly value: number;
 
 				increment(): this;
@@ -76,7 +74,7 @@ describe("State", () => {
 
 		test("should reject missing required data properties", () => {
 
-			interface RequiredData extends State {
+			interface RequiredData {
 				readonly value: number;
 				readonly label: string;
 
@@ -97,7 +95,7 @@ describe("State", () => {
 
 		test("should reject transition with wrong parameter type", () => {
 
-			interface Adder extends State {
+			interface Adder {
 				readonly value: number;
 
 				add(delta: number): this;
@@ -115,7 +113,7 @@ describe("State", () => {
 
 		test("should reject transition with wrong number of parameters", () => {
 
-			interface Multiplier extends State {
+			interface Multiplier {
 				readonly value: number;
 
 				multiply(x: number, y: number): this;
@@ -133,25 +131,19 @@ describe("State", () => {
 
 		test("should reject parameterized action returning wrong type", () => {
 
-			interface InvalidParamReturn extends State {
+			interface InvalidParamReturn {
 				readonly items: readonly string[];
 
 				add(item: string): string; // returns string instead of this
 			}
 
-			createState<InvalidParamReturn>({
-				items: [],
-				// @ts-expect-error - parameterized action must return `this`
-				add(item: string) {
-					return { items: [...this.items, item] };
-				}
-			});
+			expectTypeOf<InvalidParamReturn>().not.toExtend<State<InvalidParamReturn>>();
 
 		});
 
 		test("should reject optional parameter type mismatch", () => {
 
-			interface OptionalParam extends State {
+			interface OptionalParam {
 				readonly count: number;
 
 				increment(delta?: number): this;
@@ -171,9 +163,23 @@ describe("State", () => {
 
 	describe("valid state interfaces", () => {
 
+		test("should accept plain interfaces declaring transition methods", () => {
+
+			interface Counter {
+				readonly count: number;
+
+				increment(): this;
+
+				add(delta: number): this;
+			}
+
+			expectTypeOf<Counter>().toExtend<State<Counter>>();
+
+		});
+
 		test("should accept simple state with single transition", () => {
 
-			interface ValidSimple extends State {
+			interface ValidSimple {
 				readonly value: number;
 
 				step(): this;
@@ -192,7 +198,7 @@ describe("State", () => {
 
 		test("should accept state with multiple actions", () => {
 
-			interface ValidMultiAction extends State {
+			interface ValidMultiAction {
 				readonly count: number;
 				readonly delta: number;
 
@@ -221,7 +227,7 @@ describe("State", () => {
 
 		test("should accept state with optional properties", () => {
 
-			interface ValidOptional extends State {
+			interface ValidOptional {
 				readonly value: number;
 				readonly label?: string;
 
@@ -240,7 +246,7 @@ describe("State", () => {
 
 		test("should accept data-only state (no actions)", () => {
 
-			interface ValidDataOnly extends State {
+			interface ValidDataOnly {
 				readonly x: number;
 				readonly y: number;
 			}
@@ -257,7 +263,7 @@ describe("State", () => {
 
 		test("should accept transitions returning partial state updates", () => {
 
-			interface Counter extends State {
+			interface Counter {
 				readonly count: number;
 				readonly delta: number;
 
@@ -284,7 +290,7 @@ describe("State", () => {
 
 describe("Version", () => {
 
-	interface Cart extends State {
+	interface Cart {
 		readonly items: string[];
 		readonly meta: { label: string };
 

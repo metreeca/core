@@ -29,6 +29,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   operations and the `DeepReadonly`, `DeepPartial` and `Atomic` types are unchanged
 - Source layout reorganised: `values/` → `types/`, `runtime/` → `services/`, `functional/` → `patterns/`, `standard/` →
   `standards/`; import specifiers are unchanged
+- `State` is now the generic constraint `State<T>` checked against the state type handed to `createState`: state types
+  are declared as plain interfaces or object types and no longer extend `State`, while a transition returning anything
+  other than the state itself, as well as a non-object type, is refused by the compiler (`@metreeca/core/state`)
 - `Version<T>` is now read-only at any depth, matching the frozen snapshot `capture()` hands out, so a write to a
   captured version is refused by the compiler rather than throwing at run time (`@metreeca/core/state`)
 - `isIRI` now rejects network-path references (`//host/path`), which name an authority no variant admits, and the
