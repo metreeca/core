@@ -18,6 +18,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `createRelay` returns handler and fallback results as-is, no longer deep-freezing structured values; the relay itself
   is now frozen (`@metreeca/core/relay`)
 
+### Removed
+
+- Relay handler delegation: handlers no longer receive a `delegate` function invoking the fallback, and `Handler` and
+  `Handlers` drop their delegate type parameter (`@metreeca/core/relay`)
+
 ## [0.11.0](https://github.com/metreeca/core/compare/v0.10.0...v0.11.0) - 2026-09-24
 
 ### Added

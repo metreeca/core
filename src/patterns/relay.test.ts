@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { createRelay, Handlers } from "./relay.js";
+import { createRelay } from "./relay.js";
 
 describe("relay()", () => {
 
@@ -442,120 +442,6 @@ describe("relay()", () => {
 
 	});
 
-	describe("delegation to fallback", () => {
-
-		type TestOptions = {
-			value: string
-			error: Error
-			loading: boolean
-		}
-
-		it("should allow handler to delegate to constant fallback", async () => {
-
-			const result = createRelay<TestOptions>({ value: "test" })({
-				value: (_v, delegate) => delegate()
-			}, "fallback value");
-
-			expect(result).toBe("fallback value");
-
-		});
-
-		it("should allow handler to delegate to function fallback", async () => {
-
-			const result = createRelay<TestOptions>({ value: "test" })({
-				value: (v, delegate) => delegate()
-			}, (v) => `fallback: ${v}`);
-
-			expect(result).toBe("fallback: test");
-
-		});
-
-		it("should allow handler to conditionally delegate", async () => {
-
-			const handleValue = (v: string, delegate: () => string) =>
-				v.length > 5 ? `long: ${v}` : delegate();
-
-			const longResult = createRelay<TestOptions>({ value: "lengthy" })({
-				value: handleValue
-			}, "short value");
-
-			const shortResult = createRelay<TestOptions>({ value: "hi" })({
-				value: handleValue
-			}, "short value");
-
-			expect(longResult).toBe("long: lengthy");
-			expect(shortResult).toBe("short value");
-
-		});
-
-		it("should pass value to fallback function when delegating", async () => {
-
-			const result = createRelay<TestOptions>({ error: new Error("oops") })({
-				error: (_e, delegate) => delegate()
-			}, (v) => {
-				if ( v instanceof Error ) {
-					return `delegated error: ${v.message}`;
-				}
-				return `delegated: ${v}`;
-			});
-
-			expect(result).toBe("delegated error: oops");
-
-		});
-
-		it("should allow mixing delegating and non-delegating handlers", async () => {
-
-			const result = createRelay<TestOptions>({ loading: true })({
-				value: "direct value",
-				loading: (_l, delegate) => delegate()
-			}, "fallback");
-
-			expect(result).toBe("fallback");
-
-		});
-
-		it("should return undefined when delegating without fallback", async () => {
-
-			const result = createRelay<TestOptions>({ value: "test" })({
-				value: (_v: string, delegate: () => string | undefined) => delegate()
-			} as Partial<Handlers<TestOptions, string | undefined>>);
-
-			expect(result).toBeUndefined();
-
-		});
-
-		it("should allow complete handlers to delegate to factored fallback", async () => {
-
-			// common formatting logic factored into fallback
-			const format = (v: string | Error | boolean) =>
-				v instanceof Error ? `error: ${v.message}`
-					: typeof v === "boolean" ? `loading: ${v}`
-						: `value: ${v}`;
-
-			const result = createRelay<TestOptions>({ value: "test" })({
-				value: (_v, delegate) => delegate(),
-				error: (_e, delegate) => delegate(),
-				loading: (_l, delegate) => delegate()
-			}, format);
-
-			expect(result).toBe("value: test");
-
-		});
-
-		it("should allow complete handlers to selectively delegate", async () => {
-
-			const result = createRelay<TestOptions>({ error: new Error("oops") })({
-				value: (v) => `direct: ${v}`,
-				error: (_e, delegate) => delegate(),
-				loading: (l) => `direct: ${l}`
-			}, (v) => `delegated: ${v instanceof Error ? v.message : v}`);
-
-			expect(result).toBe("delegated: oops");
-
-		});
-
-	});
-
 	describe("returned values", () => {
 
 		type StructuredOptions = {
@@ -610,19 +496,6 @@ describe("relay()", () => {
 			const result = createRelay<StructuredOptions>({ object: { id: 1, name: "test" } })({}, fallback);
 
 			expect(result).toBe(fallback);
-			expect(Object.isFrozen(result)).toBeFalsy();
-
-		});
-
-		it("should return values from delegation as-is", async () => {
-
-			const delegated = { delegated: true };
-
-			const result = createRelay<StructuredOptions>({ object: { id: 1, name: "test" } })({
-				object: (_v, delegate) => delegate()
-			}, () => delegated);
-
-			expect(result).toBe(delegated);
 			expect(Object.isFrozen(result)).toBeFalsy();
 
 		});

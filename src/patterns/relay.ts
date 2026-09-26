@@ -61,21 +61,6 @@
  * });
  * ```
  *
- * **Delegation to Fallback**
- *
- * When a fallback is provided, handlers receive a delegate function to invoke common logic:
- *
- * ```typescript
- * const format = (v: string | Error | void) =>
- *   v instanceof Error ? `error: ${v.message}` : `value: ${v}`;
- *
- * const display = r({
- *   unset: "Enter email",
- *   value: (email, delegate) => email.length > 0 ? email : delegate(),
- *   error: (_err, delegate) => delegate()
- * }, format);
- * ```
- *
  * **Partial Matching without Fallback**
  *
  * Handle specific options only, returning `undefined` for unhandled options:
@@ -106,14 +91,11 @@ import { isDefined, isFunction } from "../index.js";
  * Relay.
  *
  * Accepts handlers for each option and returns the result from the matched handler.
- * Four usage patterns are supported:
+ * Three usage patterns are supported:
  *
  * - All options handled: provide a handler for every option, returns `R`
- * - All options with fallback: provide all handlers plus a fallback for delegation, returns `R`
  * - Some options without fallback: provide handlers for some options only, returns `R | undefined`
  * - Some options with fallback: provide handlers for some options plus a fallback, returns `R`
- *
- * When a fallback is provided, handlers receive a delegate function to invoke it.
  *
  * @typeParam O The options type defining all possible option variants
  */
@@ -130,20 +112,6 @@ export interface Relay<O extends Options> {
 	 */<R>(handlers: Handlers<O, R>): R;
 
 	/**
-	 * Handles all options with complete handlers and a fallback for delegation.
-	 *
-	 * Handlers receive a delegate function that can be called to invoke the fallback,
-	 * enabling factored common logic across multiple option handlers.
-	 *
-	 * @typeParam R The return type of all handlers
-	 *
-	 * @param handlers Mapping of all option keys to delegating handlers
-	 * @param fallback Fallback handler for delegated calls
-	 *
-	 * @returns The result from the matched handler or fallback
-	 */<R>(handlers: Handlers<O, R, () => R>, fallback: Handler<O[keyof O], R>): R;
-
-	/**
 	 * Handles some options without a fallback.
 	 *
 	 * @typeParam R The return type of all handlers
@@ -156,15 +124,13 @@ export interface Relay<O extends Options> {
 	/**
 	 * Handles some options with a fallback handler for unmatched options.
 	 *
-	 * Handlers receive a delegate function that can be called to invoke the fallback.
-	 *
 	 * @typeParam R The return type of all handlers
 	 *
-	 * @param handlers Partial mapping of option keys to delegating handlers
-	 * @param fallback Fallback handler receiving union of option values
+	 * @param handlers Partial mapping of option keys to handlers
+	 * @param fallback Handler for options without an entry in `handlers`, receiving the matched option value
 	 *
 	 * @returns The result from the matched handler or fallback
-	 */<R>(handlers: Partial<Handlers<O, R, () => R>>, fallback: Handler<O[keyof O], R>): R;
+	 */<R>(handlers: Partial<Handlers<O, R>>, fallback: Handler<O[keyof O], R>): R;
 
 }
 
@@ -204,29 +170,24 @@ export type Option<O extends Options> = {
  *
  * @typeParam O The relay options
  * @typeParam R The return type of all handlers
- * @typeParam D The delegate function type; defaults to `never` (no delegation)
  */
-export type Handlers<O extends Options, R, D extends (() => R) | never = never> = {
+export type Handlers<O extends Options, R> = {
 
-	readonly [K in keyof O]: Handler<O[K], R, D>
+	readonly [K in keyof O]: Handler<O[K], R>
 
 }
 
 /**
  * Option handler.
  *
- * Either a constant value of type `R`, or a function that receives the matched value and optionally
- * a delegate function for invoking the fallback handler.
+ * Either a constant value of type `R`, or a function that receives the matched value.
  *
  * @typeParam V The type of the matched option value
  * @typeParam R The return type of the handler
- * @typeParam D The delegate function type; defaults to `never` (no delegation)
  */
-export type Handler<V = unknown, R = unknown, D extends (() => R) | never = never> =
+export type Handler<V = unknown, R = unknown> =
 	| R
-	| ([D] extends [never]
-	? ((value: V) => R)
-	: ((value: V, delegate: D) => R))
+	| ((value: V) => R)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -253,21 +214,14 @@ export function createRelay<O extends Options>(option: Option<O>): Relay<O> {
 
 	const [label, value] = entries[0];
 
-	return Object.freeze(<R>(handlers: Partial<Handlers<O, R, () => R>>, fallback?: Handler<O[keyof O], R>): unknown => {
+	return Object.freeze(<R>(handlers: Partial<Handlers<O, R>>, fallback?: Handler<O[keyof O], R>): unknown => {
 
 		const handler = handlers[label];
 
-		return isFunction(handler) ? handler(value, delegate)
+		return isFunction(handler) ? handler(value)
 			: isDefined(handler) ? handler
 				: isFunction(fallback) ? fallback(value)
 					: fallback;
-
-
-		function delegate() {
-			return isFunction(fallback) ? fallback(value)
-				: isDefined(fallback) ? fallback
-					: undefined;
-		}
 
 	});
 

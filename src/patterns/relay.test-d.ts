@@ -159,31 +159,14 @@ describe("Relay", () => {
 
 	});
 
-	describe("delegation type constraints", () => {
+	describe("handler arity", () => {
 
-		type DelegationOptions = {
-			value: string
-			error: Error
-		}
+		test("should reject handlers expecting a delegate", () => {
 
-		test("handlers with fallback receive delegate parameter", () => {
-
-			const result = createRelay<DelegationOptions>({ value: "test" })({
-				value: (v, delegate) => delegate()
+			createRelay<TestOptions>({ string: "test" })({
+				// @ts-expect-error - handlers receive the matched value only
+				string: (v: string, delegate: () => string) => delegate()
 			}, "fallback");
-
-			expectTypeOf(result).toBeString();
-
-		});
-
-		test("handlers without fallback have no delegate parameter", () => {
-
-			const result = createRelay<DelegationOptions>({ value: "test" })({
-				value: (v) => `value: ${v}`,
-				error: (e) => `error: ${e.message}`
-			});
-
-			expectTypeOf(result).toEqualTypeOf<string>();
 
 		});
 
