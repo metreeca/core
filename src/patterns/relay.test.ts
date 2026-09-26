@@ -556,7 +556,7 @@ describe("relay()", () => {
 
 	});
 
-	describe("immutability", () => {
+	describe("returned values", () => {
 
 		type StructuredOptions = {
 			object: { id: number, name: string }
@@ -564,86 +564,77 @@ describe("relay()", () => {
 			primitive: number
 		}
 
-		it("should freeze object values returned by function handlers", async () => {
+		it("should return values from function handlers as-is", async () => {
 
-			const result = createRelay<StructuredOptions>({ object: { id: 1, name: "test" } })({
-				object: (o) => ({ ...o, extra: true })
+			const object = { id: 1, name: "test" };
+
+			const result = createRelay<StructuredOptions>({ object })({
+				object: (o) => o
 			});
 
-			expect(result).toEqual({ id: 1, name: "test", extra: true });
-			expect(Object.isFrozen(result)).toBeTruthy();
+			expect(result).toBe(object);
+			expect(Object.isFrozen(result)).toBeFalsy();
 
 		});
 
-		it("should freeze array values returned by function handlers", async () => {
+		it("should return values from constant handlers as-is", async () => {
 
-			const result = createRelay<StructuredOptions>({ array: ["a", "b"] })({
-				array: (a) => [...a, "c"]
-			});
-
-			expect(result).toEqual(["a", "b", "c"]);
-			expect(Object.isFrozen(result)).toBeTruthy();
-
-		});
-
-		it("should freeze object values returned by constant handlers", async () => {
+			const matched = { status: "matched" };
 
 			const result = createRelay<StructuredOptions>({ object: { id: 1, name: "test" } })({
-				object: { status: "matched" },
+				object: matched,
 				array: { status: "array" },
 				primitive: { status: "primitive" }
 			});
 
-			expect(result).toEqual({ status: "matched" });
-			expect(Object.isFrozen(result)).toBeTruthy();
+			expect(result).toBe(matched);
+			expect(Object.isFrozen(result)).toBeFalsy();
 
 		});
 
-		it("should freeze values returned by fallback function", async () => {
+		it("should return values from fallback functions as-is", async () => {
 
-			const result = createRelay<StructuredOptions>({
-				object: {
-					id: 1,
-					name: "test"
-				}
-			})({}, () => ({ fallback: true }));
+			const fallback = ["fallback"];
 
-			expect(result).toEqual({ fallback: true });
-			expect(Object.isFrozen(result)).toBeTruthy();
+			const result = createRelay<StructuredOptions>({ object: { id: 1, name: "test" } })({}, () => fallback);
+
+			expect(result).toBe(fallback);
+			expect(Object.isFrozen(result)).toBeFalsy();
 
 		});
 
-		it("should freeze values returned by constant fallback", async () => {
+		it("should return constant fallbacks as-is", async () => {
 
-			const result = createRelay<StructuredOptions>({ object: { id: 1, name: "test" } })({}, { fallback: true });
+			const fallback = { fallback: true };
 
-			expect(result).toEqual({ fallback: true });
-			expect(Object.isFrozen(result)).toBeTruthy();
+			const result = createRelay<StructuredOptions>({ object: { id: 1, name: "test" } })({}, fallback);
+
+			expect(result).toBe(fallback);
+			expect(Object.isFrozen(result)).toBeFalsy();
 
 		});
 
-		it("should freeze values returned via delegation", async () => {
+		it("should return values from delegation as-is", async () => {
+
+			const delegated = { delegated: true };
 
 			const result = createRelay<StructuredOptions>({ object: { id: 1, name: "test" } })({
 				object: (_v, delegate) => delegate()
-			}, () => ({ delegated: true }));
+			}, () => delegated);
 
-			expect(result).toEqual({ delegated: true });
-			expect(Object.isFrozen(result)).toBeTruthy();
+			expect(result).toBe(delegated);
+			expect(Object.isFrozen(result)).toBeFalsy();
 
 		});
 
-		it("should deep-freeze nested structures", async () => {
+		it("should leave nested structures mutable", async () => {
 
-			const result = createRelay<StructuredOptions>({ object: { id: 1, name: "test" } })({
-				object: () => ({ outer: { inner: [1, 2, 3] } }),
-				array: () => ({}),
-				primitive: () => ({})
-			}) as { outer: { inner: number[] } };
+			const result = createRelay<StructuredOptions>({ array: ["a", "b"] })({
+				array: (a) => ({ outer: { inner: [...a] } })
+			});
 
-			expect(Object.isFrozen(result)).toBeTruthy();
-			expect(Object.isFrozen(result.outer)).toBeTruthy();
-			expect(Object.isFrozen(result.outer.inner)).toBeTruthy();
+			expect(Object.isFrozen(result?.outer)).toBeFalsy();
+			expect(Object.isFrozen(result?.outer.inner)).toBeFalsy();
 
 		});
 
@@ -656,6 +647,16 @@ describe("relay()", () => {
 			});
 
 			expect(result).toBe(84);
+
+		});
+
+	});
+
+	describe("immutability", () => {
+
+		it("should return a frozen relay", async () => {
+
+			expect(Object.isFrozen(createRelay<TestOptions>({ value: "test" }))).toBeTruthy();
 
 		});
 

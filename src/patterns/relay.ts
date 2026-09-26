@@ -99,7 +99,6 @@
  * @module
  */
 
-import { immutable } from "../types/values.js";
 import { isDefined, isFunction } from "../index.js";
 
 
@@ -123,13 +122,11 @@ export interface Relay<O extends Options> {
 	/**
 	 * Handles all options with complete handlers.
 	 *
-	 * The returned value is made {@link immutable}.
-	 *
 	 * @typeParam R The return type of all handlers
 	 *
 	 * @param handlers Mapping of all option keys to their handlers
 	 *
-	 * @returns The immutable result from the matched handler
+	 * @returns The result from the matched handler
 	 */<R>(handlers: Handlers<O, R>): R;
 
 	/**
@@ -138,26 +135,22 @@ export interface Relay<O extends Options> {
 	 * Handlers receive a delegate function that can be called to invoke the fallback,
 	 * enabling factored common logic across multiple option handlers.
 	 *
-	 * The returned value is made {@link immutable}.
-	 *
 	 * @typeParam R The return type of all handlers
 	 *
 	 * @param handlers Mapping of all option keys to delegating handlers
 	 * @param fallback Fallback handler for delegated calls
 	 *
-	 * @returns The immutable result from the matched handler or fallback
+	 * @returns The result from the matched handler or fallback
 	 */<R>(handlers: Handlers<O, R, () => R>, fallback: Handler<O[keyof O], R>): R;
 
 	/**
 	 * Handles some options without a fallback.
 	 *
-	 * The returned value is made {@link immutable}.
-	 *
 	 * @typeParam R The return type of all handlers
 	 *
 	 * @param handlers Partial mapping of option keys to handlers
 	 *
-	 * @returns The immutable result from the matched handler, or `undefined` if no handler matched
+	 * @returns The result from the matched handler, or `undefined` if no handler matched
 	 */<R>(handlers: Partial<Handlers<O, R>>): undefined | R;
 
 	/**
@@ -165,14 +158,12 @@ export interface Relay<O extends Options> {
 	 *
 	 * Handlers receive a delegate function that can be called to invoke the fallback.
 	 *
-	 * The returned value is made {@link immutable}.
-	 *
 	 * @typeParam R The return type of all handlers
 	 *
 	 * @param handlers Partial mapping of option keys to delegating handlers
 	 * @param fallback Fallback handler receiving union of option values
 	 *
-	 * @returns The immutable result from the matched handler or fallback
+	 * @returns The result from the matched handler or fallback
 	 */<R>(handlers: Partial<Handlers<O, R, () => R>>, fallback: Handler<O[keyof O], R>): R;
 
 }
@@ -243,15 +234,14 @@ export type Handler<V = unknown, R = unknown, D extends (() => R) | never = neve
 /**
  * Creates a type-safe relay function for an option.
  *
- * All values returned by the relay are made {@link immutable}, ensuring that structured results
- * (plain objects and arrays) are deep-frozen before being returned to the caller. Primitive values
- * pass through unchanged.
+ * Handler and fallback results are returned as-is, neither cloned nor frozen: their mutability is up to the code that
+ * produces them.
  *
  * @typeParam O The options type defining all possible option variants
  *
  * @param option An option variant
  *
- * @returns A {@link Relay} function that accepts handlers for each option and an optional fallback
+ * @returns An immutable {@link Relay} function that accepts handlers for each option and an optional fallback
  */
 export function createRelay<O extends Options>(option: Option<O>): Relay<O> {
 
@@ -263,16 +253,14 @@ export function createRelay<O extends Options>(option: Option<O>): Relay<O> {
 
 	const [label, value] = entries[0];
 
-	return <R>(handlers: Partial<Handlers<O, R, () => R>>, fallback?: Handler<O[keyof O], R>): unknown => {
+	return Object.freeze(<R>(handlers: Partial<Handlers<O, R, () => R>>, fallback?: Handler<O[keyof O], R>): unknown => {
 
 		const handler = handlers[label];
 
-		return immutable(
-			isFunction(handler) ? handler(value, delegate)
-				: isDefined(handler) ? handler
-					: isFunction(fallback) ? fallback(value)
-						: fallback
-		);
+		return isFunction(handler) ? handler(value, delegate)
+			: isDefined(handler) ? handler
+				: isFunction(fallback) ? fallback(value)
+					: fallback;
 
 
 		function delegate() {
@@ -281,6 +269,6 @@ export function createRelay<O extends Options>(option: Option<O>): Relay<O> {
 					: undefined;
 		}
 
-	};
+	});
 
 }

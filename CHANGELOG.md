@@ -13,6 +13,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   or relative variant, and returning `undefined` for root paths, opaque identifiers and references with no path
   (`@metreeca/core/resource`)
 
+### Changed
+
+- `createRelay` returns handler and fallback results as-is, no longer deep-freezing structured values; the relay itself
+  is now frozen (`@metreeca/core/relay`)
+
 ## [0.11.0](https://github.com/metreeca/core/compare/v0.10.0...v0.11.0) - 2026-09-24
 
 ### Added
