@@ -7,6 +7,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.12.0](https://github.com/metreeca/core/compare/v0.11.0...HEAD)
 
+### Added
+
+- `getIRIParent` extracting the identifier of the collection enclosing a reference, keeping its hierarchical, internal
+  or relative variant, and returning `undefined` for root paths, opaque identifiers and references with no path
+  (`@metreeca/core/resource`)
+
 ## [0.11.0](https://github.com/metreeca/core/compare/v0.10.0...v0.11.0) - 2026-09-24
 
 ### Added

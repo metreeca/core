@@ -17,9 +17,9 @@
 /**
  * RFC 3987 resource identifiers.
  *
- * Provides types and functions for validating resource identifiers (IRIs), checking nesting relationships, resolving
- * and rewriting references, creating and inspecting namespace objects, and minting IRIs for application-local
- * resources through the predefined {@link app} namespace.
+ * Provides types and functions for validating resource identifiers (IRIs), checking nesting relationships and
+ * navigating identifier hierarchies, resolving and rewriting references, creating and inspecting namespace objects, and
+ * minting IRIs for application-local resources through the predefined {@link app} namespace.
  *
  * **Type Guards**
  *
@@ -53,7 +53,7 @@
  * **Reference Operations**
  *
  * ```typescript
- * import { getIRIBase, internalize, relativize, resolve } from "@metreeca/core/resource";
+ * import { getIRIBase, getIRIParent, internalize, relativize, resolve } from "@metreeca/core/resource";
  *
  * const iri = "http://example.com/a/b/c";
  *
@@ -74,6 +74,12 @@
  *
  * getIRIBase(iri);                             // "http://example.com/"
  * getIRIBase("/a/b");                          // undefined
+ *
+ * // Extract the identifier of the enclosing collection
+ *
+ * getIRIParent(iri);                           // "http://example.com/a/b/"
+ * getIRIParent("/a/b/");                       // "/a/"
+ * getIRIParent("a");                           // "./"
  * ```
  *
  * **Namespace Objects**
@@ -117,7 +123,7 @@
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986.html RFC 3986 - Uniform Resource Identifiers (URIs)}
  */
 
-import { error, isString } from "../index.js";
+import { error, isString, type Optional } from "../index.js";
 
 
 /**
@@ -366,7 +372,7 @@ export function isNestedIRI(parent: string | IRI, child: string | IRI): boolean 
  * @see {@link getNamespaceBase} for extracting the base identifier of a {@link Namespace}
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986#section-5.1 RFC 3986 § 5.1 - Establishing a Base URI}
  */
-export function getIRIBase(iri: string | IRI): undefined | IRI {
+export function getIRIBase(iri: string | IRI): Optional<IRI> {
 
 	const normalized = normalize(iri, "hierarchical");
 
@@ -381,6 +387,83 @@ export function getIRIBase(iri: string | IRI): undefined | IRI {
 			: `${protocol}/`;
 
 	}
+}
+
+/**
+ * Extracts the identifier of the collection enclosing a reference.
+ *
+ * Navigates one level up a path hierarchy: the parent of a member (`a/b`) is the collection holding it (`a/`), and the
+ * parent of a collection (`a/b/`) is the collection enclosing it (`a/`). The parent always ends with a slash, drops the
+ * query and fragment of `iri`, and keeps its variant:
+ *
+ * - **Hierarchical** (for example, `http://example.org/a/b?q#f`, `app:/a/b/`): an absolute identifier sharing scheme
+ *   and authority (`http://example.org/a/`, `app:/a/`), down to the root path (`http://example.org/a` and
+ *   `http://example.org/a/` both yield `http://example.org/`)
+ * - **Internal** (for example, `/a/b`): a root-relative path (`/a/`), down to the root path (`/a` yields `/`)
+ * - **Relative** (for example, `a/b`, `a`, `../a/`): a path-relative reference (`a/`, `./`, `../`); as relative
+ *   references may climb indefinitely, a parent always exists, expressed through `..` segments where needed (`..`
+ *   yields `../../`)
+ *
+ * Dot segments are resolved per RFC 3986 § 5.2.4, so `http://example.org/a/./b/../c` yields `http://example.org/a/`
+ * and `a/../b` yields `./`; leading `..` segments of relative references are kept, as no base is available to absorb
+ * them.
+ *
+ * @param iri The reference to extract the parent from
+ *
+ * @returns The parent reference, or `undefined` if `iri` has none: root paths of hierarchical and internal references,
+ *   opaque identifiers (for example, `urn:example:a`), relative references with an empty path (for example, `""`,
+ *   `?q`, `#f`, whose parent depends on the base they are resolved against), and invalid references (for example,
+ *   strings carrying an isolated UTF-16 surrogate or opening with `//`)
+ *
+ * @see {@link https://www.rfc-editor.org/rfc/rfc3986#section-5.2.4 RFC 3986 § 5.2.4 - Remove Dot Segments}
+ */
+export function getIRIParent(iri: string | IRI): Optional<IRI> {
+
+	const normalized = normalize(iri, "relative");
+
+	// internal references resolve against a synthetic hierarchical origin
+
+	return normalized === undefined ? undefined
+		: SchemePattern.test(normalized) ? parent(new URL(normalized))?.href
+			: normalized.startsWith("/") ? parent(new URL(normalized, "x:/"))?.pathname
+				: relative(normalized);
+
+
+	// opaque identifiers and root paths have no enclosing collection
+
+	function parent(url: URL): Optional<URL> {
+
+		const { pathname } = url;
+
+		return !pathname.startsWith("/") || pathname === "/" ? undefined
+			: new URL(pathname.endsWith("/") ? ".." : ".", url);
+
+	}
+
+	// remove dot segments, retaining the leading `..` segments no base is available to absorb
+
+	function relative(value: IRI): Optional<IRI> {
+
+		const [path = ""] = value.split(/[?#]/, 1);
+
+		const collection = `${path.replace(/\/$/, "")}/..`.split("/")
+			.reduce<readonly string[]>((stack, segment) =>
+				segment === "." ? stack
+					: segment === ".." && stack.length > 0 && stack.at(-1) !== ".." ? stack.slice(0, -1)
+						: [...stack, segment], []
+			)
+			.map(segment => `${segment}/`)
+			.join("");
+
+		// an empty collection is the current one; RFC 3986 § 4.2: an empty first segment would read as a root-relative
+		// path, a colon in the first segment as a scheme; prefix a `./` dot segment in all cases
+
+		return path === "" ? undefined
+			: /^(?:$|[^/]*:|\/)/.test(collection) ? `./${collection}`
+				: collection;
+
+	}
+
 }
 
 
@@ -659,7 +742,7 @@ export function getNamespaceIRI(namespace: Namespace): IRI {
  * @see {@link getNamespaceIRI}
  * @see {@link getIRIBase}
  */
-export function getNamespaceBase(namespace: Namespace): undefined | IRI {
+export function getNamespaceBase(namespace: Namespace): Optional<IRI> {
 	return getIRIBase(namespace[""]);
 }
 
@@ -677,7 +760,7 @@ export function getNamespaceBase(namespace: Namespace): undefined | IRI {
  *
  * @returns The validated and normalized reference, or `undefined` if invalid
  */
-function normalize(value: unknown, variant: Variant): IRI | undefined {
+function normalize(value: unknown, variant: Variant): Optional<IRI> {
 
 	// syntax validation
 

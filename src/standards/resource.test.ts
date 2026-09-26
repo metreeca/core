@@ -19,6 +19,7 @@ import {
 	app,
 	createNamespace,
 	getIRIBase,
+	getIRIParent,
 	getNamespaceBase,
 	getNamespaceIRI,
 	internalize,
@@ -387,6 +388,184 @@ describe("IRI", () => {
 				expect(isIRI(getIRIBase("http://example.com/a/b/c"), "hierarchical")).toBe(true);
 				expect(isIRI(getIRIBase("app:/a/b"), "hierarchical")).toBe(true);
 				expect(isIRI(getIRIBase("file:///a/b"), "hierarchical")).toBe(true);
+			});
+
+		});
+
+	});
+
+	describe("getIRIParent()", () => {
+
+		describe("hierarchical URIs with authority", () => {
+
+			it("should return the enclosing collection of a member", async () => {
+				expect(getIRIParent("http://example.com/a/b")).toBe("http://example.com/a/");
+				expect(getIRIParent("http://example.com/a")).toBe("http://example.com/");
+			});
+
+			it("should return the enclosing collection of a collection", async () => {
+				expect(getIRIParent("http://example.com/a/b/")).toBe("http://example.com/a/");
+				expect(getIRIParent("http://example.com/a/")).toBe("http://example.com/");
+			});
+
+			it("should preserve port", async () => {
+				expect(getIRIParent("http://example.com:8080/a/b")).toBe("http://example.com:8080/a/");
+			});
+
+			it("should strip query and fragment", async () => {
+				expect(getIRIParent("http://example.com/a/b?q=1")).toBe("http://example.com/a/");
+				expect(getIRIParent("http://example.com/a/b#frag")).toBe("http://example.com/a/");
+				expect(getIRIParent("http://example.com/a/b/?q=1#frag")).toBe("http://example.com/a/");
+			});
+
+			it("should return undefined at the root path", async () => {
+				expect(getIRIParent("http://example.com/")).toBeUndefined();
+				expect(getIRIParent("http://example.com")).toBeUndefined();
+				expect(getIRIParent("http://example.com/?q=1#frag")).toBeUndefined();
+			});
+
+		});
+
+		describe("hierarchical URIs without authority", () => {
+
+			it("should return the enclosing collection", async () => {
+				expect(getIRIParent("app:/a/b")).toBe("app:/a/");
+				expect(getIRIParent("app:/a/b/")).toBe("app:/a/");
+				expect(getIRIParent("app:/a")).toBe("app:/");
+			});
+
+			it("should return undefined at the root path", async () => {
+				expect(getIRIParent("app:/")).toBeUndefined();
+				expect(getIRIParent("app:/#label")).toBeUndefined();
+			});
+
+		});
+
+		describe("hierarchical URIs with empty authority", () => {
+
+			it("should preserve empty authority", async () => {
+				expect(getIRIParent("file:///a/b")).toBe("file:///a/");
+				expect(getIRIParent("file:///a")).toBe("file:///");
+			});
+
+			it("should return undefined at the root path", async () => {
+				expect(getIRIParent("file:///")).toBeUndefined();
+			});
+
+		});
+
+		describe("opaque URIs", () => {
+
+			it("should return undefined", async () => {
+				expect(getIRIParent("urn:example:a:b")).toBeUndefined();
+				expect(getIRIParent("mailto:user@example.com")).toBeUndefined();
+				expect(getIRIParent("app:a/b")).toBeUndefined();
+			});
+
+		});
+
+		describe("internal references", () => {
+
+			it("should return the enclosing collection as a root-relative path", async () => {
+				expect(getIRIParent("/a/b")).toBe("/a/");
+				expect(getIRIParent("/a/b/")).toBe("/a/");
+				expect(getIRIParent("/a")).toBe("/");
+			});
+
+			it("should strip query and fragment", async () => {
+				expect(getIRIParent("/a/b?q=1#frag")).toBe("/a/");
+			});
+
+			it("should return undefined at the root path", async () => {
+				expect(getIRIParent("/")).toBeUndefined();
+				expect(getIRIParent("/?q=1")).toBeUndefined();
+			});
+
+		});
+
+		describe("relative references", () => {
+
+			it("should return the enclosing collection as a path-relative reference", async () => {
+				expect(getIRIParent("a/b")).toBe("a/");
+				expect(getIRIParent("a/b/")).toBe("a/");
+			});
+
+			it("should return the current collection for single-segment references", async () => {
+				expect(getIRIParent("a")).toBe("./");
+				expect(getIRIParent("a/")).toBe("./");
+				expect(getIRIParent("./a")).toBe("./");
+			});
+
+			it("should climb above the current collection with double-dot segments", async () => {
+				expect(getIRIParent(".")).toBe("../");
+				expect(getIRIParent("./")).toBe("../");
+				expect(getIRIParent("../a")).toBe("../");
+				expect(getIRIParent("..")).toBe("../../");
+				expect(getIRIParent("../")).toBe("../../");
+				expect(getIRIParent("../../a/b")).toBe("../../a/");
+			});
+
+			it("should strip query and fragment", async () => {
+				expect(getIRIParent("a/b?q=1#frag")).toBe("a/");
+			});
+
+			it("should return undefined for empty paths", async () => {
+				expect(getIRIParent("")).toBeUndefined();
+				expect(getIRIParent("?q=1")).toBeUndefined();
+				expect(getIRIParent("#frag")).toBeUndefined();
+			});
+
+		});
+
+		describe("path normalization", () => {
+
+			it("should normalize dot segments of absolute and internal references", async () => {
+				expect(getIRIParent("http://example.com/a/./b/../c")).toBe("http://example.com/a/");
+				expect(getIRIParent("/a/./b/../c")).toBe("/a/");
+			});
+
+			it("should clip double-dot segments climbing above the root", async () => {
+				expect(getIRIParent("http://example.com/../a")).toBe("http://example.com/");
+				expect(getIRIParent("/../../a")).toBe("/");
+			});
+
+			it("should normalize inner dot segments of relative references", async () => {
+				expect(getIRIParent("a/../b")).toBe("./");
+				expect(getIRIParent("a/./b/c")).toBe("a/b/");
+				expect(getIRIParent("../a/../b")).toBe("../");
+			});
+
+		});
+
+		describe("invalid inputs", () => {
+
+			it("should return undefined for ill-formed references", async () => {
+				expect(getIRIParent("http://example.com/a/\uD800")).toBeUndefined();
+				expect(getIRIParent("a b/c")).toBeUndefined();
+			});
+
+			it("should return undefined for network-path references", async () => {
+				expect(getIRIParent("//example.com/a/b")).toBeUndefined();
+			});
+
+		});
+
+		describe("consistency", () => {
+
+			it("should preserve the variant of the reference", async () => {
+				expect(isIRI(getIRIParent("http://example.com/a/b"), "hierarchical")).toBe(true);
+				expect(isIRI(getIRIParent("app:/a/b"), "hierarchical")).toBe(true);
+				expect(isIRI(getIRIParent("/a/b"), "internal")).toBe(true);
+				expect(isIRI(getIRIParent("a/b"), "relative")).toBe(true);
+			});
+
+			it("should agree with resolution of the parent against the reference", async () => {
+				expect(getIRIParent("http://example.com/a/b")).toBe(resolve("http://example.com/a/b", "."));
+				expect(getIRIParent("http://example.com/a/b/")).toBe(resolve("http://example.com/a/b/", ".."));
+			});
+
+			it("should nest the reference", async () => {
+				expect(isNestedIRI(getIRIParent("http://example.com/a/b/c")!, "http://example.com/a/b/c")).toBe(true);
 			});
 
 		});

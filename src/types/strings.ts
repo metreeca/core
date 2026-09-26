@@ -174,7 +174,7 @@
  * @module
  */
 
-import { error, isFunction, isString } from "../index.js";
+import { error, isFunction, isString, type Optional } from "../index.js";
 
 
 /**
@@ -266,7 +266,7 @@ export type Markdown = string;
  */
 export type Resolver =
 	| { readonly [key: string]: string }
-	| ((key: string) => undefined | string);
+	| ((key: string) => Optional<string>);
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
