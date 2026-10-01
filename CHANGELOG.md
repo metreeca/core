@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.12.0](https://github.com/metreeca/core/compare/v0.11.0...HEAD)
+## [Unpublished](https://github.com/metreeca/core/compare/v0.12.0...HEAD)
+
+## [0.12.0](https://github.com/metreeca/core/compare/v0.11.0...v0.12.0) - 2026-10-01
 
 ### Added
 
@@ -16,12 +18,15 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 - `createRelay` returns handler and fallback results as-is, no longer deep-freezing structured values; the relay itself
-  is now frozen (`@metreeca/core/relay`)
+  is now frozen (`@metreeca/core/relay`); callers relying on frozen results wrap them explicitly, as in
+  `immutable(relay(handlers))`
 
 ### Removed
 
 - Relay handler delegation: handlers no longer receive a `delegate` function invoking the fallback, and `Handler` and
-  `Handlers` drop their delegate type parameter (`@metreeca/core/relay`)
+  `Handlers` drop their delegate type parameter (`@metreeca/core/relay`); factor the shared logic into a function
+  called directly, as in `value: v => v ? v : common()`, and drop the third type argument from `Handler<V, R, D>` and
+  `Handlers<O, R, D>`
 
 ## [0.11.0](https://github.com/metreeca/core/compare/v0.10.0...v0.11.0) - 2026-09-24
 
