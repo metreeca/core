@@ -24,22 +24,70 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
-    ".": "./dist/index.js",
-    "./values": "./dist/types/values.js",
-    "./numbers": "./dist/types/numbers.js",
-    "./strings": "./dist/types/strings.js",
-    "./arrays": "./dist/types/arrays.js",
-    "./async": "./dist/services/async/index.js",
-    "./scope": "./dist/services/scope.js",
-    "./bucket": "./dist/services/bucket.js",
-    "./order": "./dist/patterns/order.js",
-    "./trace": "./dist/patterns/trace.js",
-    "./relay": "./dist/patterns/relay.js",
-    "./state": "./dist/patterns/state.js",
-    "./resource": "./dist/standards/resource.js",
-    "./language": "./dist/standards/language.js",
-    "./datatype": "./dist/standards/datatype.js",
-    "./base64": "./dist/standards/base64.js"
+    ".": {
+      "@metreeca/source": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./values": {
+      "@metreeca/source": "./src/types/values.ts",
+      "default": "./dist/types/values.js"
+    },
+    "./numbers": {
+      "@metreeca/source": "./src/types/numbers.ts",
+      "default": "./dist/types/numbers.js"
+    },
+    "./strings": {
+      "@metreeca/source": "./src/types/strings.ts",
+      "default": "./dist/types/strings.js"
+    },
+    "./arrays": {
+      "@metreeca/source": "./src/types/arrays.ts",
+      "default": "./dist/types/arrays.js"
+    },
+    "./async": {
+      "@metreeca/source": "./src/services/async/index.ts",
+      "default": "./dist/services/async/index.js"
+    },
+    "./scope": {
+      "@metreeca/source": "./src/services/scope.ts",
+      "default": "./dist/services/scope.js"
+    },
+    "./bucket": {
+      "@metreeca/source": "./src/services/bucket.ts",
+      "default": "./dist/services/bucket.js"
+    },
+    "./order": {
+      "@metreeca/source": "./src/patterns/order.ts",
+      "default": "./dist/patterns/order.js"
+    },
+    "./trace": {
+      "@metreeca/source": "./src/patterns/trace.ts",
+      "default": "./dist/patterns/trace.js"
+    },
+    "./relay": {
+      "@metreeca/source": "./src/patterns/relay.ts",
+      "default": "./dist/patterns/relay.js"
+    },
+    "./state": {
+      "@metreeca/source": "./src/patterns/state.ts",
+      "default": "./dist/patterns/state.js"
+    },
+    "./resource": {
+      "@metreeca/source": "./src/standards/resource.ts",
+      "default": "./dist/standards/resource.js"
+    },
+    "./language": {
+      "@metreeca/source": "./src/standards/language.ts",
+      "default": "./dist/standards/language.js"
+    },
+    "./datatype": {
+      "@metreeca/source": "./src/standards/datatype.ts",
+      "default": "./dist/standards/datatype.js"
+    },
+    "./base64": {
+      "@metreeca/source": "./src/standards/base64.ts",
+      "default": "./dist/standards/base64.js"
+    }
   },
   "files": [
     "README.md",
