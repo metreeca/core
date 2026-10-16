@@ -13,6 +13,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `@metreeca/core`
 - `locale` comparator factory ordering strings by the collation rules of a locale, honouring `Intl.Collator` options
   such as case sensitivity or numeric ordering, and placing nullish values first (`@metreeca/core/order`)
+- `Comparator` type naming the comparison functions that factories and combinators accept and return, so custom
+  comparators can be declared and passed around with an explicit contract (`@metreeca/core/order`)
 
 ## [0.12.1](https://github.com/metreeca/core/compare/v0.12.0...v0.12.1) - 2026-10-14
 

@@ -17,9 +17,9 @@
 /**
  * Composable comparison functions.
  *
- * Provides composable comparison functions for use with
- * {@link https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array/sort | Array.sort()}
- * and other comparator-based operations.
+ * Provides ready-made comparators, factories deriving them from keys or locales, and combinators that reverse, extend
+ * or chain them. Factories and combinators return a {@link Comparator}, so results compose freely and plug into
+ * {@link https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array/sort | Array.sort()}.
  *
  * **Basic Sorting**
  *
@@ -64,6 +64,29 @@
  * users.sort(by(user => user.name, locale())); // Sort by name with the runtime locale
  * ```
  *
+ * **Handling Nullish Values**
+ *
+ * Place `null` and `undefined` values first or last:
+ *
+ * ```typescript
+ * import { nullish, defined, ascending } from '@metreeca/core/order';
+ *
+ * const values = [3, null, 1, undefined, 2];
+ * values.sort(nullish(ascending)); // [null, undefined, 1, 2, 3]
+ * values.sort(defined(ascending)); // [1, 2, 3, null, undefined]
+ * ```
+ *
+ * **Reversing Order**
+ *
+ * Invert an existing comparator:
+ *
+ * ```typescript
+ * import { reverse, ascending } from '@metreeca/core/order';
+ *
+ * const numbers = [3, 1, 4, 1, 5];
+ * numbers.sort(reverse(ascending)); // [5, 4, 3, 1, 1]
+ * ```
+ *
  * **Combining Multiple Criteria**
  *
  * Sort by multiple properties with priority order:
@@ -83,29 +106,6 @@
  * ));
  * ```
  *
- * **Reversing Order**
- *
- * Invert an existing comparator:
- *
- * ```typescript
- * import { reverse, ascending } from '@metreeca/core/order';
- *
- * const numbers = [3, 1, 4, 1, 5];
- * numbers.sort(reverse(ascending)); // [5, 4, 3, 1, 1]
- * ```
- *
- * **Handling Nullish Values**
- *
- * Place `null` and `undefined` values first or last:
- *
- * ```typescript
- * import { nullish, defined, ascending } from '@metreeca/core/order';
- *
- * const values = [3, null, 1, undefined, 2];
- * values.sort(nullish(ascending)); // [null, undefined, 1, 2, 3]
- * values.sort(defined(ascending)); // [1, 2, 3, null, undefined]
- * ```
- *
  * @module
  *
  * @groupDescription Comparators
@@ -120,6 +120,23 @@
  *
  * Functions that modify or combine existing comparators.
  */
+
+import type { Nullable } from "../index.js";
+
+
+/**
+ * Comparison function.
+ *
+ * Orders pairs of values for sorting and other comparator-based operations. The result is negative if `a` precedes
+ * `b`, positive if `a` follows `b`, and zero if the two values are equivalent and their relative order is irrelevant.
+ *
+ * @typeParam V The type of values to compare
+ */
+export type Comparator<V> = {
+
+	(a: V, b: V): number
+
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -184,8 +201,7 @@ export function descending<V>(a: V, b: V): number {
 /**
  * Creates a comparator that compares values by a selected key.
  *
- * Extracts a comparable key from each value using the selector function,
- * then applies the specified comparator to the keys.
+ * Values are ordered by a key taken from each of them, such as a property, and keys are ordered by `comparator`.
  *
  * @group Factories
  *
@@ -195,10 +211,10 @@ export function descending<V>(a: V, b: V): number {
  * @param selector Function that extracts the comparison key from a value
  * @param comparator Comparator to apply to the extracted keys (defaults to {@link ascending})
  *
- * @returns A comparator function that compares values by their selected keys
+ * @returns A comparator ordering values by their selected keys
  */
-export function by<V, K>(selector: (value: V) => K, comparator: (a: K, b: K) => number = ascending) {
-	return (a: V, b: V): number => comparator(selector(a), selector(b));
+export function by<V, K>(selector: (value: V) => K, comparator: Comparator<K> = ascending): Comparator<V> {
+	return (a, b) => comparator(selector(a), selector(b));
 }
 
 /**
@@ -218,11 +234,11 @@ export function by<V, K>(selector: (value: V) => K, comparator: (a: K, b: K) => 
  * Each call prepares the collation rules anew, at a noticeable cost. The returned comparator is meant to be created
  * once and reused: created inside another comparator or a loop, it pays that cost again at every comparison.
  */
-export function locale(locales?: Intl.LocalesArgument, options?: Intl.CollatorOptions) {
+export function locale(locales?: Intl.LocalesArgument, options?: Intl.CollatorOptions): Comparator<Nullable<string>> {
 
 	const collator = new Intl.Collator(locales, options);
 
-	return (a: undefined | null | string, b: undefined | null | string): number => {
+	return (a, b) => {
 
 		const na = a === undefined || a === null;
 		const nb = b === undefined || b === null;
@@ -235,27 +251,10 @@ export function locale(locales?: Intl.LocalesArgument, options?: Intl.CollatorOp
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Reverses the order of a comparator.
+ * Wraps a comparator to sort null and undefined values first.
  *
- * Returns a new comparator that produces the opposite ordering of the original.
- *
- * @group Combinators
- *
- * @typeParam V The type of values to compare
- *
- * @param comparator Comparator to reverse
- *
- * @returns A comparator that produces the opposite ordering
- */
-export function reverse<V>(comparator: (a: V, b: V) => number) {
-	return (a: V, b: V): number => -comparator(a, b);
-}
-
-/**
- * Wraps a comparator to handle null and undefined values.
- *
- * Null and undefined values are treated as less than any other value and equal to each other.
- * Non-nullish values are compared using the provided comparator.
+ * Null and undefined values are treated as less than any other value and equal to each other. All other values are
+ * ordered by `comparator`, so it can safely assume that neither of its arguments is ever null or undefined.
  *
  * @group Combinators
  *
@@ -263,10 +262,10 @@ export function reverse<V>(comparator: (a: V, b: V) => number) {
  *
  * @param comparator Comparator for non-nullish values
  *
- * @returns A comparator that handles null and undefined values by placing them first
+ * @returns A comparator placing null and undefined values first
  */
-export function nullish<V>(comparator: (a: NonNullable<V>, b: NonNullable<V>) => number) {
-	return (a: V, b: V): number => {
+export function nullish<V>(comparator: Comparator<NonNullable<V>>): Comparator<V> {
+	return (a, b) => {
 
 		const na = a === undefined || a === null;
 		const nb = b === undefined || b === null;
@@ -276,10 +275,10 @@ export function nullish<V>(comparator: (a: NonNullable<V>, b: NonNullable<V>) =>
 }
 
 /**
- * Wraps a comparator to handle null and undefined values.
+ * Wraps a comparator to sort null and undefined values last.
  *
- * Null and undefined values are treated as greater than any other value and equal to each other.
- * Non-nullish values are compared using the provided comparator.
+ * Null and undefined values are treated as greater than any other value and equal to each other. All other values are
+ * ordered by `comparator`, so it can safely assume that neither of its arguments is ever null or undefined.
  *
  * @group Combinators
  *
@@ -287,10 +286,10 @@ export function nullish<V>(comparator: (a: NonNullable<V>, b: NonNullable<V>) =>
  *
  * @param comparator Comparator for non-nullish values
  *
- * @returns A comparator that handles null and undefined values by placing them last
+ * @returns A comparator placing null and undefined values last
  */
-export function defined<V>(comparator: (a: NonNullable<V>, b: NonNullable<V>) => number) {
-	return (a: V, b: V): number => {
+export function defined<V>(comparator: Comparator<NonNullable<V>>): Comparator<V> {
+	return (a, b) => {
 
 		const da = a !== undefined && a !== null;
 		const db = b !== undefined && b !== null;
@@ -300,21 +299,39 @@ export function defined<V>(comparator: (a: NonNullable<V>, b: NonNullable<V>) =>
 }
 
 /**
- * Combines multiple comparators into a single comparator.
+ * Reverses the order of a comparator.
  *
- * Applies comparators in sequence until one returns a non-zero result.
- * If all comparators return zero, the values are considered equal.
+ * The reversal applies to every value, so null and undefined values placed first by `comparator` are placed last,
+ * and the reverse. Wrapping the reversed comparator in {@link nullish} or {@link defined} keeps them at a fixed end.
  *
  * @group Combinators
  *
  * @typeParam V The type of values to compare
  *
- * @param comparators Comparators to apply in sequence
+ * @param comparator Comparator to reverse
  *
- * @returns A comparator that applies all provided comparators until a non-zero result is found
+ * @returns A comparator producing the opposite ordering
  */
-export function compound<V>(...comparators: readonly ((a: V, b: V) => number)[]) {
-	return (a: V, b: V): number => comparators.reduce(
+export function reverse<V>(comparator: Comparator<V>): Comparator<V> {
+	return (a, b) => -comparator(a, b);
+}
+
+/**
+ * Combines multiple comparators into a single comparator.
+ *
+ * Values are ordered by the first comparator, and ties are broken by the following ones in priority order. Values
+ * tied under every comparator are equivalent, and so are all values if no comparator is provided.
+ *
+ * @group Combinators
+ *
+ * @typeParam V The type of values to compare
+ *
+ * @param comparators Comparators to apply, from highest to lowest priority
+ *
+ * @returns A comparator ordering values by the first comparator that tells them apart
+ */
+export function compound<V>(...comparators: readonly Comparator<V>[]): Comparator<V> {
+	return (a, b) => comparators.reduce(
 		(order, comparator) => order !== 0 ? order : comparator(a, b),
 		0
 	);
