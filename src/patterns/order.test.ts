@@ -247,13 +247,18 @@ describe("nullish()", () => {
 		expect(comparator(1, undefined)).toBe(1);
 	});
 
-	it("should treat null and undefined as equal", () => {
+	it("should place undefined before null", () => {
+		const comparator = nullish(ascending);
+
+		expect(comparator(undefined, null)).toBe(-1);
+		expect(comparator(null, undefined)).toBe(1);
+	});
+
+	it("should treat matching nullish values as equal", () => {
 		const comparator = nullish(ascending);
 
 		expect(comparator(null, null)).toBe(0);
 		expect(comparator(undefined, undefined)).toBe(0);
-		expect(comparator(null, undefined)).toBe(0);
-		expect(comparator(undefined, null)).toBe(0);
 	});
 
 	it("should delegate to comparator for defined values", () => {
@@ -291,13 +296,18 @@ describe("defined()", () => {
 		expect(comparator(undefined, 1)).toBe(1);
 	});
 
-	it("should treat null and undefined as equal", () => {
+	it("should place null before undefined", () => {
+		const comparator = defined(ascending);
+
+		expect(comparator(null, undefined)).toBe(-1);
+		expect(comparator(undefined, null)).toBe(1);
+	});
+
+	it("should treat matching nullish values as equal", () => {
 		const comparator = defined(ascending);
 
 		expect(comparator(null, null)).toBe(0);
 		expect(comparator(undefined, undefined)).toBe(0);
-		expect(comparator(null, undefined)).toBe(0);
-		expect(comparator(undefined, null)).toBe(0);
 	});
 
 	it("should delegate to comparator for defined values", () => {

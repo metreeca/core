@@ -66,14 +66,16 @@
  *
  * **Handling Nullish Values**
  *
- * Place `null` and `undefined` values first or last:
+ * Place `null` and `undefined` keys first or last. `Array.prototype.sort` moves undefined array elements to the end
+ * without ever consulting the comparator, so the placement of undefined values holds for keys extracted with `by`:
  *
  * ```typescript
- * import { nullish, defined, ascending } from '@metreeca/core/order';
+ * import { by, nullish, defined, ascending } from '@metreeca/core/order';
  *
- * const values = [3, null, 1, undefined, 2];
- * values.sort(nullish(ascending)); // [null, undefined, 1, 2, 3]
- * values.sort(defined(ascending)); // [1, 2, 3, null, undefined]
+ * const items = [{ rank: 3 }, { rank: null }, { rank: 1 }, { rank: undefined }, { rank: 2 }];
+ *
+ * items.sort(by(item => item.rank, nullish(ascending))); // ranks: undefined, null, 1, 2, 3
+ * items.sort(by(item => item.rank, defined(ascending))); // ranks: 1, 2, 3, null, undefined
  * ```
  *
  * **Reversing Order**
@@ -253,8 +255,8 @@ export function locale(locales?: Intl.LocalesArgument, options?: Intl.CollatorOp
 /**
  * Wraps a comparator to sort null and undefined values first.
  *
- * Null and undefined values are treated as less than any other value and equal to each other. All other values are
- * ordered by `comparator`, so it can safely assume that neither of its arguments is ever null or undefined.
+ * Null values are treated as less than any other value, and undefined values as less than null ones. All other values
+ * are ordered by `comparator`, so it can safely assume that neither of its arguments is ever null or undefined.
  *
  * @group Combinators
  *
@@ -262,7 +264,7 @@ export function locale(locales?: Intl.LocalesArgument, options?: Intl.CollatorOp
  *
  * @param comparator Comparator for non-nullish values
  *
- * @returns A comparator placing null and undefined values first
+ * @returns A comparator placing undefined and then null values first
  */
 export function nullish<V>(comparator: Comparator<NonNullable<V>>): Comparator<V> {
 	return (a, b) => {
@@ -270,15 +272,18 @@ export function nullish<V>(comparator: Comparator<NonNullable<V>>): Comparator<V
 		const na = a === undefined || a === null;
 		const nb = b === undefined || b === null;
 
-		return na && nb ? 0 : na ? -1 : nb ? 1 : comparator(a as NonNullable<V>, b as NonNullable<V>);
+		return na && nb ? (a === b ? 0 : a === undefined ? -1 : 1)
+			: na ? -1
+				: nb ? 1
+					: comparator(a as NonNullable<V>, b as NonNullable<V>);
 	};
 }
 
 /**
  * Wraps a comparator to sort null and undefined values last.
  *
- * Null and undefined values are treated as greater than any other value and equal to each other. All other values are
- * ordered by `comparator`, so it can safely assume that neither of its arguments is ever null or undefined.
+ * Null values are treated as greater than any other value, and undefined values as greater than null ones. All other
+ * values are ordered by `comparator`, so it can safely assume that neither of its arguments is ever null or undefined.
  *
  * @group Combinators
  *
@@ -286,7 +291,7 @@ export function nullish<V>(comparator: Comparator<NonNullable<V>>): Comparator<V
  *
  * @param comparator Comparator for non-nullish values
  *
- * @returns A comparator placing null and undefined values last
+ * @returns A comparator placing null and then undefined values last
  */
 export function defined<V>(comparator: Comparator<NonNullable<V>>): Comparator<V> {
 	return (a, b) => {
@@ -294,7 +299,10 @@ export function defined<V>(comparator: Comparator<NonNullable<V>>): Comparator<V
 		const da = a !== undefined && a !== null;
 		const db = b !== undefined && b !== null;
 
-		return da && db ? comparator(a as NonNullable<V>, b as NonNullable<V>) : da ? -1 : db ? 1 : 0;
+		return da && db ? comparator(a as NonNullable<V>, b as NonNullable<V>)
+			: da ? -1
+				: db ? 1
+					: a === b ? 0 : a === undefined ? 1 : -1;
 	};
 }
 

@@ -16,6 +16,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `Comparator` type naming the comparison functions that factories and combinators accept and return, so custom
   comparators can be declared and passed around with an explicit contract (`@metreeca/core/order`)
 
+### Changed
+
+- `nullish` and `defined` combinators no longer treat `null` and `undefined` as equal: `nullish` places undefined
+  before null and `defined` places it after, so both keep undefined at the outer end (`@metreeca/core/order`)
+
 ## [0.12.1](https://github.com/metreeca/core/compare/v0.12.0...v0.12.1) - 2026-10-14
 
 ### Changed
