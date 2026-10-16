@@ -48,6 +48,7 @@ import {
 	key,
 	lazy,
 	map,
+	memo,
 	type Optional,
 	opt
 } from "./index.js";
@@ -1223,6 +1224,142 @@ describe("deferred values", () => {
 			eager(factory);
 
 			expect(factory).toHaveBeenCalledTimes(2);
+
+		});
+
+	});
+
+	describe("memo()", () => {
+
+		it("should not compute a value before the first request", async () => {
+
+			const factory = vi.fn((key: string) => key.length);
+
+			memo(factory);
+
+			expect(factory).not.toHaveBeenCalled();
+
+		});
+
+		it("should compute the value for a key on the first request", async () => {
+			expect(memo((key: string) => key.length)("abc")).toBe(3);
+		});
+
+		it("should compute the value for a key at most once", async () => {
+
+			const factory = vi.fn((key: string) => ({ key }));
+			const accessor = memo(factory);
+
+			expect(accessor("abc")).toBe(accessor("abc"));
+			expect(factory).toHaveBeenCalledTimes(1);
+
+		});
+
+		it("should compute a separate value for each distinct key", async () => {
+
+			const factory = vi.fn((key: string) => ({ key }));
+			const accessor = memo(factory);
+
+			expect(accessor("abc")).toEqual({ key: "abc" });
+			expect(accessor("xyz")).toEqual({ key: "xyz" });
+			expect(factory).toHaveBeenCalledTimes(2);
+
+		});
+
+		it("should keep the values of independent accessors apart", async () => {
+
+			const factory = vi.fn((key: string) => ({ key }));
+
+			expect(memo(factory)("abc")).not.toBe(memo(factory)("abc"));
+			expect(factory).toHaveBeenCalledTimes(2);
+
+		});
+
+		it("should reuse an undefined value", async () => {
+
+			const factory = vi.fn((_key: string) => undefined);
+			const accessor = memo(factory);
+
+			expect(accessor("abc")).toBeUndefined();
+			expect(accessor("abc")).toBeUndefined();
+			expect(factory).toHaveBeenCalledTimes(1);
+
+		});
+
+		describe("key matching", () => {
+
+			it("should match NaN keys", async () => {
+
+				const factory = vi.fn((key: number) => ({ key }));
+				const accessor = memo(factory);
+
+				expect(accessor(NaN)).toBe(accessor(NaN));
+				expect(factory).toHaveBeenCalledTimes(1);
+
+			});
+
+			it("should match signed zero keys", async () => {
+
+				const factory = vi.fn((key: number) => ({ key }));
+				const accessor = memo(factory);
+
+				expect(accessor(0)).toBe(accessor(-0));
+				expect(factory).toHaveBeenCalledTimes(1);
+
+			});
+
+			it("should match object keys by identity", async () => {
+
+				const factory = vi.fn((key: { readonly id: number }) => ({ key }));
+				const accessor = memo(factory);
+				const target = { id: 1 };
+
+				expect(accessor(target)).toBe(accessor(target));
+				expect(accessor({ id: 1 })).not.toBe(accessor(target));
+				expect(factory).toHaveBeenCalledTimes(2);
+
+			});
+
+		});
+
+		describe("failures", () => {
+
+			it("should propagate errors thrown by the factory", async () => {
+
+				const accessor = memo((_key: string): number => {
+					throw new RangeError("failed");
+				});
+
+				expect(() => accessor("abc")).toThrow(RangeError);
+
+			});
+
+			it("should retry a key whose computation threw", async () => {
+
+				const factory = vi.fn<(key: string) => number>()
+					.mockImplementationOnce(() => { throw new Error("failed"); })
+					.mockImplementationOnce(key => key.length);
+
+				const accessor = memo(factory);
+
+				expect(() => accessor("abc")).toThrow();
+				expect(accessor("abc")).toBe(3);
+				expect(factory).toHaveBeenCalledTimes(2);
+
+			});
+
+			it("should reuse a rejected promise", async () => {
+
+				const factory = vi.fn((_key: string) => Promise.reject(new Error("failed")));
+				const accessor = memo(factory);
+
+				const rejection = accessor("abc");
+
+				await expect(rejection).rejects.toThrow();
+				expect(accessor("abc")).toBe(rejection);
+				expect(factory).toHaveBeenCalledTimes(1);
+
+			});
 
 		});
 

@@ -107,6 +107,7 @@
  * Paired with the {@link Lazy} / {@link Eager} type operators.
  * {@link lazy} defers a reference behind a memoising accessor that computes it at most once on first use;
  * {@link eager} is its converse, resolving a reference to its value on every call.
+ * {@link memo} does the same for keyed values, computing each one at most once per key.
  *
  * ```typescript
  * isLazy(() => 42, isNumber); // true (no-arg function)
@@ -116,6 +117,9 @@
  *
  * lazy(() => 42)(); // 42 (computed once, then memoised)
  * eager(() => 42); // 42 (resolved on every call)
+ *
+ * const length = memo((key: string) => key.length);
+ * length("abc"); // 3 (computed once per key, then memoised)
  * ```
  *
  * ## Error Reporting
@@ -974,6 +978,7 @@ export function isEager<T = unknown>(value: unknown, is?: Guard<T>): value is Ea
  * @returns An accessor returning the value, computing it on the first call
  *
  * @see {@link eager} for the converse, forcing a {@link Lazy} reference rather than deferring it
+ * @see {@link memo} for keyed values, each deferred to the first request for its key
  */
 export function lazy<T extends {}>(value: Lazy<T>): () => T {
 
@@ -1000,6 +1005,63 @@ export function lazy<T extends {}>(value: Lazy<T>): () => T {
 export function eager<T>(value: Lazy<T>): T {
 
 	return value instanceof Function ? value() : value;
+
+}
+
+
+/**
+ * Defers keyed values to first use.
+ *
+ * Wraps a factory in a keyed accessor that computes the value for a key on the first request and reuses the result
+ * thereafter, so work the caller may never need is neither done upfront nor repeated. All callers requesting the same
+ * key share the same value, and a value of `undefined` is kept and reused like any other.
+ *
+ * Keys are compared as {@link !Map Map} compares them, with SameValueZero equality: `NaN` matches `NaN` and `0`
+ * matches `-0`. Object keys match by identity, so equal but distinct objects get separate values from the factory.
+ *
+ * > [!WARNING]
+ * > Values are kept for the lifetime of the accessor and never evicted. Memory use grows with every distinct key
+ * > requested, so the accessor is suited to key sets known to stay small or bounded over the accessor's lifetime.
+ *
+ * > [!IMPORTANT]
+ * > A factory call that throws is not kept, and the next request for that key calls the factory again. A rejected
+ * > promise is a value like any other: it is kept, and every later request for its key gets the same rejection.
+ *
+ * @typeParam K The type of the keys
+ * @typeParam V The type of the deferred values
+ *
+ * @param factory The factory computing the value for a key, called at most once per key unless it throws
+ *
+ * @returns An accessor returning the value for a key, computing it on the first request for that key
+ *
+ * @throws Whatever `factory` throws while computing a requested value
+ *
+ * @see {@link lazy} for a single value deferred to first use
+ * @see {@link https://tc39.es/ecma262/#sec-samevaluezero SameValueZero}
+ */
+export function memo<K, V>(factory: (key: K) => V): typeof factory {
+
+	const entries = new Map<K, { readonly value: V }>();
+
+	return key => {
+
+		const entry = entries.get(key);
+
+		if ( entry ) {
+
+			return entry.value;
+
+		} else {
+
+			const value = factory(key);
+
+			entries.set(key, { value });
+
+			return value;
+
+		}
+
+	};
 
 }
 

@@ -7,6 +7,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.13.0](https://github.com/metreeca/core/compare/v0.12.1...HEAD)
 
+### Added
+
+- `memo` function for deferring keyed values to first use, computing each one at most once per key, exported from
+  `@metreeca/core`
+
 ## [0.12.1](https://github.com/metreeca/core/compare/v0.12.0...v0.12.1) - 2026-10-14
 
 ### Changed
