@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { ascending, by, compound, defined, descending, locale, nullish, reverse } from "./order.js";
+import { absent, ascending, by, compound, descending, locale, present, reverse } from "./order.js";
 
 
 describe("ascending()", () => {
@@ -222,8 +222,8 @@ describe("locale()", () => {
 				.toEqual(["Zoe", "Émile", "adam"]);
 		});
 
-		it("should compose with defined()", async () => {
-			expect([...people].sort(by(person => person.nick, defined(locale("fr")))).map(person => person.name))
+		it("should compose with present()", async () => {
+			expect([...people].sort(by(person => person.nick, present(locale("fr")))).map(person => person.name))
 				.toEqual(["adam", "Zoe", "Émile"]);
 		});
 
@@ -231,38 +231,38 @@ describe("locale()", () => {
 
 });
 
-describe("nullish()", () => {
+describe("absent()", () => {
 
 	it("should place null before defined values", () => {
-		const comparator = nullish(ascending);
+		const comparator = absent(ascending);
 
 		expect(comparator(null, 1)).toBe(-1);
 		expect(comparator(1, null)).toBe(1);
 	});
 
 	it("should place undefined before defined values", () => {
-		const comparator = nullish(ascending);
+		const comparator = absent(ascending);
 
 		expect(comparator(undefined, 1)).toBe(-1);
 		expect(comparator(1, undefined)).toBe(1);
 	});
 
 	it("should place undefined before null", () => {
-		const comparator = nullish(ascending);
+		const comparator = absent(ascending);
 
 		expect(comparator(undefined, null)).toBe(-1);
 		expect(comparator(null, undefined)).toBe(1);
 	});
 
 	it("should treat matching nullish values as equal", () => {
-		const comparator = nullish(ascending);
+		const comparator = absent(ascending);
 
 		expect(comparator(null, null)).toBe(0);
 		expect(comparator(undefined, undefined)).toBe(0);
 	});
 
 	it("should delegate to comparator for defined values", () => {
-		const comparator = nullish(ascending);
+		const comparator = absent(ascending);
 
 		expect(comparator(1, 2)).toBe(-1);
 		expect(comparator(2, 1)).toBe(1);
@@ -270,7 +270,7 @@ describe("nullish()", () => {
 	});
 
 	it("should work with descending order", () => {
-		const comparator = nullish(descending);
+		const comparator = absent(descending);
 
 		expect(comparator(null, 1)).toBe(-1);
 		expect(comparator(1, null)).toBe(1);
@@ -280,38 +280,38 @@ describe("nullish()", () => {
 
 });
 
-describe("defined()", () => {
+describe("present()", () => {
 
 	it("should place defined values before null", () => {
-		const comparator = defined(ascending);
+		const comparator = present(ascending);
 
 		expect(comparator(1, null)).toBe(-1);
 		expect(comparator(null, 1)).toBe(1);
 	});
 
 	it("should place defined values before undefined", () => {
-		const comparator = defined(ascending);
+		const comparator = present(ascending);
 
 		expect(comparator(1, undefined)).toBe(-1);
 		expect(comparator(undefined, 1)).toBe(1);
 	});
 
 	it("should place null before undefined", () => {
-		const comparator = defined(ascending);
+		const comparator = present(ascending);
 
 		expect(comparator(null, undefined)).toBe(-1);
 		expect(comparator(undefined, null)).toBe(1);
 	});
 
 	it("should treat matching nullish values as equal", () => {
-		const comparator = defined(ascending);
+		const comparator = present(ascending);
 
 		expect(comparator(null, null)).toBe(0);
 		expect(comparator(undefined, undefined)).toBe(0);
 	});
 
 	it("should delegate to comparator for defined values", () => {
-		const comparator = defined(ascending);
+		const comparator = present(ascending);
 
 		expect(comparator(1, 2)).toBe(-1);
 		expect(comparator(2, 1)).toBe(1);
@@ -319,7 +319,7 @@ describe("defined()", () => {
 	});
 
 	it("should work with descending order", () => {
-		const comparator = defined(descending);
+		const comparator = present(descending);
 
 		expect(comparator(1, null)).toBe(-1);
 		expect(comparator(null, 1)).toBe(1);
@@ -332,8 +332,8 @@ describe("defined()", () => {
 		expect(ascending(null, 1)).toBe(-1);
 		expect(ascending(1, null)).toBe(1);
 
-		// defined() wrapper overrides to put defined values first
-		const comparator = defined(ascending);
+		// present() wrapper overrides to put defined values first
+		const comparator = present(ascending);
 		expect(comparator(null, 1)).toBe(1);  // Reversed: defined first
 		expect(comparator(1, null)).toBe(-1); // Reversed: defined first
 		expect(comparator(1, 2)).toBe(-1);    // Normal ascending for defined values
@@ -344,8 +344,8 @@ describe("defined()", () => {
 		expect(descending(null, 1)).toBe(-1);
 		expect(descending(1, null)).toBe(1);
 
-		// defined() wrapper overrides to put defined values first
-		const comparator = defined(descending);
+		// present() wrapper overrides to put defined values first
+		const comparator = present(descending);
 		expect(comparator(null, 1)).toBe(1);  // Reversed: defined first
 		expect(comparator(1, null)).toBe(-1); // Reversed: defined first
 		expect(comparator(1, 2)).toBe(1);     // Normal descending for defined values
@@ -429,9 +429,9 @@ describe("compound()", () => {
 		expect(comparator({ x: 1, y: 1, z: 1 }, { x: 1, y: 2, z: 1 })).toBe(-1);
 	});
 
-	it("should combine with nullish wrapper", () => {
+	it("should combine with absent wrapper", () => {
 		const comparator = compound<number | null>(
-			nullish((a, b) => a-b)
+			absent((a, b) => a-b)
 		);
 
 		expect(comparator(null, 1)).toBe(-1);

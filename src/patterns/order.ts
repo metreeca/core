@@ -70,12 +70,12 @@
  * without ever consulting the comparator, so the placement of undefined values holds for keys extracted with `by`:
  *
  * ```typescript
- * import { by, nullish, defined, ascending } from '@metreeca/core/order';
+ * import { by, absent, present, ascending } from '@metreeca/core/order';
  *
  * const items = [{ rank: 3 }, { rank: null }, { rank: 1 }, { rank: undefined }, { rank: 2 }];
  *
- * items.sort(by(item => item.rank, nullish(ascending))); // ranks: undefined, null, 1, 2, 3
- * items.sort(by(item => item.rank, defined(ascending))); // ranks: 1, 2, 3, null, undefined
+ * items.sort(by(item => item.rank, absent(ascending)));  // ranks: undefined, null, 1, 2, 3
+ * items.sort(by(item => item.rank, present(ascending))); // ranks: 1, 2, 3, null, undefined
  * ```
  *
  * **Reversing Order**
@@ -253,7 +253,7 @@ export function locale(locales?: Intl.LocalesArgument, options?: Intl.CollatorOp
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Wraps a comparator to sort null and undefined values first.
+ * Wraps a comparator to sort absent values first, undefined ahead of null.
  *
  * Null values are treated as less than any other value, and undefined values as less than null ones. All other values
  * are ordered by `comparator`, so it can safely assume that neither of its arguments is ever null or undefined.
@@ -266,21 +266,18 @@ export function locale(locales?: Intl.LocalesArgument, options?: Intl.CollatorOp
  *
  * @returns A comparator placing undefined and then null values first
  */
-export function nullish<V>(comparator: Comparator<NonNullable<V>>): Comparator<V> {
-	return (a, b) => {
-
-		const na = a === undefined || a === null;
-		const nb = b === undefined || b === null;
-
-		return na && nb ? (a === b ? 0 : a === undefined ? -1 : 1)
-			: na ? -1
-				: nb ? 1
-					: comparator(a as NonNullable<V>, b as NonNullable<V>);
-	};
+export function absent<V>(comparator: Comparator<NonNullable<V>>): Comparator<V> {
+	return (a, b) =>
+		a === b ? 0
+			: a === undefined ? -1
+				: b === undefined ? 1
+					: a === null ? -1
+						: b === null ? 1
+							: comparator(a, b);
 }
 
 /**
- * Wraps a comparator to sort null and undefined values last.
+ * Wraps a comparator to sort present values first, ahead of null and then undefined values.
  *
  * Null values are treated as greater than any other value, and undefined values as greater than null ones. All other
  * values are ordered by `comparator`, so it can safely assume that neither of its arguments is ever null or undefined.
@@ -293,24 +290,21 @@ export function nullish<V>(comparator: Comparator<NonNullable<V>>): Comparator<V
  *
  * @returns A comparator placing null and then undefined values last
  */
-export function defined<V>(comparator: Comparator<NonNullable<V>>): Comparator<V> {
-	return (a, b) => {
-
-		const da = a !== undefined && a !== null;
-		const db = b !== undefined && b !== null;
-
-		return da && db ? comparator(a as NonNullable<V>, b as NonNullable<V>)
-			: da ? -1
-				: db ? 1
-					: a === b ? 0 : a === undefined ? 1 : -1;
-	};
+export function present<V>(comparator: Comparator<NonNullable<V>>): Comparator<V> {
+	return (a, b) =>
+		a === b ? 0
+			: a === undefined ? 1
+				: b === undefined ? -1
+					: a === null ? 1
+						: b === null ? -1
+							: comparator(a, b);
 }
 
 /**
  * Reverses the order of a comparator.
  *
  * The reversal applies to every value, so null and undefined values placed first by `comparator` are placed last,
- * and the reverse. Wrapping the reversed comparator in {@link nullish} or {@link defined} keeps them at a fixed end.
+ * and the reverse. Wrapping the reversed comparator in {@link absent} or {@link present} keeps them at a fixed end.
  *
  * @group Combinators
  *

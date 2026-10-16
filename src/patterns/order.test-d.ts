@@ -16,7 +16,7 @@
 
 import { describe, expectTypeOf, it } from "vitest";
 import type { Nullable } from "../index.js";
-import { ascending, by, type Comparator, compound, defined, descending, locale, nullish, reverse } from "./order.js";
+import { absent, ascending, by, type Comparator, compound, descending, locale, present, reverse } from "./order.js";
 
 
 describe("Comparator", () => {
@@ -60,18 +60,18 @@ describe("reverse()", () => {
 
 });
 
-describe("nullish()", () => {
+describe("absent()", () => {
 
 	it("should return a comparator over nullable values", async () => {
-		expectTypeOf(nullish<Nullable<number>>(ascending)).toEqualTypeOf<Comparator<Nullable<number>>>();
+		expectTypeOf(absent<Nullable<number>>(ascending)).toEqualTypeOf<Comparator<Nullable<number>>>();
 	});
 
 });
 
-describe("defined()", () => {
+describe("present()", () => {
 
 	it("should return a comparator over nullable values", async () => {
-		expectTypeOf(defined<Nullable<number>>(ascending)).toEqualTypeOf<Comparator<Nullable<number>>>();
+		expectTypeOf(present<Nullable<number>>(ascending)).toEqualTypeOf<Comparator<Nullable<number>>>();
 	});
 
 });
