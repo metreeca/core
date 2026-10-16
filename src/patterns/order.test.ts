@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { ascending, by, compound, defined, descending, nullish, reverse } from "./order.js";
+import { ascending, by, compound, defined, descending, locale, nullish, reverse } from "./order.js";
 
 
 describe("ascending()", () => {
@@ -160,6 +160,73 @@ describe("by()", () => {
 			{ name: "Charlie", age: 25 },
 			{ name: "Bob", age: 30 }
 		]);
+	});
+
+});
+
+describe("locale()", () => {
+
+	it("should apply the collation rules of the given locale", async () => {
+		expect(locale("de")("ä", "z")).toBeLessThan(0);
+		expect(locale("sv")("ä", "z")).toBeGreaterThan(0);
+	});
+
+	it("should return 0 for equal strings", async () => {
+		expect(locale("en")("a", "a")).toBe(0);
+	});
+
+	it("should default to the runtime locale", async () => {
+		expect(locale()("a", "b")).toBeLessThan(0);
+		expect(locale()("b", "a")).toBeGreaterThan(0);
+	});
+
+	it("should apply collation options", async () => {
+		expect(locale("en", { sensitivity: "base" })("a", "A")).toBe(0);
+		expect(locale("en", { numeric: true })("item2", "item10")).toBeLessThan(0);
+	});
+
+	describe("nullish values", () => {
+
+		it("should treat nullish values as less than any string", async () => {
+			expect(locale("en")(null, "a")).toBe(-1);
+			expect(locale("en")(undefined, "a")).toBe(-1);
+			expect(locale("en")("a", null)).toBe(1);
+			expect(locale("en")("a", undefined)).toBe(1);
+		});
+
+		it("should treat nullish values as equal to each other", async () => {
+			expect(locale("en")(null, null)).toBe(0);
+			expect(locale("en")(undefined, undefined)).toBe(0);
+			expect(locale("en")(null, undefined)).toBe(0);
+		});
+
+	});
+
+	describe("composition", () => {
+
+		type Person = { name: string; nick?: string };
+
+		const people: readonly Person[] = [
+			{ name: "Zoe", nick: "zed" },
+			{ name: "Émile" },
+			{ name: "adam", nick: "ad" }
+		];
+
+		it("should compose with by()", async () => {
+			expect([...people].sort(by(person => person.name, locale("fr"))).map(person => person.name))
+				.toEqual(["adam", "Émile", "Zoe"]);
+		});
+
+		it("should compose with reverse()", async () => {
+			expect([...people].sort(by(person => person.name, reverse(locale("fr")))).map(person => person.name))
+				.toEqual(["Zoe", "Émile", "adam"]);
+		});
+
+		it("should compose with defined()", async () => {
+			expect([...people].sort(by(person => person.nick, defined(locale("fr")))).map(person => person.name))
+				.toEqual(["adam", "Zoe", "Émile"]);
+		});
+
 	});
 
 });

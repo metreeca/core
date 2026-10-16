@@ -11,6 +11,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - `memo` function for deferring keyed values to first use, computing each one at most once per key, exported from
   `@metreeca/core`
+- `locale` comparator factory ordering strings by the collation rules of a locale, honouring `Intl.Collator` options
+  such as case sensitivity or numeric ordering, and placing nullish values first (`@metreeca/core/order`)
 
 ## [0.12.1](https://github.com/metreeca/core/compare/v0.12.0...v0.12.1) - 2026-10-14
 

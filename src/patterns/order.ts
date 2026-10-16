@@ -49,6 +49,21 @@
  * users.sort(by(user => user.age, descending)); // Sort by age descending
  * ```
  *
+ * **Sorting by Locale**
+ *
+ * Order strings according to the collation rules of a locale:
+ *
+ * ```typescript
+ * import { by, locale } from '@metreeca/core/order';
+ *
+ * const users = [
+ *   { name: 'Émile' },
+ *   { name: 'adam' }
+ * ];
+ *
+ * users.sort(by(user => user.name, locale())); // Sort by name with the runtime locale
+ * ```
+ *
  * **Combining Multiple Criteria**
  *
  * Sort by multiple properties with priority order:
@@ -95,11 +110,11 @@
  *
  * @groupDescription Comparators
  *
- * Basic comparison functions for ascending and descending order.
+ * Ready-made comparison functions for the natural ordering of values.
  *
  * @groupDescription Factories
  *
- * Functions that create new comparators from selectors or transformations.
+ * Functions that create new comparators tailored to a specific ordering criterion.
  *
  * @groupDescription Combinators
  *
@@ -184,6 +199,36 @@ export function descending<V>(a: V, b: V): number {
  */
 export function by<V, K>(selector: (value: V) => K, comparator: (a: K, b: K) => number = ascending) {
 	return (a: V, b: V): number => comparator(selector(a), selector(b));
+}
+
+/**
+ * Creates a comparator that orders strings according to locale-sensitive collation rules.
+ *
+ * Null and undefined values are treated as less than any string and equal to each other, as in {@link ascending}.
+ *
+ * @group Factories
+ *
+ * @param locales Locales whose collation rules apply (defaults to the runtime locale)
+ * @param options Collation options, such as case sensitivity or numeric ordering of digit sequences
+ *
+ * @returns A comparator ordering strings by the collation rules of `locales`
+ *
+ * @remarks
+ *
+ * Each call prepares the collation rules anew, at a noticeable cost. The returned comparator is meant to be created
+ * once and reused: created inside another comparator or a loop, it pays that cost again at every comparison.
+ */
+export function locale(locales?: Intl.LocalesArgument, options?: Intl.CollatorOptions) {
+
+	const collator = new Intl.Collator(locales, options);
+
+	return (a: undefined | null | string, b: undefined | null | string): number => {
+
+		const na = a === undefined || a === null;
+		const nb = b === undefined || b === null;
+
+		return na && nb ? 0 : na ? -1 : nb ? 1 : collator.compare(a, b);
+	};
 }
 
 
