@@ -262,9 +262,7 @@ export type Primitive =
  * support.
  *
  * > [!WARNING]
- * > This is a type alias for documentation purposes only. Branding was considered but not adopted due to
- * > interoperability issues with tools relying on static code analysis. Values must be validated at runtime
- * > using {@link isIdentifier}.
+ * > This is a type alias for documentation only: values must be validated at runtime with {@link isIdentifier}.
  *
  * @see [ECMAScript® 2024 - §12.7 Names and Keywords](https://262.ecma-international.org/15.0/#sec-names-and-keywords)
  */

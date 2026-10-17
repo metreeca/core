@@ -146,9 +146,7 @@ export const TagRangePattern = /^(?:[a-zA-Z]{1,8}(?:-[a-zA-Z0-9]{1,8})*|\*)$/;
  * Grandfathered tags are omitted from validation for simplicity.
  *
  * > [!WARNING]
- * > This is a type alias for documentation purposes only. Branding was considered but not adopted due to
- * > interoperability issues with tools relying on static code analysis. Values must be validated at runtime
- * > using {@link isTag}.
+ * > This is a type alias for documentation only: values must be validated at runtime with {@link isTag}.
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc5646.html RFC 5646 - Tags for Identifying Languages}
  * @see {@link https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes ISO 639-2 Language Codes}
@@ -171,9 +169,7 @@ export type Tag = string
  * ```
  *
  * > [!WARNING]
- * > This is a type alias for documentation purposes only. Branding was considered but not adopted due to
- * > interoperability issues with tools relying on static code analysis. Values must be validated at runtime
- * > using {@link isTagRange}.
+ * > This is a type alias for documentation only: values must be validated at runtime with {@link isTagRange}.
  *
  * > [!IMPORTANT]
  * > Extended language ranges with interior or trailing `*` (e.g., `de-*`, `*-CH`) are not valid: under

@@ -271,9 +271,7 @@ export type State<T> = object & {
  * properties and transition methods) with {@link Manager} operations accessible via {@link manageState}`(state)`.
  *
  * > [!WARNING]
- * > This is a type alias for documentation purposes only. Branding was considered but not adopted due to
- * > interoperability issues with tools relying on static code analysis. Instances must be created
- * > using {@link createState}.
+ * > This is a type alias for documentation only: instances must be created with {@link createState}.
  *
  * @typeParam T The state type
  */

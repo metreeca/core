@@ -177,9 +177,7 @@ export const app = createNamespace("app:/#");
  * Every valid URI is also a valid IRI.
  *
  * > [!WARNING]
- * > This is a type alias for documentation purposes only. Branding was considered but not adopted due to
- * > interoperability issues with tools relying on static code analysis. Values must be validated at runtime
- * > using {@link isIRI}.
+ * > This is a type alias for documentation only: values must be validated at runtime with {@link isIRI}.
  *
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986.html RFC 3986 - URI Generic Syntax}
  * @see {@link https://www.rfc-editor.org/rfc/rfc3987.html#section-2.2 RFC 3987 § 2.2 - IRI Syntax}
