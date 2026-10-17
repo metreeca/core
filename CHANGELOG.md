@@ -15,6 +15,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   such as case sensitivity or numeric ordering, and placing nullish values first (`@metreeca/core/order`)
 - `Comparator` type naming the comparison functions that factories and combinators accept and return, so custom
   comparators can be declared and passed around with an explicit contract (`@metreeca/core/order`)
+- `Lexicon` prefix maps with `compact` and `expand` converting between IRIs and the prefixed names used in SPARQL and
+  Turtle text, plus the `CURIE` type and `isCURIE` guard, created with `createLexicon` (`@metreeca/core/resource`)
 
 ### Changed
 

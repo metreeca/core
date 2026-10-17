@@ -19,7 +19,8 @@
  *
  * Provides types and functions for validating resource identifiers (IRIs), checking nesting relationships and
  * navigating identifier hierarchies, resolving and rewriting references, creating and inspecting namespace objects, and
- * minting IRIs for application-local resources through the predefined {@link app} namespace.
+ * minting IRIs for application-local resources through the predefined {@link app} namespace. Prefix lexicons compact
+ * IRIs to the prefixed names used in SPARQL and Turtle text, and expand those names back to full IRIs.
  *
  * **Type Guards**
  *
@@ -117,13 +118,39 @@
  * app.label;          // IRI: "app:/#label"
  * ```
  *
+ * **Compact URIs**
+ *
+ * ```typescript
+ * import { compact, createLexicon, createNamespace, expand } from "@metreeca/core/resource";
+ *
+ * const lexicon = createLexicon({
+ *   rdfs: "http://www.w3.org/2000/01/rdf-schema#",
+ *   ex: createNamespace("https://example.org/")
+ * });
+ *
+ * // Compact IRIs to prefixed names
+ *
+ * compact(lexicon, "http://www.w3.org/2000/01/rdf-schema#label");  // "rdfs:label"
+ * compact(lexicon, "https://example.com/Book");                    // undefined (undeclared namespace)
+ *
+ * // Expand prefixed names to IRIs
+ *
+ * expand(lexicon, "ex:Book");                                      // "https://example.org/Book"
+ * expand(lexicon, "owl:Class");                                    // "owl:Class" (undeclared prefix)
+ * ```
+ *
  * @module
  *
- * @see {@link https://www.rfc-editor.org/rfc/rfc3987.html RFC 3987 - Internationalized Resource Identifiers (IRIs)}
  * @see {@link https://www.rfc-editor.org/rfc/rfc3986.html RFC 3986 - Uniform Resource Identifiers (URIs)}
+ * @see {@link https://www.rfc-editor.org/rfc/rfc3987.html RFC 3987 - Internationalized Resource Identifiers (IRIs)}
+ * @see {@link https://www.w3.org/TR/curie/ CURIE Syntax 1.0}
+ * @see {@link https://www.w3.org/TR/rdfa-core/#s_curies RDFa Core 1.1 § 6 - CURIE Syntax Definition}
+ * @see {@link https://www.w3.org/TR/sparql11-query/#prefNames SPARQL 1.1 Query Language § 4.1.1.1 - Prefixed Names}
+ * @see {@link https://www.w3.org/TR/turtle/#sec-iri RDF 1.1 Turtle § 2.4 - IRIs}
  */
 
-import { error, isString, type Optional } from "../index.js";
+import { assert, error, isString, type Optional } from "../index.js";
+import { by, compound, descending } from "../patterns/order.js";
 
 
 /**
@@ -139,6 +166,16 @@ const SchemePattern = /^[a-z][a-z0-9+.-]*:/i;
  * to match unpaired code units only.
  */
 const ExcludedPattern = /[\x00-\x1F\x7F-\x9F\s<>"{}|\\^`\uD800-\uDFFF]/u;
+
+/**
+ * Matches prefix: [ ALPHA *( ALPHA / DIGIT / "_" / "-" ) ]
+ */
+const PrefixPattern = /^([A-Za-z][A-Za-z0-9_-]*)?$/;
+
+/**
+ * Matches local name: ( ALPHA / "_" ) *( ALPHA / DIGIT / "_" / "-" )
+ */
+const LocalPattern = /^[A-Za-z_][A-Za-z0-9_-]*$/;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -221,6 +258,23 @@ export type Variant =
 	| "relative"
 
 /**
+ * Compact URI abbreviating an IRI with a namespace prefix.
+ *
+ * A compact URI is a prefixed name such as `rdfs:label`, joining a prefix to a local name with a colon. The prefix may
+ * be empty, as in `:label`, to abbreviate IRIs in the default namespace of a {@link Lexicon}.
+ *
+ * > [!WARNING]
+ * > This is a type alias for documentation only: values must be validated at runtime with {@link isCURIE}.
+ *
+ * @see {@link isCURIE} for validating compact URIs
+ * @see {@link compact} for compacting IRIs to compact URIs
+ * @see {@link expand} for expanding compact URIs to IRIs
+ * @see {@link https://www.w3.org/TR/curie/ CURIE Syntax 1.0}
+ */
+export type CURIE =
+	| string
+
+/**
  * Object type for accessing IRIs within a common namespace.
  *
  * Provides IRI access via property lookup. The namespace IRI itself is available via the empty
@@ -247,6 +301,29 @@ export type Namespace<T extends readonly string[] = []> =
 		readonly [K in T[number]]: IRI
 
 	}
+
+/**
+ * Namespace prefixes for writing IRIs as compact URIs.
+ *
+ * Maps each prefix to the {@link Namespace} it abbreviates. The empty prefix declares the default namespace,
+ * whose IRIs are compacted to and expanded from prefixed names such as `:name`, with nothing before the colon.
+ *
+ * Local names are restricted to an ASCII letter or `_`, followed by ASCII letters, digits, `_` or `-`. This is a
+ * subset of the SPARQL and Turtle prefixed name grammars and of the compact URI syntax, so every prefixed name produced
+ * can be pasted verbatim into SPARQL or Turtle text, with no escaping of reserved characters.
+ *
+ * Lexicons must be created with {@link createLexicon}, which validates their prefixes: a malformed prefix then fails
+ * where the lexicon is declared, rather than later, when IRIs are compacted or expanded against it.
+ *
+ * @see {@link createLexicon} for creating validated lexicons
+ * @see {@link compact} for compacting IRIs to prefixed names
+ * @see {@link expand} for expanding prefixed names to IRIs
+ */
+export type Lexicon = {
+
+	readonly [prefix: string]: Namespace
+
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -742,6 +819,129 @@ export function getNamespaceIRI(namespace: Namespace): IRI {
  */
 export function getNamespaceBase(namespace: Namespace): Optional<IRI> {
 	return getIRIBase(namespace[""]);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Creates an immutable {@link Lexicon}.
+ *
+ * Validates prefix declarations at creation, so that a malformed one fails immediately rather than producing invalid
+ * prefixed names when IRIs are later compacted or expanded against the resulting lexicon.
+ *
+ * A prefix is an ASCII letter followed by ASCII letters, digits, `_` or `-`, as admitted by the SPARQL and Turtle
+ * grammars. The empty prefix is also accepted, and declares the default namespace of the lexicon.
+ *
+ * @param lexicon The namespaces to declare, keyed by prefix, as absolute IRIs or {@link Namespace} objects
+ *
+ * @returns An immutable lexicon with the same prefixes, and IRI namespaces converted to {@link Namespace} objects
+ *
+ * @throws {@link !TypeError TypeError} If a prefix is malformed
+ * @throws {@link !RangeError RangeError} If a namespace IRI is not absolute
+ *
+ * @see {@link https://www.w3.org/TR/sparql11-query/#rPN_PREFIX SPARQL 1.1 Query Language § 19.8 - PN_PREFIX}
+ */
+export function createLexicon(lexicon: { readonly [prefix: string]: string | IRI | Namespace }): Lexicon {
+
+	return Object.freeze(Object.fromEntries(Object.entries(lexicon).map(([prefix, namespace]) => [
+		assert(prefix, prefix => PrefixPattern.test(prefix), `malformed prefix <${prefix}>`),
+		isString(namespace) ? createNamespace(namespace) : namespace
+	])));
+
+}
+
+
+/**
+ * Checks if a value is a valid compact URI.
+ *
+ * Accepts prefixed names made of a prefix, a colon and a local name, such as `rdfs:label` or `:label`. Prefixes follow
+ * the rules enforced by {@link createLexicon} and local names the rules described for {@link Lexicon}. The check is
+ * purely syntactic and accepts any well-formed prefix, whether declared in a lexicon or otherwise.
+ *
+ * @param value The value to validate as a compact URI
+ *
+ * @returns `true` if `value` is a string made of a prefix, possibly empty, a colon and a local name; `false` otherwise
+ *
+ * @remarks
+ *
+ * This function serves as a type guard, narrowing the type from `unknown` to {@link CURIE} in conditional checks.
+ *
+ * @see {@link CURIE}
+ */
+export function isCURIE(value: unknown): value is CURIE {
+
+	const colon = isString(value) ? value.indexOf(":") : -1;
+
+	return isString(value) && colon >= 0
+		&& PrefixPattern.test(value.slice(0, colon))
+		&& LocalPattern.test(value.slice(colon+1));
+
+}
+
+
+/**
+ * Converts an IRI to a compact URI, if a declared namespace abbreviates it.
+ *
+ * Turns IRIs such as `http://www.w3.org/2000/01/rdf-schema#label` into prefixed names such as `rdfs:label`, for compact
+ * use in SPARQL, Turtle or JSON-LD text. If several declared namespaces abbreviate the IRI, the longest one is used. If
+ * several prefixes declare that namespace, the first one in code point order is used, whatever the declaration order,
+ * so the empty prefix always wins. An IRI has no compact form if it is in no declared namespace, or if the part after
+ * the namespace is not a valid local name, as defined for {@link Lexicon}. Such IRIs must be written in full.
+ *
+ * @param lexicon The lexicon to compact against
+ * @param iri The absolute IRI to compact
+ *
+ * @returns The prefixed name abbreviating `iri`, or `undefined` if no declared namespace abbreviates it
+ *
+ * @see {@link expand} for the reverse conversion
+ */
+export function compact(lexicon: Lexicon, iri: IRI): Optional<CURIE> {
+
+	return (isIRI(iri, "absolute") ? Object.entries(lexicon) : [])
+		.map(([prefix, namespace]) => [prefix, getNamespaceIRI(namespace)])
+		.filter(([, base]) => iri.startsWith(base) && LocalPattern.test(iri.slice(base.length)))
+		.sort(compound(by(([, base]) => base.length, descending), by(([prefix]) => prefix)))
+		.map(([prefix, base]) => `${prefix}:${iri.slice(base.length)}`)
+		.at(0);
+
+}
+
+/**
+ * Expands a compact URI to an IRI.
+ *
+ * Turns prefixed names such as `rdfs:label` into the IRIs they abbreviate, so that IRIs written in compact form can be
+ * used as identifiers. A name is expanded only if its prefix is declared and its local name is valid. Any other value
+ * is returned unchanged, including names with an undeclared prefix and full IRIs such as `https://example.org/Book`.
+ *
+ * > [!IMPORTANT]
+ * > Values returned unchanged must be validated at runtime with {@link isIRI} where an IRI is required.
+ *
+ * @param lexicon The lexicon to expand against
+ * @param name The prefixed name or IRI to expand
+ *
+ * @returns The IRI abbreviated by `name`, or `name` itself if its prefix is undeclared or its local name is invalid
+ *
+ * @see {@link compact} for the reverse conversion
+ */
+export function expand(lexicon: Lexicon, name: CURIE | IRI): IRI {
+
+	if ( isCURIE(name) ) {
+
+		const colon = name.indexOf(":");
+		const prefix = name.slice(0, colon);
+		const local = name.slice(colon+1);
+
+		return Object.hasOwn(lexicon, prefix)
+			? `${getNamespaceIRI(lexicon[prefix])}${local}`
+			: name;
+
+	} else {
+
+		return name;
+
+	}
+
 }
 
 

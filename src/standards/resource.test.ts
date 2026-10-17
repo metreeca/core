@@ -17,12 +17,16 @@
 import { describe, expect, it } from "vitest";
 import {
 	app,
+	compact,
+	createLexicon,
 	createNamespace,
+	expand,
 	getIRIBase,
 	getIRIParent,
 	getNamespaceBase,
 	getNamespaceIRI,
 	internalize,
+	isCURIE,
 	isIRI,
 	isNestedIRI,
 	relativize,
@@ -1179,6 +1183,186 @@ describe("Namespace", () => {
 
 			expect(isIRI(namespaceBase, "hierarchical")).toBe(true);
 			expect(resolve(namespaceBase, "b/c")).toBe("http://example.org/b/c");
+		});
+
+	});
+
+});
+
+describe("CURIE", () => {
+
+	describe("isCURIE", () => {
+
+		it("accepts prefixed names", async () => {
+			expect(isCURIE("rdfs:label")).toBe(true);
+			expect(isCURIE("ex:_a1-b")).toBe(true);
+			expect(isCURIE("e1_x-y:Book")).toBe(true);
+		});
+
+		it("accepts prefixed names with the empty prefix", async () => {
+			expect(isCURIE(":Book")).toBe(true);
+		});
+
+		it("rejects malformed prefixes", async () => {
+			expect(isCURIE("1ex:Book")).toBe(false);
+			expect(isCURIE("_ex:Book")).toBe(false);
+			expect(isCURIE("e x:Book")).toBe(false);
+		});
+
+		it("rejects invalid local names", async () => {
+			expect(isCURIE("ex:")).toBe(false);
+			expect(isCURIE("ex:1a")).toBe(false);
+			expect(isCURIE("ex:a/b")).toBe(false);
+			expect(isCURIE("ex:a:b")).toBe(false);
+		});
+
+		it("rejects full IRIs", async () => {
+			expect(isCURIE("https://example.org/Book")).toBe(false);
+			expect(isCURIE("<https://example.org/Book>")).toBe(false);
+		});
+
+		it("rejects names without a colon", async () => {
+			expect(isCURIE("Book")).toBe(false);
+			expect(isCURIE("")).toBe(false);
+		});
+
+		it("rejects non-string values", async () => {
+			expect(isCURIE(undefined)).toBe(false);
+			expect(isCURIE(null)).toBe(false);
+			expect(isCURIE(1)).toBe(false);
+			expect(isCURIE({})).toBe(false);
+		});
+
+		it("accepts the prefixed names returned by compact", async () => {
+			expect(isCURIE(compact(createLexicon({ ex: "https://example.org/" }), "https://example.org/Book"))).toBe(true);
+		});
+
+	});
+
+});
+
+describe("Lexicon", () => {
+
+	const declarations = {
+		ex: createNamespace("https://example.org/"),
+		exv: "https://example.org/vocab#",
+		rdfs: "http://www.w3.org/2000/01/rdf-schema#"
+	};
+
+	const lexicon = createLexicon(declarations);
+
+	const defaults = createLexicon({ "": "https://example.org/" });
+
+
+	describe("createLexicon", () => {
+
+		it("keeps the namespaces declared", async () => {
+			expect(lexicon.ex).toBe(declarations.ex);
+		});
+
+		it("converts the IRIs declared to namespaces", async () => {
+			expect(getNamespaceIRI(lexicon.exv)).toBe("https://example.org/vocab#");
+			expect(getNamespaceIRI(lexicon.rdfs)).toBe("http://www.w3.org/2000/01/rdf-schema#");
+		});
+
+		it("returns an immutable copy", async () => {
+			expect(lexicon).not.toBe(declarations);
+			expect(Object.isFrozen(lexicon)).toBe(true);
+		});
+
+		it("accepts the empty prefix", async () => {
+			expect(getNamespaceIRI(defaults[""])).toBe("https://example.org/");
+		});
+
+		it("accepts prefixes with digits, underscores and hyphens after the first letter", async () => {
+			expect(getNamespaceIRI(createLexicon({ "e1_x-y": "https://example.org/" })["e1_x-y"])).toBe("https://example.org/");
+		});
+
+		it("rejects malformed prefixes", async () => {
+			expect(() => createLexicon({ "1ex": "https://example.org/" })).toThrow(TypeError);
+			expect(() => createLexicon({ "_ex": "https://example.org/" })).toThrow(TypeError);
+			expect(() => createLexicon({ "e:x": "https://example.org/" })).toThrow(TypeError);
+			expect(() => createLexicon({ "e x": "https://example.org/" })).toThrow(TypeError);
+		});
+
+		it("rejects relative namespace IRIs", async () => {
+			expect(() => createLexicon({ ex: "vocab#" })).toThrow(RangeError);
+		});
+
+	});
+
+	describe("compact", () => {
+
+		it("abbreviates IRIs in a declared namespace", async () => {
+			expect(compact(lexicon, "http://www.w3.org/2000/01/rdf-schema#label")).toBe("rdfs:label");
+		});
+
+		it("abbreviates IRIs in the default namespace with the empty prefix", async () => {
+			expect(compact(defaults, "https://example.org/Book")).toBe(":Book");
+		});
+
+		it("abbreviates with the longest matching namespace", async () => {
+			expect(compact(lexicon, "https://example.org/vocab#title")).toBe("exv:title");
+		});
+
+		it("abbreviates with the alphabetically first prefix among those declaring the same namespace", async () => {
+
+			const iri = "https://example.org/Book";
+
+			expect(compact(createLexicon({ ex: "https://example.org/", "": "https://example.org/" }), iri)).toBe(":Book");
+			expect(compact(createLexicon({ "": "https://example.org/", ex: "https://example.org/" }), iri)).toBe(":Book");
+			expect(compact(createLexicon({ zz: "https://example.org/", aa: "https://example.org/" }), iri)).toBe("aa:Book");
+
+		});
+
+		it("returns undefined for IRIs in no declared namespace", async () => {
+			expect(compact(lexicon, "https://example.com/Book")).toBeUndefined();
+		});
+
+		it("returns undefined for IRIs with an invalid local name", async () => {
+			expect(compact(lexicon, "https://example.org/a/b")).toBeUndefined();
+			expect(compact(lexicon, "https://example.org/")).toBeUndefined();
+		});
+
+		it("returns undefined for relative IRIs", async () => {
+			expect(compact(defaults, "Book")).toBeUndefined();
+		});
+
+		it("round-trips with expand", async () => {
+			expect(expand(lexicon, compact(lexicon, "https://example.org/Book") ?? "")).toBe("https://example.org/Book");
+			expect(expand(defaults, compact(defaults, "https://example.org/Book") ?? "")).toBe("https://example.org/Book");
+		});
+
+	});
+
+	describe("expand", () => {
+
+		it("expands prefixed names with a declared prefix", async () => {
+			expect(expand(lexicon, "rdfs:label")).toBe("http://www.w3.org/2000/01/rdf-schema#label");
+		});
+
+		it("expands prefixed names with the empty prefix to the default namespace", async () => {
+			expect(expand(defaults, ":Book")).toBe("https://example.org/Book");
+		});
+
+		it("accepts local names with underscores, digits and hyphens", async () => {
+			expect(expand(lexicon, "ex:_a1-b")).toBe("https://example.org/_a1-b");
+		});
+
+		it("returns prefixed names with an undeclared prefix unchanged", async () => {
+			expect(expand(lexicon, "owl:Class")).toBe("owl:Class");
+			expect(expand(lexicon, "constructor:Class")).toBe("constructor:Class");
+		});
+
+		it("returns prefixed names with an invalid local name unchanged", async () => {
+			expect(expand(lexicon, "ex:a/b")).toBe("ex:a/b");
+			expect(expand(lexicon, "ex:1a")).toBe("ex:1a");
+			expect(expand(lexicon, "ex:")).toBe("ex:");
+		});
+
+		it("returns IRIs unchanged", async () => {
+			expect(expand(lexicon, "https://example.org/Book")).toBe("https://example.org/Book");
+			expect(expand(lexicon, "<https://example.org/Book>")).toBe("<https://example.org/Book>");
 		});
 
 	});

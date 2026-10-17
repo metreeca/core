@@ -15,8 +15,9 @@
  */
 
 import { describe, expectTypeOf, test } from "vitest";
-import type { IRI, Namespace } from "./resource.js";
-import { createNamespace } from "./resource.js";
+import type { Optional } from "../index.js";
+import type { CURIE, IRI, Namespace } from "./resource.js";
+import { compact, createLexicon, createNamespace } from "./resource.js";
 
 
 describe("Namespace", () => {
@@ -47,6 +48,14 @@ describe("Namespace", () => {
 			ns.unknown;
 		});
 
+	});
+
+});
+
+describe("compact", () => {
+
+	test("should return an optional compact URI", () => {
+		expectTypeOf(compact(createLexicon({}), "http://example.org/")).toEqualTypeOf<Optional<CURIE>>();
 	});
 
 });
