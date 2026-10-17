@@ -22,6 +22,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - `nullish` and `defined` combinators renamed to `absent` and `present`, after the values each places first, and no
   longer treating `null` and `undefined` as equal: both keep undefined values at the outer end (`@metreeca/core/order`)
+- `app` namespace renamed to `base` and moved to the `base:/` origin, so the module loads in hosts that register an
+  `app` scheme of their own and reject `app:` IRIs, such as Electron shells (`@metreeca/core/resource`)
 
 ## [0.12.1](https://github.com/metreeca/core/compare/v0.12.0...v0.12.1) - 2026-10-14
 

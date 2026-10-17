@@ -19,8 +19,8 @@
  *
  * Provides types and functions for validating resource identifiers (IRIs), checking nesting relationships and
  * navigating identifier hierarchies, resolving and rewriting references, creating and inspecting namespace objects, and
- * minting IRIs for application-local resources through the predefined {@link app} namespace. Prefix lexicons compact
- * IRIs to the prefixed names used in SPARQL and Turtle text, and expand those names back to full IRIs.
+ * minting IRIs for local resources through the predefined {@link base} namespace. Prefix lexicons compact IRIs to the
+ * prefixed names used in SPARQL and Turtle text, and expand those names back to full IRIs.
  *
  * **Type Guards**
  *
@@ -86,7 +86,7 @@
  * **Namespace Objects**
  *
  * ```typescript
- * import { app, createNamespace, getNamespaceBase, getNamespaceIRI } from "@metreeca/core/resource";
+ * import { base, createNamespace, getNamespaceBase, getNamespaceIRI } from "@metreeca/core/resource";
  *
  * // Closed namespace with predefined terms
  *
@@ -112,10 +112,10 @@
  * ex[""];             // IRI: "http://example.org/"
  * ex["anything"];     // IRI: "http://example.org/anything"
  *
- * // Predefined open namespace for application-local resources
+ * // Predefined open namespace for local resources
  *
- * app[""];            // IRI: "app:/#"
- * app.label;          // IRI: "app:/#label"
+ * base[""];           // IRI: "base:/#"
+ * base.label;         // IRI: "base:/#label"
  * ```
  *
  * **Compact URIs**
@@ -181,27 +181,30 @@ const LocalPattern = /^[A-Za-z_][A-Za-z0-9_-]*$/;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Application namespace.
+ * Base namespace for local resources.
  *
- * An open {@link Namespace} rooted at the synthetic `app:/` origin, minting absolute IRIs for resources that are local
- * to a single application and have no deployment origin of their own. Terms are appended to the fragment component,
- * so generated IRIs are `"hierarchical"` identifiers sharing the `app:/` base.
+ * An open {@link Namespace} rooted at the synthetic `base:/` origin, minting absolute IRIs for local resources that
+ * have no deployment origin of their own. Terms are appended to the fragment component, so generated IRIs are
+ * `"hierarchical"` identifiers sharing the `base:/` root and resolving relative references against it.
  *
- * Lacking an authority component, `app:` IRIs are reported as root-relative paths by {@link internalize} and
- * {@link relativize}, rather than as the path-relative references authority-backed schemes such as `http:` yield.
+ * As `base:` IRIs carry no authority component, {@link internalize} and {@link relativize} return root-relative paths
+ * for them, rather than the path-relative references they return for schemes with an authority, such as `http:`.
+ *
+ * > [!NOTE]
+ * > Provisional IANA registration of the `base` URI scheme under RFC 7595 is pending as [IANA #1462001].
  *
  * @example
  *
  * ```typescript
- * app[""];                              // IRI: "app:/#"
- * app.label;                            // IRI: "app:/#label"
+ * base[""];                               // IRI: "base:/#"
+ * base.label;                             // IRI: "base:/#label"
  *
- * getIRIBase(app.label);                // "app:/"
- * resolve(app[""], "x/y");              // "app:/x/y"
- * relativize("app:/a/b", "app:/a/c");   // "/a/c" (root-relative, not "c")
+ * getIRIBase(base.label);                 // "base:/"
+ * resolve(base[""], "x/y");               // "base:/x/y"
+ * relativize("base:/a/b", "base:/a/c");   // "/a/c" (root-relative, not "c")
  * ```
  */
-export const app = createNamespace("app:/#");
+export const base = createNamespace("base:/#");
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -225,7 +228,7 @@ export type IRI =
 /**
  * Identifier variant per RFC 3986 §§ 4.2-4.3.
  *
- * - `"hierarchical"`: Absolute with hierarchical path (`http://example.org/path`, `app:/path`)
+ * - `"hierarchical"`: Absolute with hierarchical path (`http://example.org/path`, `base:/path`)
  * - `"absolute"`: Contains scheme (`http://example.org/path`, `urn:example:resource`)
  * - `"internal"`: Root-relative path starting with a single `/` (`/path`)
  * - `"relative"`: Reference without scheme or authority (`../path`, `path`)
@@ -434,7 +437,7 @@ export function isNestedIRI(parent: string | IRI, child: string | IRI): boolean 
  * reference resolution. Path, query, and fragment components are discarded.
  *
  * - **With authority** (for example, `http://example.org/a/b?q#f`): returns `scheme://authority/`
- * - **Without authority** (for example, `app:/a/b`): returns `scheme:/`
+ * - **Without authority** (for example, `base:/a/b`): returns `scheme:/`
  * - **Empty authority** (for example, `file:///a/b`): returns `scheme:///`
  *
  * @param iri The hierarchical identifier to extract the base from
@@ -471,8 +474,8 @@ export function getIRIBase(iri: string | IRI): Optional<IRI> {
  * parent of a collection (`a/b/`) is the collection enclosing it (`a/`). The parent always ends with a slash, drops the
  * query and fragment of `iri`, and keeps its variant:
  *
- * - **Hierarchical** (for example, `http://example.org/a/b?q#f`, `app:/a/b/`): an absolute identifier sharing scheme
- *   and authority (`http://example.org/a/`, `app:/a/`), down to the root path (`http://example.org/a` and
+ * - **Hierarchical** (for example, `http://example.org/a/b?q#f`, `base:/a/b/`): an absolute identifier sharing scheme
+ *   and authority (`http://example.org/a/`, `base:/a/`), down to the root path (`http://example.org/a` and
  *   `http://example.org/a/` both yield `http://example.org/`)
  * - **Internal** (for example, `/a/b`): a root-relative path (`/a/`), down to the root path (`/a` yields `/`)
  * - **Relative** (for example, `a/b`, `a`, `../a/`): a path-relative reference (`a/`, `./`, `../`); as relative
@@ -630,7 +633,7 @@ export function internalize(base: string | IRI, reference: string | IRI): IRI {
  *
  * - **Hierarchical identifiers**: Computes the shortest path-relative reference that, when resolved against `base`,
  *   yields `reference`
- * - **Authority-less hierarchical identifiers** (`app:/…`, `file:///…`): Returns the root-relative path
+ * - **Authority-less hierarchical identifiers** (`base:/…`, `file:///…`): Returns the root-relative path
  * - **Opaque identifiers**: Returns the scheme-specific part if schemes match
  *
  * The returned reference always resolves back to `reference` under RFC 3986 § 5 and under any conforming URL parser:
@@ -772,8 +775,8 @@ export function createNamespace<const T extends readonly string[]>(namespace: st
 /**
  * Retrieves the IRI of a namespace.
  *
- * Reports the absolute IRI the namespace was created with, that is the IRI term names are appended to, providing a
- * named alternative to the empty string key (`namespace[""]`).
+ * Returns the absolute IRI the namespace was created with, which prefixes every term it mints. The accessor offers a
+ * named alternative to the empty string key (`namespace[""]`), returning the same IRI under a self-describing call.
  *
  * @param namespace The namespace to retrieve the IRI from
  *
@@ -782,7 +785,7 @@ export function createNamespace<const T extends readonly string[]>(namespace: st
  * @example
  *
  * ```typescript
- * getNamespaceIRI(app);                              // "app:/#"
+ * getNamespaceIRI(base);                             // "base:/#"
  * getNamespaceIRI(createNamespace("urn:example:"));  // "urn:example:"
  * ```
  *
@@ -797,8 +800,8 @@ export function getNamespaceIRI(namespace: Namespace): IRI {
 /**
  * Retrieves the base identifier of a namespace.
  *
- * Extracts the scheme and authority components of the namespace IRI, as reported by {@link getIRIBase}, providing an
- * identifier suitable for resolving references against the IRIs minted by the namespace.
+ * Returns the scheme and authority components of the namespace IRI, as extracted by {@link getIRIBase}. The result is
+ * a base identifier suitable for resolving references against the IRIs minted by the namespace.
  *
  * @param namespace The namespace to retrieve the base identifier from
  *
@@ -808,8 +811,8 @@ export function getNamespaceIRI(namespace: Namespace): IRI {
  * @example
  *
  * ```typescript
- * getNamespaceBase(app);                              // "app:/"
- * getNamespaceBase(createNamespace("urn:example:"));  // undefined
+ * getNamespaceBase(createNamespace("http://example.org/a/ns#"));  // "http://example.org/"
+ * getNamespaceBase(createNamespace("urn:example:"));              // undefined
  * ```
  *
  * @see {@link Namespace}

@@ -16,7 +16,7 @@
 
 import { describe, expect, it } from "vitest";
 import {
-	app,
+	base,
 	compact,
 	createLexicon,
 	createNamespace,
@@ -40,14 +40,14 @@ const iris = {
 		valid: [
 			"http://example.com/path", // with authority
 			"https://example.com/", // with authority, root path
-			"app:/path", // no authority, root-relative path
-			"app:/", // no authority, root path only
+			"base:/path", // no authority, root-relative path
+			"base:/", // no authority, root path only
 			"file:///path/to/file" // empty authority, root-relative path
 		],
 		invalid: [
 			{ value: "urn:example:resource", reason: "opaque URI (no root-relative path)" },
 			{ value: "mailto:user@example.com", reason: "opaque URI" },
-			{ value: "app:path", reason: "no root-relative path (path-rootless)" },
+			{ value: "base:path", reason: "no root-relative path (path-rootless)" },
 			{ value: "/path", reason: "no scheme" },
 			{ value: "path", reason: "relative reference" },
 			{ value: "http://example.com/\uD800", reason: "isolated high surrogate" }
@@ -262,18 +262,18 @@ describe("IRI", () => {
 			// are compared directly rather than through the opaque origin they share
 
 			it("should return false for different authorities on schemes with an opaque origin", async () => {
-				expect(isNestedIRI("app://example.com/a", "app://other.com/a/b")).toBeFalsy();
+				expect(isNestedIRI("base://example.com/a", "base://other.com/a/b")).toBeFalsy();
 				expect(isNestedIRI("file:///a", "file://example.com/a/b")).toBeFalsy();
 			});
 
 			it("should return false when only one identifier carries an authority", async () => {
-				expect(isNestedIRI("app:/a", "app://example.com/a/b")).toBeFalsy();
-				expect(isNestedIRI("app://example.com/a", "app:/a/b")).toBeFalsy();
+				expect(isNestedIRI("base:/a", "base://example.com/a/b")).toBeFalsy();
+				expect(isNestedIRI("base://example.com/a", "base:/a/b")).toBeFalsy();
 			});
 
 			it("should return true for matching authorities on schemes with an opaque origin", async () => {
-				expect(isNestedIRI("app://example.com/a", "app://example.com/a/b")).toBeTruthy();
-				expect(isNestedIRI("app:/a", "app:/a/b")).toBeTruthy();
+				expect(isNestedIRI("base://example.com/a", "base://example.com/a/b")).toBeTruthy();
+				expect(isNestedIRI("base:/a", "base:/a/b")).toBeTruthy();
 			});
 
 		});
@@ -341,12 +341,12 @@ describe("IRI", () => {
 		describe("hierarchical URIs without authority", () => {
 
 			it("should return scheme with trailing slash", async () => {
-				expect(getIRIBase("app:/path")).toBe("app:/");
-				expect(getIRIBase("app:/a/b/c")).toBe("app:/");
+				expect(getIRIBase("base:/path")).toBe("base:/");
+				expect(getIRIBase("base:/a/b/c")).toBe("base:/");
 			});
 
 			it("should return the base unchanged for scheme:/ alone", async () => {
-				expect(getIRIBase("app:/")).toBe("app:/");
+				expect(getIRIBase("base:/")).toBe("base:/");
 			});
 
 		});
@@ -376,7 +376,7 @@ describe("IRI", () => {
 			});
 
 			it("should return undefined for non-hierarchical absolute references without root-relative path", async () => {
-				expect(getIRIBase("app:path")).toBeUndefined();
+				expect(getIRIBase("base:path")).toBeUndefined();
 			});
 
 		});
@@ -390,7 +390,7 @@ describe("IRI", () => {
 
 			it("should return a valid hierarchical IRI", async () => {
 				expect(isIRI(getIRIBase("http://example.com/a/b/c"), "hierarchical")).toBe(true);
-				expect(isIRI(getIRIBase("app:/a/b"), "hierarchical")).toBe(true);
+				expect(isIRI(getIRIBase("base:/a/b"), "hierarchical")).toBe(true);
 				expect(isIRI(getIRIBase("file:///a/b"), "hierarchical")).toBe(true);
 			});
 
@@ -433,14 +433,14 @@ describe("IRI", () => {
 		describe("hierarchical URIs without authority", () => {
 
 			it("should return the enclosing collection", async () => {
-				expect(getIRIParent("app:/a/b")).toBe("app:/a/");
-				expect(getIRIParent("app:/a/b/")).toBe("app:/a/");
-				expect(getIRIParent("app:/a")).toBe("app:/");
+				expect(getIRIParent("base:/a/b")).toBe("base:/a/");
+				expect(getIRIParent("base:/a/b/")).toBe("base:/a/");
+				expect(getIRIParent("base:/a")).toBe("base:/");
 			});
 
 			it("should return undefined at the root path", async () => {
-				expect(getIRIParent("app:/")).toBeUndefined();
-				expect(getIRIParent("app:/#label")).toBeUndefined();
+				expect(getIRIParent("base:/")).toBeUndefined();
+				expect(getIRIParent("base:/#label")).toBeUndefined();
 			});
 
 		});
@@ -463,7 +463,7 @@ describe("IRI", () => {
 			it("should return undefined", async () => {
 				expect(getIRIParent("urn:example:a:b")).toBeUndefined();
 				expect(getIRIParent("mailto:user@example.com")).toBeUndefined();
-				expect(getIRIParent("app:a/b")).toBeUndefined();
+				expect(getIRIParent("base:a/b")).toBeUndefined();
 			});
 
 		});
@@ -558,7 +558,7 @@ describe("IRI", () => {
 
 			it("should preserve the variant of the reference", async () => {
 				expect(isIRI(getIRIParent("http://example.com/a/b"), "hierarchical")).toBe(true);
-				expect(isIRI(getIRIParent("app:/a/b"), "hierarchical")).toBe(true);
+				expect(isIRI(getIRIParent("base:/a/b"), "hierarchical")).toBe(true);
 				expect(isIRI(getIRIParent("/a/b"), "internal")).toBe(true);
 				expect(isIRI(getIRIParent("a/b"), "relative")).toBe(true);
 			});
@@ -628,39 +628,39 @@ describe("IRI", () => {
 
 			// RFC 3986 § 5.2.3 — resolution works for authority-less hierarchical URIs
 
-			const base = "app:/a/b/c";
+			const base = "base:/a/b/c";
 
 			it("should resolve relative path against base", async () => {
-				expect(resolve(base, "d")).toBe("app:/a/b/d");
-				expect(resolve(base, "d/e")).toBe("app:/a/b/d/e");
+				expect(resolve(base, "d")).toBe("base:/a/b/d");
+				expect(resolve(base, "d/e")).toBe("base:/a/b/d/e");
 			});
 
 			it("should resolve root-relative path against base", async () => {
-				expect(resolve(base, "/d")).toBe("app:/d");
-				expect(resolve(base, "/d/e")).toBe("app:/d/e");
+				expect(resolve(base, "/d")).toBe("base:/d");
+				expect(resolve(base, "/d/e")).toBe("base:/d/e");
 			});
 
 			it("should resolve empty reference to base", async () => {
-				expect(resolve(base, "")).toBe("app:/a/b/c");
+				expect(resolve(base, "")).toBe("base:/a/b/c");
 			});
 
 			it("should resolve fragment-only reference", async () => {
-				expect(resolve(base, "#frag")).toBe("app:/a/b/c#frag");
+				expect(resolve(base, "#frag")).toBe("base:/a/b/c#frag");
 			});
 
 			it("should resolve query-only reference", async () => {
-				expect(resolve(base, "?query")).toBe("app:/a/b/c?query");
+				expect(resolve(base, "?query")).toBe("base:/a/b/c?query");
 			});
 
 			it("should handle dot segments (. and ..)", async () => {
-				expect(resolve(base, "./d")).toBe("app:/a/b/d");
-				expect(resolve(base, "../d")).toBe("app:/a/d");
-				expect(resolve(base, "../../d")).toBe("app:/d");
+				expect(resolve(base, "./d")).toBe("base:/a/b/d");
+				expect(resolve(base, "../d")).toBe("base:/a/d");
+				expect(resolve(base, "../../d")).toBe("base:/d");
 			});
 
 			it("should clip excessive .. segments at root", async () => {
-				expect(resolve(base, "../../../d")).toBe("app:/d");
-				expect(resolve(base, "../../../../d")).toBe("app:/d");
+				expect(resolve(base, "../../../d")).toBe("base:/d");
+				expect(resolve(base, "../../../../d")).toBe("base:/d");
 			});
 
 		});
@@ -739,19 +739,19 @@ describe("IRI", () => {
 		describe("hierarchical URIs with an opaque origin", () => {
 
 			it("should extract root-relative path for matching authority", () => {
-				expect(internalize("app:/a/b", "app:/x/y")).toBe("/x/y");
-				expect(internalize("app://example.com/a/b", "app://example.com/x/y")).toBe("/x/y");
+				expect(internalize("base:/a/b", "base:/x/y")).toBe("/x/y");
+				expect(internalize("base://example.com/a/b", "base://example.com/x/y")).toBe("/x/y");
 				expect(internalize("file:///a/b", "file:///x/y")).toBe("/x/y");
 			});
 
 			it("should return reference unchanged if different authority", () => {
-				expect(internalize("app://example.com/a/b", "app://other.com/x/y")).toBe("app://other.com/x/y");
+				expect(internalize("base://example.com/a/b", "base://other.com/x/y")).toBe("base://other.com/x/y");
 				expect(internalize("file:///a/b", "file://example.com/x/y")).toBe("file://example.com/x/y");
 			});
 
 			it("should return reference unchanged if only one side carries an authority", () => {
-				expect(internalize("app:/a/b", "app://example.com/x/y")).toBe("app://example.com/x/y");
-				expect(internalize("app://example.com/a/b", "app:/x/y")).toBe("app:/x/y");
+				expect(internalize("base:/a/b", "base://example.com/x/y")).toBe("base://example.com/x/y");
+				expect(internalize("base://example.com/a/b", "base:/x/y")).toBe("base:/x/y");
 			});
 
 		});
@@ -817,21 +817,21 @@ describe("IRI", () => {
 		describe("hierarchical URIs with an opaque origin", () => {
 
 			it("should return a root-relative path when the base carries no authority", () => {
-				expect(relativize("app:/a/b", "app:/a/c")).toBe("/a/c");
+				expect(relativize("base:/a/b", "base:/a/c")).toBe("/a/c");
 			});
 
 			it("should return a path-relative reference when the base carries an authority", () => {
-				expect(relativize("app://example.com/a/b", "app://example.com/a/c")).toBe("c");
+				expect(relativize("base://example.com/a/b", "base://example.com/a/c")).toBe("c");
 			});
 
 			it("should return reference unchanged if different authority", () => {
-				expect(relativize("app://example.com/a/b", "app://other.com/a/c")).toBe("app://other.com/a/c");
+				expect(relativize("base://example.com/a/b", "base://other.com/a/c")).toBe("base://other.com/a/c");
 				expect(relativize("file:///a/b", "file://example.com/a/c")).toBe("file://example.com/a/c");
 			});
 
 			it("should return reference unchanged if only one side carries an authority", () => {
-				expect(relativize("app:/a/b", "app://example.com/a/c")).toBe("app://example.com/a/c");
-				expect(relativize("app://example.com/a/b", "app:/a/c")).toBe("app:/a/c");
+				expect(relativize("base:/a/b", "base://example.com/a/c")).toBe("base://example.com/a/c");
+				expect(relativize("base://example.com/a/b", "base:/a/c")).toBe("base:/a/c");
 			});
 
 		});
@@ -1154,8 +1154,8 @@ describe("Namespace", () => {
 			expect(getNamespaceIRI(createNamespace("urn:example:"))).toBe("urn:example:");
 		});
 
-		it("should return the IRI of the app namespace", async () => {
-			expect(getNamespaceIRI(app)).toBe("app:/#");
+		it("should return the IRI of the base namespace", async () => {
+			expect(getNamespaceIRI(base)).toBe("base:/#");
 		});
 
 	});
@@ -1167,7 +1167,7 @@ describe("Namespace", () => {
 		});
 
 		it("should return the base of a namespace without authority", async () => {
-			expect(getNamespaceBase(app)).toBe("app:/");
+			expect(getNamespaceBase(base)).toBe("base:/");
 		});
 
 		it("should return the base of a closed namespace", async () => {
