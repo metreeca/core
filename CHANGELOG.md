@@ -7,6 +7,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.14.0](https://github.com/metreeca/core/compare/v0.13.0...HEAD)
 
+### Changed
+
+- `dedent`, `text` and `markdown` template tags compute the shared margin from the literal sections alone and insert
+  interpolated values verbatim, so a multi-line value no longer suppresses the dedent (`@metreeca/core/strings`)
+
 ## [0.13.0](https://github.com/metreeca/core/compare/v0.12.1...v0.13.0) - 2026-10-17
 
 ### Added

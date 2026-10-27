@@ -282,8 +282,8 @@ export type Resolver =
  * @param template The literal sections of the text content
  * @param values The values interpolated between the literal sections
  *
- * @returns The assembled template with the line terminators normalised, the outer blank lines dropped and the shared
- *     leading whitespace removed from every line
+ * @returns The assembled template with the line terminators of the literal normalised, the shared leading whitespace
+ *     removed from every literal line, the values inserted verbatim and the outer blank lines dropped
  *
  * @see {@link markdown} for the companion tag marking marked-up content
  */
@@ -302,8 +302,8 @@ export function text(template: TemplateStringsArray, ...values: unknown[]): Text
  * @param template The literal sections of the markdown content
  * @param values The values interpolated between the literal sections
  *
- * @returns The assembled template with the line terminators normalised, the outer blank lines dropped and the shared
- *     leading whitespace removed from every line
+ * @returns The assembled template with the line terminators of the literal normalised, the shared leading whitespace
+ *     removed from every literal line, the values inserted verbatim and the outer blank lines dropped
  *
  * @see {@link text} for the companion tag marking unmarked content
  * @see {@link https://spec.commonmark.org/ CommonMark Specification}
@@ -541,17 +541,26 @@ export function dedent(string: string): string;
 /**
  * Removes the common indentation from a template literal.
  *
- * Assembles the template exactly as the literal itself would, converting interpolated values to strings and splicing
- * them into the literal sections, then strips the shared margin from the result under the same rules as the plain text
- * form. Since values are spliced in before the margin is computed, multi-line values take part in the computation like
- * any other text and a value whose continuation lines are flush left suppresses the dedent; a tagged call and a plain
- * call on the same literal therefore return the same result.
+ * Realigns the literal sections under the same rules as the plain text form, then inserts the interpolated values,
+ * converted to strings as the template literal itself would. A value sourced at runtime thus never alters the layout
+ * of the literal around it, and a template can match the indentation of the surrounding code whatever it renders:
+ *
+ * - The shared margin is computed from the literal sections alone, so a multi-line value never suppresses the dedent
+ * - A line carrying a placeholder counts as content, even if its value is empty or blank
+ * - Values are inserted verbatim at the column their placeholder occupies after realignment; the continuation lines
+ *   of a multi-line value keep their own indentation and line terminators, and are never realigned to the placeholder
+ * - Leading and trailing blank lines are dropped from the assembled result, including those a value contributes
+ *
+ * > [!NOTE]
+ * > A tagged call and a plain call on the same literal differ whenever a value spans several lines or leaves its line
+ * > blank. A plain call receives only the assembled string, so it computes the shared margin over the lines of the
+ * > value as well, and treats a line left blank by an empty or blank value as blank rather than as content.
  *
  * @param template The literal sections of the template
  * @param values The values interpolated between the literal sections
  *
- * @returns The assembled template with the line terminators normalised, the outer blank lines dropped and the shared
- *     leading whitespace removed from every line
+ * @returns The assembled template with the line terminators of the literal normalised, the shared leading whitespace
+ *     removed from every literal line, the values inserted verbatim and the outer blank lines dropped
  *
  * @see {@link text} and {@link markdown} for tags that dedent while declaring the content type
  */
@@ -562,16 +571,17 @@ export function dedent(template: TemplateStringsArray, ...values: readonly unkno
  */
 export function dedent(string: string | TemplateStringsArray, ...values: readonly unknown[]): string {
 
-	const text = isString(string) ? string
-		: String.raw({ raw: string }, ...values); // joins the escape-resolved pieces, as a plain template does
+	const sections = (isString(string) ? [string] : [...string]) // the escape-resolved pieces, as a plain template
+		.map((section, s, all) => section.split(/\r\n|\r|\n/u).map((text, l, lines) => ({
+			text,
+			literal: s === 0 || l > 0, // starts in the literal rather than continuing the line of a placeholder
+			blank: (s === all.length-1 || l < lines.length-1) && /^\s*$/u.test(text) // carries no placeholder
+		})));
 
-	const lines = text
-		.split(/\r\n|\r|\n/u) // split at eol
-		.map(line => /^\s*$/u.test(line) ? "" : line); // clean blank lines
-
-	const prefix = lines
-		.filter(line => line !== "") // ignore blank lines
-		.map(line => /^\s*/u.exec(line)?.[0] ?? "") // extract leading spaces
+	const prefix = sections
+		.flat()
+		.filter(({ literal, blank }) => literal && !blank)
+		.map(({ text }) => /^\s*/u.exec(text)?.[0] ?? "") // extract leading spaces
 		.reduce<undefined | string>(
 			(x, y) => x === undefined ? y : x.slice(
 				0, [...x].filter((_, n) => x.slice(0, n+1) === y.slice(0, n+1)).length
@@ -581,10 +591,13 @@ export function dedent(string: string | TemplateStringsArray, ...values: readonl
 
 	const indent = prefix?.length ?? 0;
 
-	return lines
-		.map(line => line.slice(indent))
+	const realigned = sections.map(lines => lines
+		.map(({ text, literal, blank }) => !literal ? text : blank ? "" : text.slice(indent))
 		.join("\n")
-		.replace(/^\n+|\n+$/gu, ""); // strip leading/trailing lines
+	);
+
+	return String.raw({ raw: realigned }, ...values) // inserts values as a plain template does
+		.replace(/^\s*$|^(?:[^\S\n]*\n)+|(?:\n[^\S\n]*)+$/gu, ""); // strip leading/trailing blank lines
 
 }
 

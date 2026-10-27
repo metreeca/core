@@ -525,21 +525,42 @@ describe("dedent()", () => {
 
 		});
 
-		it("should splice values before computing the margin", async () => {
+		it("should compute the margin from the literal sections alone", async () => {
 
 			const value = "flush\nleft";
 
-			expect(dedent`    one ${value}`).toBe("    one flush\nleft");
+			expect(dedent`\n    one ${value}\n    two\n`).toBe("one flush\nleft\ntwo");
 
 		});
 
-		it("should return the same result as a plain call on the same literal", async () => {
+		it("should insert multi-line values verbatim", async () => {
 
-			const value = "two\n    three";
-			const expected = "one two\nthree";
+			const value = "a\n  b\r\nc";
 
-			expect(dedent`    one ${value}`).toBe(expected);
-			expect(dedent(`    one ${value}`)).toBe(expected);
+			expect(dedent`\n    - item\n      ${value}\n`).toBe("- item\n  a\n  b\r\nc");
+
+		});
+
+		it("should count lines carrying a placeholder as content", async () => {
+
+			expect(dedent`    one\n  ${"x"}\n    two`).toBe("  one\nx\n  two");
+			expect(dedent`    one\n  ${""}\n    two`).toBe("  one\n\n  two");
+			expect(dedent`    one\n  ${"  "}\n    two`).toBe("  one\n  \n  two");
+
+		});
+
+		it("should drop outer blank lines from the assembled result", async () => {
+
+			expect(dedent`\n    ${""}\n    one\n    ${"\n  "}\n`).toBe("one");
+
+		});
+
+		it("should differ from a plain call on literals with multi-line values", async () => {
+
+			const value = "two\nthree";
+
+			expect(dedent`    one ${value}`).toBe("one two\nthree");
+			expect(dedent(`    one ${value}`)).toBe("    one two\nthree");
 
 		});
 
