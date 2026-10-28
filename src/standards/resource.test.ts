@@ -22,6 +22,7 @@ import {
 	createNamespace,
 	expand,
 	getIRIBase,
+	getIRILabel,
 	getIRIParent,
 	getNamespaceBase,
 	getNamespaceIRI,
@@ -572,6 +573,49 @@ describe("IRI", () => {
 				expect(isNestedIRI(getIRIParent("http://example.com/a/b/c")!, "http://example.com/a/b/c")).toBe(true);
 			});
 
+		});
+
+	});
+
+	describe("getIRILabel()", () => {
+
+		it("should label a resource after the last path segment", async () => {
+			expect(getIRILabel("https://example.com/categories/arts")).toBe("Arts");
+		});
+
+		it("should label a resource after the fragment", async () => {
+			expect(getIRILabel("https://example.com/terms#arts")).toBe("Arts");
+		});
+
+		it("should label a resource after the last segment of a URN", async () => {
+			expect(getIRILabel("urn:isbn:1234")).toBe("1234");
+		});
+
+		it("should ignore a trailing slash", async () => {
+			expect(getIRILabel("https://example.com/categories/arts/")).toBe("Arts");
+		});
+
+		it("should ignore the primary topic markers", async () => {
+			expect([
+				getIRILabel("https://example.com/people/alice#id"),
+				getIRILabel("https://example.com/people/alice#this")
+			]).toEqual(["Alice", "Alice"]);
+		});
+
+		it("should split camel, kebab and snake case into capitalised words", async () => {
+			expect([
+				getIRILabel("https://example.com/terms#FineArts"),
+				getIRILabel("https://example.com/terms#fine-arts"),
+				getIRILabel("https://example.com/terms#fine_arts")
+			]).toEqual(["Fine Arts", "Fine Arts", "Fine Arts"]);
+		});
+
+		it("should keep digits attached to the word they follow", async () => {
+			expect(getIRILabel("https://example.com/terms#web3Apps")).toBe("Web3 Apps");
+		});
+
+		it("should return undefined for an identifier with no segment", async () => {
+			expect(getIRILabel("urn:")).toBeUndefined();
 		});
 
 	});

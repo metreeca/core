@@ -7,6 +7,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.14.0](https://github.com/metreeca/core/compare/v0.13.0...HEAD)
 
+### Added
+
+- `getIRILabel` function deriving a readable fallback label from the fragment or last path segment of an IRI, skipping
+  primary topic markers and splitting camel, kebab and snake case into capitalised words (`@metreeca/core/resource`)
+
 ### Changed
 
 - `dedent`, `text` and `markdown` template tags compute the shared margin from the literal sections alone and insert

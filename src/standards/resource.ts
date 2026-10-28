@@ -18,9 +18,10 @@
  * RFC 3987 resource identifiers.
  *
  * Provides types and functions for validating resource identifiers (IRIs), checking nesting relationships and
- * navigating identifier hierarchies, resolving and rewriting references, creating and inspecting namespace objects, and
- * minting IRIs for local resources through the predefined {@link base} namespace. Prefix lexicons compact IRIs to the
- * prefixed names used in SPARQL and Turtle text, and expand those names back to full IRIs.
+ * navigating identifier hierarchies, deriving display labels from identifiers, resolving and rewriting references,
+ * creating and inspecting namespace objects, and minting IRIs for local resources through the predefined {@link base}
+ * namespace. Prefix lexicons compact IRIs to the prefixed names used in SPARQL and Turtle text, and expand those names
+ * back to full IRIs, so names written against a lexicon round-trip to the identifiers they abbreviate.
  *
  * **Type Guards**
  *
@@ -54,7 +55,7 @@
  * **Reference Operations**
  *
  * ```typescript
- * import { getIRIBase, getIRIParent, internalize, relativize, resolve } from "@metreeca/core/resource";
+ * import { getIRIBase, getIRILabel, getIRIParent, internalize, relativize, resolve } from "@metreeca/core/resource";
  *
  * const iri = "http://example.com/a/b/c";
  *
@@ -81,6 +82,10 @@
  * getIRIParent(iri);                           // "http://example.com/a/b/"
  * getIRIParent("/a/b/");                       // "/a/"
  * getIRIParent("a");                           // "./"
+ *
+ * // Derive a display label from the last segment
+ *
+ * getIRILabel("http://example.com/fineArts");  // "Fine Arts"
  * ```
  *
  * **Namespace Objects**
@@ -541,6 +546,40 @@ export function getIRIParent(iri: string | IRI): Optional<IRI> {
 				: collection;
 
 	}
+
+}
+
+/**
+ * Derives a readable label from an identifier.
+ *
+ * Provides a human-readable fallback wherever a resource must be shown but no label is at hand. The label is taken from
+ * the fragment or the last path segment, so vocabulary terms are named after themselves. Primary topic markers such as
+ * `#this` or `#id` are skipped, so a resource described by a document is named after that document. Camel, kebab and
+ * snake case are split into capitalised words, and digits stay attached to the word they follow.
+ *
+ * > [!IMPORTANT]
+ * > Never use labels as identifiers, since distinct resources may share the same label.
+ *
+ * @param iri The identifier to derive the label from
+ *
+ * @returns A label for the resource identified by `iri`, or `undefined` if `iri` carries no segment to derive one from
+ *
+ * @example
+ *
+ * ```typescript
+ * getIRILabel("https://example.com/terms#FineArts");      // "Fine Arts"
+ * getIRILabel("https://example.com/people/alice#this");   // "Alice"
+ * getIRILabel("urn:isbn:1234");                           // "1234"
+ * ```
+ */
+export function getIRILabel(iri: string | IRI): Optional<string> {
+
+	return iri
+		.replace(/^.*?(?:[/#:]([^/#:]+))?(?:\/|#|#_|#id|#this)?$/, "$1") // last segment, past any primary topic marker
+		.replace(/([a-z0-9])([A-Z])/g, "$1 $2") // camel case
+		.replace(/[-_]+/g, " ") // kebab and snake case
+		.replace(/\b[a-z]/g, initial => initial.toUpperCase())
+		|| undefined;
 
 }
 
